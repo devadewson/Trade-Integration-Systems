@@ -24,6 +24,10 @@ public class MessagePublisher {
     private ConnectionFactory connectionFactory;
     private final String destinationQueue;
 
+    public String getDestinationQueue() {
+        return destinationQueue;
+    }
+
     private ConnectionFactory createConnectionFactory(String brokerUrl, String username, String password) {
         ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
         connectionFactory.setBrokerURL(brokerUrl);
@@ -70,7 +74,7 @@ public class MessagePublisher {
 
             // Create a message producer
             jakarta.jms.MessageProducer producer = session.createProducer(destination);
-            
+
             // Create a text message
             TextMessage _message = session.createTextMessage();
             _message.setJMSCorrelationID(correlationId);

@@ -26,6 +26,15 @@ public class LogQueueData {
     private Date delivery_date;
     private Date updated_date;
     private String status_info;
+    private String destination;
+
+    public String getDestination() {
+        return destination;
+    }
+
+    public void setDestination(String destination) {
+        this.destination = destination;
+    }
 
     public String getStatus_info() {
         return status_info;

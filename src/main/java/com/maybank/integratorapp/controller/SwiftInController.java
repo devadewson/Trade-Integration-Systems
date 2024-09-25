@@ -9,61 +9,57 @@ import com.maybank.integratorapp.component.coresystem.ProcessFXRate;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
-import com.maybank.integratorapp.data.repository.MsQueueConfigRepository;
 import com.maybank.integratorapp.model.mq.fxratefcc.response.ExchangeRateRecord;
 import com.maybank.integratorapp.model.mq.fxratefcc.response.ExchangeRateRecords;
-import com.maybank.integratorapp.model.rest.fxrate.request.FxRateRequest;
-import com.maybank.integratorapp.model.rest.fxrate.response.FxRateResponse;
+import com.maybank.integratorapp.model.mq.swiftin.response.ServiceRequest;
 import com.maybank.integratorapp.model.rest.fxratelist.response.FxRateListData;
 import com.maybank.integratorapp.service.MsQueueConfigService;
 import com.maybank.integratorapp.util.MQUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestTemplate;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
 @RestController
-public class FxRateController {
-
+public class SwiftInController {
     @Autowired
     MsQueueConfigService queueConfigService;
     @Autowired
     private LogQueueDataRepository dataDTO;
 
-    @PostMapping("/RateFCC")
-    public ResponseEntity<String> GetRateFCC(){
+    @PostMapping("/BatchSwiftIn")
+    public ResponseEntity<String> GetSwiftIn(){
         try{
 
-            MsQueueConfig config = queueConfigService.findByServiceName("FxRate");
+            MsQueueConfig config = queueConfigService.findByServiceName("SwiftIn");
             if(config != null && config.getEnableStatus() == 1){
                 LogQueueData _data = new LogQueueData();
 
-                ProcessFXRate fxRate = new ProcessFXRate();
-                List<FxRateListData> data = fxRate.getAllFxRate();
+//            ProcessFXRate fxRate = new ProcessFXRate();
+//            List<FxRateListData> data = fxRate.getAllFxRate();
 
-                ExchangeRateRecords response = new ExchangeRateRecords();
-                List<ExchangeRateRecord> records = response.getExchangeRateRecord();
-
-                // mapping each FxRateListData into ExchangeRateRecord
-                for (FxRateListData item : data) {
-                    ExchangeRateRecord dataRecord = new ExchangeRateRecord();
-
-                    String _baseCcy = item.getCcy().split("\\.")[0];
-                    String _againstCcy = item.getCcy().split("\\.")[1];
-
-                    dataRecord.setBaseISOCode(_baseCcy);
-                    dataRecord.setIsoCode(_againstCcy);
-                    dataRecord.setBuyTtRate(item.getBid());
-                    dataRecord.setMidTtRate(item.getBid());
-                    dataRecord.setSellTtRate(item.getAsk());
-
-                    records.add(dataRecord);
-                }
+                ServiceRequest response = new ServiceRequest();
+//
+//            // mapping each FxRateListData into ExchangeRateRecord
+//            for (FxRateListData item : data) {
+//                ExchangeRateRecord dataRecord = new ExchangeRateRecord();
+//
+//                String _baseCcy = item.getCcy().split("\\.")[0];
+//                String _againstCcy = item.getCcy().split("\\.")[1];
+//
+//                dataRecord.setBaseISOCode(_baseCcy);
+//                dataRecord.setIsoCode(_againstCcy);
+//                dataRecord.setBuyTtRate(item.getBid());
+//                dataRecord.setMidTtRate(item.getBid());
+//                dataRecord.setSellTtRate(item.getAsk());
+//
+//                records.add(dataRecord);
+//            }
 
                 XmlMapper xmlMapper = new XmlMapper();
                 // Serialize the object to XML
@@ -77,8 +73,8 @@ public class FxRateController {
                     throw new RuntimeException(e);
                 }
 
-                String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
-                String correlationId = "FXRATEDATA_"+date;
+                String date = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date());
+                String correlationId = "SwiftIn_"+date;
 
                 // logging
                 _data.setMessageUID(new MQUtil().getMessageUID());
