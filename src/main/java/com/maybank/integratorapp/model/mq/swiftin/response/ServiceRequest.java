@@ -13,22 +13,26 @@ import com.maybank.integratorapp.model.mq.swiftout.request.SwiftOut;
 public class ServiceRequest {
     //    @XmlElement(name = "RequestHeader")
 //@XmlElement(name = "RequestHeader")
+    public ServiceRequest(){
+        this.requestHeader = new RequestHeader();
+        this.swiftIn = new SwiftIn();
+    }
     @JacksonXmlProperty(localName = "RequestHeader")
     private RequestHeader requestHeader;
     //    @XmlElement(name = "AvailBalRequest", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
 //@XmlElement(name = "AvailBalRequest", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
-    @JacksonXmlProperty(localName = "SwiftOut", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
-    private SwiftOut swiftOut;
+    @JacksonXmlProperty(localName = "SwiftIn", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
+    private SwiftIn swiftIn;
 
     public RequestHeader getRequestHeader() { return requestHeader; }
     public void setRequestHeader(RequestHeader value) { this.requestHeader = value; }
 
-    public SwiftOut getSwiftOut() {
-        return swiftOut;
+    public SwiftIn getSwiftIn() {
+        return swiftIn;
     }
 
-    public void setSwiftOut(SwiftOut swiftOut) {
-        this.swiftOut = swiftOut;
+    public void setSwiftIn(SwiftIn swiftIn) {
+        this.swiftIn = swiftIn;
     }
 }
 
