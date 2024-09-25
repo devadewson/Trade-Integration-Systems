@@ -14,6 +14,10 @@ import com.maybank.integratorapp.model.mq.swiftout.request.RequestHeader;
 public class ServiceRequest {
     //    @XmlElement(name = "RequestHeader")
 //@XmlElement(name = "RequestHeader")
+    public ServiceRequest(){
+        this.requestHeader = new RequestHeader();
+        this.swiftOut = new SwiftOut();
+    }
     @JacksonXmlProperty(localName = "RequestHeader")
     private RequestHeader requestHeader;
     //    @XmlElement(name = "AvailBalRequest", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")

@@ -47,13 +47,21 @@ public class NewDynamicJmsListenerService {
     public void configureListeners(List<MsQueueConfig> queueConfigs) {
         for (MsQueueConfig config : queueConfigs) {
 
-            if (config.getEnableStatus() == 1) {
+            if((!config.getRequest_Queue_Name().equals(null)
+                && !config.getRequest_Queue_Name().equals(""))
+                    &&
+                (!config.getResponse_Queue_Name().equals(null) &&
+                        !config.getResponse_Queue_Name().equals(""))
+                ){
+                if (config.getEnableStatus() == 1) {
 //                startListener(config);
-                createAndRegisterNewListener(config);
-            } else {
-                stopExistingListener(config);
+                    createAndRegisterNewListener(config);
+                } else {
+                    stopExistingListener(config);
 //                stopListener(config);
+                }
             }
+
         }
     }
 
