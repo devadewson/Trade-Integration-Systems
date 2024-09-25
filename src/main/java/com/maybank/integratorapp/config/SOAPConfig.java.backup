@@ -1,0 +1,70 @@
+package com.maybank.integratorapp.config;
+
+import com.maybank.integratorapp.component.AccountWS;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
+import org.springframework.ws.client.core.WebServiceTemplate;
+import org.springframework.ws.soap.saaj.SaajSoapMessageFactory;
+import org.springframework.ws.transport.http.HttpComponentsMessageSender;
+
+
+
+@Configuration
+public class SOAPConfig {
+
+//    @Autowired ParamRepository paramRepo;
+    private static final Logger logger = LogManager.getFormatterLogger(SOAPConfig.class);
+    @Value("${esb.soapUrl}")
+    private String soapUrl;
+
+    //private final String acctServiceUrlStr = "http://10.247.12.57:7800/AccountServices";
+
+    private final int serviceConnectTimeout = 120000;
+    private final int serviceReadTimeout = 120000;
+
+
+    @Bean
+    public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
+        return new PropertySourcesPlaceholderConfigurer();
+    }
+
+    @Bean
+    public SaajSoapMessageFactory messageFactory() {
+        SaajSoapMessageFactory messageFactory = new SaajSoapMessageFactory();
+        messageFactory.afterPropertiesSet();
+        return messageFactory;
+    }
+
+    @Bean("webServiceTemplateAccount")
+    public WebServiceTemplate webServiceTemplate() {
+        String acctServiceUrlStr = soapUrl;
+//		acctServiceUrlStr = paramRepo.findByParamName("URL_DCIF_SERVICES").getParamValue().toString();
+//		logger.info("SUCCESS SET URL WSDL ACCOUNT SERVICES SET FROM TABLE PARAM DATABASE");
+//		try {
+//
+//		}catch (Exception e) {
+//			logger.error("FAILED SET URL WSDL ACCOUNT SERVICES SET FROM TABLE PARAM DATABASE, USE FROM APPLICATION PROPERTIES");
+//			// TODO: handle exception
+//		}
+        WebServiceTemplate webServiceTemplate = new WebServiceTemplate(messageFactory());
+        webServiceTemplate.setMessageSender(messageSender());
+        webServiceTemplate.setDefaultUri(acctServiceUrlStr);
+        return webServiceTemplate;
+    }
+
+    @Bean
+    public HttpComponentsMessageSender messageSender() {
+        HttpComponentsMessageSender httpComponentsMessageSender = new HttpComponentsMessageSender();
+        httpComponentsMessageSender.setConnectionTimeout(serviceConnectTimeout);
+        httpComponentsMessageSender.setReadTimeout(serviceReadTimeout);
+        return httpComponentsMessageSender;
+    }
+
+    @Bean public AccountWS accountWS() { AccountWS ws = new AccountWS(); return ws; }
+
+}
+
