@@ -93,6 +93,8 @@ public class AccountBalanceMessageListener implements CustomMessageListener {
                 _data.setDelivery_date(new Date());
                 _data.setUpdated_date(new Date());
                 _data.setResMessage(xmlResponse);
+                _data.setDestination(this.publisher.getDestinationQueue());
+
 
                 message.acknowledge();
 //                if(jwtService.validateToken(request.getRequestHeader().getCredentials().getCertificate())){
