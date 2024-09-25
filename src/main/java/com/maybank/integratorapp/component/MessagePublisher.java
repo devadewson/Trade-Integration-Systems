@@ -70,12 +70,7 @@ public class MessagePublisher {
 
             // Create a message producer
             jakarta.jms.MessageProducer producer = session.createProducer(destination);
-
-            // convert back to xml
-//            XmlMapper xmlMapper = new XmlMapper();
-            // Serialize the object to XML
-//            String xml = message;
-
+            
             // Create a text message
             TextMessage _message = session.createTextMessage();
             _message.setJMSCorrelationID(correlationId);
