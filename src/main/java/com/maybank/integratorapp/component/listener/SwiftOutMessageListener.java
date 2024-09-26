@@ -27,7 +27,7 @@ import java.util.List;
 public class SwiftOutMessageListener implements CustomMessageListener {
     @Autowired
     private LogQueueDataRepository dataDTO;
-
+// Test Problem
 //    @Autowired private MessagePublisher publisher;
     @Autowired
     private Environment env;
