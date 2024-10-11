@@ -12,6 +12,7 @@ public class MsQueueConfig {
     private Long id;
     @Column(name = "service_name")
     private String ServiceName;
+    private String ListenerName;
     private String Request_Queue_Name;
     private String Request_Queue_Address;
 
@@ -22,6 +23,14 @@ public class MsQueueConfig {
     private String Response_Queue_Address;
 
     private String Response_Queue_Username;
+
+    public String getListenerName() {
+        return ListenerName;
+    }
+
+    public void setListenerName(String listenerName) {
+        ListenerName = listenerName;
+    }
 
     public Long getId() {
         return id;
