@@ -15,22 +15,13 @@ import org.springframework.jms.listener.DefaultMessageListenerContainer;
 import org.springframework.jms.listener.MessageListenerContainer;
 import org.springframework.stereotype.Service;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Service
 public class NewDynamicJmsListenerService {
-    @Autowired
-    private AccountBalanceMessageListener accountBalanceMessageListener;
-    @Autowired
-    private AccountInformationMessageListener accountInformationMessageListener;
-    @Autowired
-    private CustomerSearchMessageListener customerSearchMessageListener;
-    @Autowired
-    private BatchPostingMessageListener batchPostingMessageListener;
-    @Autowired
-    private SwiftOutMessageListener swiftOutMessageListener;
     @Autowired
     private ApplicationContext context;
     @Autowired
@@ -48,11 +39,8 @@ public class NewDynamicJmsListenerService {
         for (MsQueueConfig config : queueConfigs) {
 
             if((!config.getRequest_Queue_Name().equals(null)
-                && !config.getRequest_Queue_Name().equals(""))
-                    &&
-                (!config.getResponse_Queue_Name().equals(null) &&
-                        !config.getResponse_Queue_Name().equals(""))
-                ){
+                && !config.getRequest_Queue_Name().equals("")))
+            {
                 if (config.getEnableStatus() == 1) {
 //                startListener(config);
                     createAndRegisterNewListener(config);
@@ -64,79 +52,6 @@ public class NewDynamicJmsListenerService {
 
         }
     }
-
-    private void startListener(MsQueueConfig config) {
-//        if (listenerContainers.containsKey(config.getServiceName())) {
-//            return; // Listener already running
-//        }
-
-        try{
-            MessageListenerContainer existingContainer = registry.getListenerContainer(config.getServiceName());
-            if (existingContainer != null) {
-                // Stop and destroy the existing listener container
-                if (existingContainer.isRunning()) {
-                    existingContainer.stop();
-
-                    System.out.println("Stopped listener for queue " + config.getRequest_Queue_Name());
-//                    return;
-                }
-//                else{
-//                    existingContainer.start();
-//                    System.out.println("Restarting listening to Queue : "+config.getRequest_Queue_Name());
-//                    return;
-//                }
-            }else{
-
-            }
-
-            ConnectionFactory connectionFactory = createConnectionFactory(
-                    config.getRequest_Queue_Address(),
-                    config.getRequest_Queue_Username(),
-                    config.getRequest_Queue_Password());
-
-//            DefaultMessageListenerContainer container = new DefaultMessageListenerContainer();
-//            container.setConnectionFactory(connectionFactory);
-//            container.setDestinationName(config.getRequest_Queue_Name());
-
-
-            CustomMessageListener listener = (CustomMessageListener) chooseListener(config.getRequest_Queue_Name());
-            MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),config.getResponse_Queue_Username(), config.getResponse_Queue_Password(),config.getResponse_Queue_Name());
-            listener.setPublisher(publisher);
-
-//            container.setMessageListener(listener);
-//            container.start();
-
-            DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
-            factory.setConnectionFactory(connectionFactory);
-
-            // Optionally configure concurrency settings or other properties
-            factory.setConcurrency("1-10");
-
-            SimpleJmsListenerEndpoint listenerEndpoint = new SimpleJmsListenerEndpoint();
-            listenerEndpoint.setId(config.getServiceName());
-            listenerEndpoint.setDestination(config.getRequest_Queue_Name());
-            listenerEndpoint.setMessageListener(listener);
-
-//            JmsListenerEndpointRegistry registry = new JmsListenerEndpointRegistry();
-//            registry.setApplicationContext(this.context);
-
-            registry.registerListenerContainer(listenerEndpoint, factory,true);
-
-            System.out.println("Starting listening to Queue : "+config.getRequest_Queue_Name());
-//            listenerContainers.put(config.getServiceName(), container);
-
-
-        }catch (Exception e){
-            throw e;
-        }
-//        SimpleJmsListenerEndpoint listenerEndpoint = new SimpleJmsListenerEndpoint();
-//        listenerEndpoint.setId(config.getServiceName());
-//        listenerEndpoint.setDestination(config.getRequest_Queue_Name());
-//        listenerEndpoint.setMessageListener(chooseListener(config.getRequest_Queue_Name()));
-
-
-    }
-
     private void stopListener(MsQueueConfig config) {
 //        DefaultMessageListenerContainer container = listenerContainers.get(config.getServiceName());
 //        if (container != null) {
@@ -173,20 +88,48 @@ public class NewDynamicJmsListenerService {
 
             // Create a queue and a message consumer
             Destination destination = session.createQueue(config.getRequest_Queue_Name());
-            CustomMessageListener listener = (CustomMessageListener) chooseListener(config.getServiceName());
-            MessageConsumer consumer = session.createConsumer(destination);
 
-            // Set the message listener
-            consumer.setMessageListener(listener);
+            // Dynamic Instatiate
+            String className = "com.maybank.integratorapp.component.listener." + config.getListenerName();
 
-            // Store the new connection and session for later use
-            connections.put(config.getServiceName(), connection);
-            sessions.put(config.getServiceName(), session);
+            //Uncomment this for single queue development
+//            if(doesClassExist(className) && className == "YourListenerClassName"){
+            if(doesClassExist(className)){
+                // Load the class at runtime
+                Class<?> clazz = Class.forName(className);
+                // Create a new instance of the class
 
-            System.out.println("Reconfigured and started listener for queue " + config.getRequest_Queue_Name());
+                CustomMessageListener listener = (CustomMessageListener)clazz.getDeclaredConstructor().newInstance();
+                MessageConsumer consumer = session.createConsumer(destination);
+
+                if(!config.getResponse_Queue_Address().isEmpty()){
+                    MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),config.getResponse_Queue_Username(),config.getResponse_Queue_Password(),config.getResponse_Queue_Name());
+                    listener.setPublisher(publisher);
+                }
+
+                // Set the message listener
+                consumer.setMessageListener(listener);
+
+                // Store the new connection and session for later use
+                connections.put(config.getServiceName(), connection);
+                sessions.put(config.getServiceName(), session);
+
+                System.out.println("Reconfigured and started listener for queue " + config.getRequest_Queue_Name());
+
+            }
 
         } catch (JMSException e) {
             e.printStackTrace(); // Handle exception
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
+        } catch (InstantiationException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
         }
     }
     private void stopExistingListener(MsQueueConfig config) {
@@ -236,17 +179,13 @@ public class NewDynamicJmsListenerService {
         connectionFactory.setPassword(password);
         return connectionFactory;
     }
-    private MessageListener chooseListener(String queueName){
-        switch (queueName){
-//            case "QBatchPostingReq":
-//                return batchPostingMessageListener;
-//            case "QCustomerSearchReq":
-//                return customerSearchMessageListener;
-            case "SwiftOut":
-                return swiftOutMessageListener;
-            case "AccountBalance":
-            default:
-                return accountBalanceMessageListener;
+    private static boolean doesClassExist(String className) {
+        try {
+            Class.forName(className);
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
         }
     }
+
 }

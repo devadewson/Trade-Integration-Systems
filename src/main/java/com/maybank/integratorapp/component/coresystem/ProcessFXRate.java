@@ -16,7 +16,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
-@Component
+
 public class ProcessFXRate {
 
 //    @Autowired
@@ -88,6 +88,35 @@ public class ProcessFXRate {
         return finalData;
 
 
+    }
+
+    public FxRateResponse getFxRate(String base,String currency){
+        FxRateResponse finalData = new FxRateResponse();
+
+        try {
+            String apiUrl = "http://10.230.83.121:8282/trapi/getKurs";
+            FxRateRequest req = new FxRateRequest();
+            req.setCcy1(base);
+            req.setCcy2(currency);
+            req.setTenor("TODAY");
+            req.setClientName("M2U_270");
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            // Create the HttpEntity object with request body and headers
+            HttpEntity<FxRateRequest> request = new HttpEntity<>(req, headers);
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<FxRateResponse> response = restTemplate.postForEntity(apiUrl,request, FxRateResponse.class);
+
+            finalData = response.getBody();
+
+        }catch (Exception e){
+            throw e;
+        }
+
+        return finalData;
     }
 
 }
