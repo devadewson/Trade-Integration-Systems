@@ -6,15 +6,12 @@ import com.maybank.integratorapp.component.listener.*;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import jakarta.jms.*;
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.activemq.command.ActiveMQQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.jms.config.*;
-import org.springframework.jms.listener.DefaultMessageListenerContainer;
 import org.springframework.jms.listener.MessageListenerContainer;
 import org.springframework.stereotype.Service;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +29,12 @@ public class NewDynamicJmsListenerService {
     @Autowired
     private SwiftOutMessageListener swiftOutMessageListener;
     @Autowired
+    private AccountInquiryMessageListener accountInquiryMessageListener;
+    @Autowired
+    private CustomerDetailMessageListener customerDetailMessageListener;
+    @Autowired
     private ApplicationContext context;
+
     @Autowired
     @Qualifier("jmsListenerEndpointRegistry")
     private JmsListenerEndpointRegistry registry;
@@ -234,11 +236,21 @@ public class NewDynamicJmsListenerService {
 //                return batchPostingMessageListener;
 //            case "QCustomerSearchReq":
 //                return customerSearchMessageListener;
-            case "SwiftOut":
-                return swiftOutMessageListener;
-            case "AccountBalance":
+//            case "AccountInquiry":
+//                return accountInquiryMessageListener;
+//            case "SwiftOut":
+//                return swiftOutMessageListener;
+//            case "AccountBalance":
+//            default:
+//                return accountBalanceMessageListener;
+//            case "CustomerDetail":
+//                return customerDetailMessageListener;
+//            case "AccountInquiry":
+//            default:
+//                return accountInquiryMessageListener;
+            case "CustomerDetails":
             default:
-                return accountBalanceMessageListener;
+                return customerDetailMessageListener;
         }
     }
 }

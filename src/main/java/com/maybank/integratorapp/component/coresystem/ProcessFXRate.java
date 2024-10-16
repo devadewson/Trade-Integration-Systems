@@ -66,8 +66,10 @@ public class ProcessFXRate {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
+            System.out.println(req);
             // Create the HttpEntity object with request body and headers
             HttpEntity<FxRateListRequest> request = new HttpEntity<>(req, headers);
+            System.out.println(request);
             RestTemplate restTemplate = new RestTemplate();
 
             ResponseEntity<FxRateListResponse> response = restTemplate.postForEntity(apiUrl,request, FxRateListResponse.class);
@@ -88,6 +90,38 @@ public class ProcessFXRate {
         return finalData;
 
 
+    }
+
+    public List<FxRateListData> getKurs(){
+        List<FxRateListData> finalData = new ArrayList<FxRateListData>();
+        try {
+            String apiUrl = "http://10.230.83.121:8282/trapi/getKurs";
+            FxRateListRequest req = new FxRateListRequest();
+            req.setCcy1("USD");
+            req.setCcy2("IDR");
+            req.setTenor("TODAY");
+            req.setClientName("M2U_270");
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            System.out.println(req);
+            // Create the HttpEntity object with request body and headers
+            HttpEntity<FxRateListRequest> request = new HttpEntity<>(req, headers);
+            System.out.println(request);
+            RestTemplate restTemplate = new RestTemplate();
+
+            ResponseEntity<FxRateListResponse> response = restTemplate.postForEntity(apiUrl,request, FxRateListResponse.class);
+
+            if(response.hasBody()){
+                System.out.println(response.getBody().getRespCode());
+                FxRateListResponse responseList = response.getBody();
+                finalData = responseList.getRespData();
+            }
+        }
+        catch (Exception e){
+            throw e;
+        }
+        return finalData;
     }
 
 }

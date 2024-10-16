@@ -143,4 +143,23 @@ public class ExchangeRateRecord {
     public void setEndValueDate(String endValueDate) {
         this.endValueDate = endValueDate;
     }
+
+    @Override
+    public String toString() {
+        return "ExchangeRateRecord{" +
+                "brchCode='" + brchCode + '\'' +
+                ", bankAbbvName='" + bankAbbvName + '\'' +
+                ", isoCode='" + isoCode + '\'' +
+                ", baseISOCode='" + baseISOCode + '\'' +
+                ", patyVal='" + patyVal + '\'' +
+                ", buyTtRate='" + buyTtRate + '\'' +
+                ", midTtRate='" + midTtRate + '\'' +
+                ", sellTtRate='" + sellTtRate + '\'' +
+                ", euroInCurrency='" + euroInCurrency + '\'' +
+                ", euroRate='" + euroRate + '\'' +
+                ", updateDate='" + updateDate + '\'' +
+                ", startValueDate='" + startValueDate + '\'' +
+                ", endValueDate='" + endValueDate + '\'' +
+                '}';
+    }
 }

@@ -5,7 +5,6 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
 public class SwiftDetails {
     @JacksonXmlProperty(namespace = "urn:common.service.ti.apps.tiplus2.misys.com", localName = "MainBankingEntity")
-
     private String mainBankingEntity;
     @JacksonXmlProperty(namespace = "urn:common.service.ti.apps.tiplus2.misys.com", localName = "SwiftAddress")
     private String swiftAddress;
