@@ -3,33 +3,35 @@ package com.maybank.integratorapp.model.mq.fxrate.response;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
 public class FXRate {
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "MaintType")
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "MaintType")
     private String maintType;
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "MaintainedInBackOffice")
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "MaintainedInBackOffice")
     private String maintainedInBackOffice;
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "BankingEntity")
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "FxRateCode")
+    private String fxRateCode;
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "BankingEntity")
     private String bankingEntity;
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "Currency")
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "Currency")
     private String currency;
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "BuyExchangeRate")
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "BuyExchangeRate")
     private String buyExchangeRate;
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "BuyPercentSpread")
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "BuyPercentSpread")
     private String buyPercentSpread;
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "BuySpreadRate")
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "BuySpreadRate")
     private String buySpreadRate;
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "SellExchangeRate")
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "SellExchangeRate")
     private String sellExchangeRate;
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "SellPercentSpread")
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "SellPercentSpread")
     private String sellPercentSpread;
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "SellSpreadRate")
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "SellSpreadRate")
     private String sellSpreadRate;
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "BuyRateSpecific")
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "BuyRateSpecific")
     private String buyRateSpecific;
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "SellRateSpecific")
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "SellRateSpecific")
     private String sellRateSpecific;
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "BaseCurrency")
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "BaseCurrency")
     private String baseCurrency;
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "Reciprocal")
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "Reciprocal")
     private String reciprocal;
 
     public String getMaintType() {
@@ -46,6 +48,14 @@ public class FXRate {
 
     public void setMaintainedInBackOffice(String maintainedInBackOffice) {
         this.maintainedInBackOffice = maintainedInBackOffice;
+    }
+
+    public String getFxRateCode() {
+        return fxRateCode;
+    }
+
+    public void setFxRateCode(String fxRateCode) {
+        this.fxRateCode = fxRateCode;
     }
 
     public String getBankingEntity() {

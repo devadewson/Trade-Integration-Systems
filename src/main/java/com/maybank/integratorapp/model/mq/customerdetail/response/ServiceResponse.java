@@ -9,7 +9,7 @@ public class ServiceResponse {
     @JacksonXmlProperty(localName = "ResponseHeader")
     private ResponseHeader responseHeader;
 
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "CustomerDetailsResponse")
+    @JacksonXmlProperty(localName = "CustomerDetailsResponse", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private CustomerDetailsResponse customerDetailsResponse;
 
     // Getters and setters
@@ -25,11 +25,11 @@ public class ServiceResponse {
         return responseHeader;
     }
 
-    public CustomerDetailsResponse getAvailBalResponse() {
+    public CustomerDetailsResponse getCustomerDetailsResponse() {
         return customerDetailsResponse;
     }
 
-    public void setAvailBalResponse(CustomerDetailsResponse customerDetailsResponse) {
+    public void setCustomerDetailsResponse(CustomerDetailsResponse customerDetailsResponse) {
         this.customerDetailsResponse = customerDetailsResponse;
     }
 

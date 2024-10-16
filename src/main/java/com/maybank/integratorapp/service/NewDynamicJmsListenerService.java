@@ -6,15 +6,12 @@ import com.maybank.integratorapp.component.listener.*;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import jakarta.jms.*;
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.activemq.command.ActiveMQQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.jms.config.*;
-import org.springframework.jms.listener.DefaultMessageListenerContainer;
 import org.springframework.jms.listener.MessageListenerContainer;
 import org.springframework.stereotype.Service;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,33 +29,31 @@ public class NewDynamicJmsListenerService {
     @Autowired
     private SwiftOutMessageListener swiftOutMessageListener;
     @Autowired
+    private AccountInquiryMessageListener accountInquiryMessageListener;
+    @Autowired
+    private CustomerDetailMessageListener customerDetailMessageListener;
+    @Autowired
     private ApplicationContext context;
+
     @Autowired
     @Qualifier("jmsListenerEndpointRegistry")
     private JmsListenerEndpointRegistry registry;
 
-    //    private List<Session> sessions;
-//    private List<Connection> connections;
     private Map<String, Session> sessions = new HashMap<>();
     private Map<String, Connection> connections = new HashMap<>();
-
-//    private Map<String, DefaultMessageListenerContainer> listenerContainers = new HashMap<>();
 
     public void configureListeners(List<MsQueueConfig> queueConfigs) {
         for (MsQueueConfig config : queueConfigs) {
 
-            if((!config.getRequest_Queue_Name().equals(null)
-                && !config.getRequest_Queue_Name().equals(""))
-            ){
+            if ((!config.getRequest_Queue_Name().equals(null)
+                    && !config.getRequest_Queue_Name().equals(""))
+            ) {
                 if (config.getEnableStatus() == 1) {
-//                startListener(config);
                     createAndRegisterNewListener(config);
                 } else {
                     stopExistingListener(config);
-//                stopListener(config);
                 }
             }
-
         }
     }
 
@@ -76,7 +71,7 @@ public class NewDynamicJmsListenerService {
         Session session = null;
         try {
             //Development Use Only
-            if(!config.getServiceName().equals("SwiftOut"))
+            if (!config.getServiceName().equals("CustomerDetails"))
                 return;
 
             // Create a new connection
@@ -95,8 +90,10 @@ public class NewDynamicJmsListenerService {
             Destination destination = session.createQueue(config.getRequest_Queue_Name());
             CustomMessageListener listener = (CustomMessageListener) chooseListener(config.getServiceName());
             MessageConsumer consumer = session.createConsumer(destination);
-            if(!config.getResponse_Queue_Address().isEmpty()){
-                MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),config.getResponse_Queue_Username(),config.getResponse_Queue_Password(),config.getResponse_Queue_Name());
+            if (!config.getResponse_Queue_Address().isEmpty()) {
+                MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),
+                        config.getResponse_Queue_Username(), config.getResponse_Queue_Password(),
+                        config.getResponse_Queue_Name());
                 listener.setPublisher(publisher);
             }
             // Set the message listener
@@ -112,6 +109,7 @@ public class NewDynamicJmsListenerService {
             e.printStackTrace(); // Handle exception
         }
     }
+
     private void stopExistingListener(MsQueueConfig config) {
         // Assuming you maintain a map or list of connections/sessions
         Connection existingConnection = connections.get(config.getServiceName());
@@ -137,6 +135,7 @@ public class NewDynamicJmsListenerService {
             }
         }
     }
+
     private void closeConnection(Session session, Connection connection) {
         try {
             if (session != null) {
@@ -151,7 +150,6 @@ public class NewDynamicJmsListenerService {
     }
 
 
-
     private ConnectionFactory createConnectionFactory(String brokerUrl, String username, String password) {
         ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
         connectionFactory.setBrokerURL(brokerUrl);
@@ -159,17 +157,28 @@ public class NewDynamicJmsListenerService {
         connectionFactory.setPassword(password);
         return connectionFactory;
     }
-    private MessageListener chooseListener(String serviceName){
-        switch (serviceName){
-            case "BatchPosting":
-                return batchPostingMessageListener;
-            case "CustomerSearch":
-                return customerSearchMessageListener;
-            case "SwiftOut":
-                return swiftOutMessageListener;
-            case "AccountBalance":
+
+    private MessageListener chooseListener(String queueName) {
+        switch (queueName) {
+//            case "QBatchPostingReq":
+//                return batchPostingMessageListener;
+//            case "QCustomerSearchReq":
+//                return customerSearchMessageListener;
+//            case "AccountInquiry":
+//                return accountInquiryMessageListener;
+//            case "SwiftOut":
+//                return swiftOutMessageListener;
+//            case "AccountBalance":
+//            default:
+//                return accountBalanceMessageListener;
+//            case "CustomerDetail":
+//                return customerDetailMessageListener;
+//            case "AccountInquiry":
+//            default:
+//                return accountInquiryMessageListener;
+            case "CustomerDetails":
             default:
-                return accountBalanceMessageListener;
+                return customerDetailMessageListener;
         }
     }
 }

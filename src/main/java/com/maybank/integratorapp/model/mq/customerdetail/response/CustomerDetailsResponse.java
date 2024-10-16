@@ -98,10 +98,10 @@ public class CustomerDetailsResponse {
     private SwiftDetails swiftDetails;
     @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "CustomerExtraData")
 
-    private String customerExtraData;
+    private CustometExtraData customerExtraData;
     @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com", localName = "TICustomerExtraData")
 
-    private String tiCustomerExtraData;
+    private TiCustomerExtraData tiCustomerExtraData;
 
     public String getFullName() { return fullName; }
     public void setFullName(String value) { this.fullName = value; }
@@ -196,10 +196,10 @@ public class CustomerDetailsResponse {
     public SwiftDetails getSwiftDetails() { return swiftDetails; }
     public void setSwiftDetails(SwiftDetails value) { this.swiftDetails = value; }
 
-    public String getCustomerExtraData() { return customerExtraData; }
-    public void setCustomerExtraData(String value) { this.customerExtraData = value; }
+    public CustometExtraData getCustomerExtraData() { return customerExtraData; }
+    public void setCustomerExtraData(CustometExtraData value) { this.customerExtraData = value; }
 
-    public String getTICustomerExtraData() { return tiCustomerExtraData; }
-    public void setTICustomerExtraData(String value) { this.tiCustomerExtraData = value; }
+    public TiCustomerExtraData getTICustomerExtraData() { return tiCustomerExtraData; }
+    public void setTICustomerExtraData(TiCustomerExtraData value) { this.tiCustomerExtraData = value; }
 
 }
