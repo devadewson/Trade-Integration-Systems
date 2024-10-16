@@ -29,16 +29,17 @@ public class SwiftInController {
     MsQueueConfigService queueConfigService;
     @Autowired
     private LogQueueDataRepository dataDTO;
+    
+    @Autowired
+    ProcessSwiftIn swiftIn;
 
-    @PostMapping("/BatchSwiftIn")
+    @PostMapping("/GetSwiftIn")
     public ResponseEntity<String> GetSwiftIn(){
         try{
 
             MsQueueConfig config = queueConfigService.findByServiceName("SwiftIn");
             if(config != null && config.getEnableStatus() == 1){
 
-
-                ProcessSwiftIn swiftIn = new ProcessSwiftIn();
                 Map<String, List<String>> fileContents = swiftIn.getFileContent();
 //            ProcessFXRate fxRate = new ProcessFXRate();
 //            List<FxRateListData> data = fxRate.getAllFxRate();
@@ -70,37 +71,23 @@ public class SwiftInController {
 
                     // logging
                     _data.setMessageUID(new MQUtil().getMessageUID());
+                    _data.setOrigin("SwiftSAA");
                     _data.setCreated_date(new Date());
                     _data.setCorrelationID(correlationId);
                     _data.setStatus("Success");
                     _data.setDelivery_date(new Date());
                     _data.setUpdated_date(new Date());
                     _data.setResMessage(xml);
-                    _data.setDestination(config.getResponse_Queue_Username());
+                    _data.setDestination(config.getResponse_Queue_Name());
                     _data = dataDTO.save(_data);
 
                     MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),config.getResponse_Queue_Username(),config.getResponse_Queue_Password(), config.getResponse_Queue_Name());
                     publisher.PublishMessage(xml, correlationId);
 
+
                 });
-//
-//            // mapping each FxRateListData into ExchangeRateRecord
-//            for (FxRateListData item : data) {
-//                ExchangeRateRecord dataRecord = new ExchangeRateRecord();
-//
-//                String _baseCcy = item.getCcy().split("\\.")[0];
-//                String _againstCcy = item.getCcy().split("\\.")[1];
-//
-//                dataRecord.setBaseISOCode(_baseCcy);
-//                dataRecord.setIsoCode(_againstCcy);
-//                dataRecord.setBuyTtRate(item.getBid());
-//                dataRecord.setMidTtRate(item.getBid());
-//                dataRecord.setSellTtRate(item.getAsk());
-//
-//                records.add(dataRecord);
-//            }
 
-
+                swiftIn.moveToBackup();
 
                 return new ResponseEntity<>("SwiftIn Success", HttpStatus.OK);
             }else{
