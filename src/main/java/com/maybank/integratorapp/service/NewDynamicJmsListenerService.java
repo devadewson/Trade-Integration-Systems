@@ -39,109 +39,26 @@ public class NewDynamicJmsListenerService {
     @Qualifier("jmsListenerEndpointRegistry")
     private JmsListenerEndpointRegistry registry;
 
-//    private List<Session> sessions;
-//    private List<Connection> connections;
     private Map<String, Session> sessions = new HashMap<>();
     private Map<String, Connection> connections = new HashMap<>();
-
-//    private Map<String, DefaultMessageListenerContainer> listenerContainers = new HashMap<>();
 
     public void configureListeners(List<MsQueueConfig> queueConfigs) {
         for (MsQueueConfig config : queueConfigs) {
 
-            if (config.getEnableStatus() == 1) {
-//                startListener(config);
-                createAndRegisterNewListener(config);
-            } else {
-                stopExistingListener(config);
-//                stopListener(config);
-            }
-        }
-    }
-
-    private void startListener(MsQueueConfig config) {
-//        if (listenerContainers.containsKey(config.getServiceName())) {
-//            return; // Listener already running
-//        }
-
-        try{
-            MessageListenerContainer existingContainer = registry.getListenerContainer(config.getServiceName());
-            if (existingContainer != null) {
-                // Stop and destroy the existing listener container
-                if (existingContainer.isRunning()) {
-                    existingContainer.stop();
-
-                    System.out.println("Stopped listener for queue " + config.getRequest_Queue_Name());
-//                    return;
+            if ((!config.getRequest_Queue_Name().equals(null)
+                    && !config.getRequest_Queue_Name().equals(""))
+            ) {
+                if (config.getEnableStatus() == 1) {
+                    createAndRegisterNewListener(config);
+                } else {
+                    stopExistingListener(config);
                 }
-//                else{
-//                    existingContainer.start();
-//                    System.out.println("Restarting listening to Queue : "+config.getRequest_Queue_Name());
-//                    return;
-//                }
-            }else{
-
             }
-
-            ConnectionFactory connectionFactory = createConnectionFactory(
-                    config.getRequest_Queue_Address(),
-                    config.getRequest_Queue_Username(),
-                    config.getRequest_Queue_Password());
-
-//            DefaultMessageListenerContainer container = new DefaultMessageListenerContainer();
-//            container.setConnectionFactory(connectionFactory);
-//            container.setDestinationName(config.getRequest_Queue_Name());
-
-
-            CustomMessageListener listener = (CustomMessageListener) chooseListener(config.getRequest_Queue_Name());
-            MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),config.getResponse_Queue_Username(), config.getResponse_Queue_Password(),config.getResponse_Queue_Name());
-            listener.setPublisher(publisher);
-
-//            container.setMessageListener(listener);
-//            container.start();
-
-            DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
-            factory.setConnectionFactory(connectionFactory);
-
-            // Optionally configure concurrency settings or other properties
-            factory.setConcurrency("1-10");
-
-            SimpleJmsListenerEndpoint listenerEndpoint = new SimpleJmsListenerEndpoint();
-            listenerEndpoint.setId(config.getServiceName());
-            listenerEndpoint.setDestination(config.getRequest_Queue_Name());
-            listenerEndpoint.setMessageListener(listener);
-
-//            JmsListenerEndpointRegistry registry = new JmsListenerEndpointRegistry();
-//            registry.setApplicationContext(this.context);
-
-            registry.registerListenerContainer(listenerEndpoint, factory,true);
-
-            System.out.println("Starting listening to Queue : "+config.getRequest_Queue_Name());
-//            listenerContainers.put(config.getServiceName(), container);
-
-
-        }catch (Exception e){
-            throw e;
         }
-//        SimpleJmsListenerEndpoint listenerEndpoint = new SimpleJmsListenerEndpoint();
-//        listenerEndpoint.setId(config.getServiceName());
-//        listenerEndpoint.setDestination(config.getRequest_Queue_Name());
-//        listenerEndpoint.setMessageListener(chooseListener(config.getRequest_Queue_Name()));
-
-
     }
 
     private void stopListener(MsQueueConfig config) {
-//        DefaultMessageListenerContainer container = listenerContainers.get(config.getServiceName());
-//        if (container != null) {
-//            System.out.println("Stopping listening to Queue : "+config.getRequest_Queue_Name());
-//            container.stop();
-//            listenerContainers.remove(config.getServiceName());
-//        }
-//        JmsListenerEndpointRegistry registry = new JmsListenerEndpointRegistry();
-//        JmsListenerEndpointRegistry registry = this.context.getBean(JmsListenerEndpointRegistry.class);
 
-//        registry.setApplicationContext(this.context);
         MessageListenerContainer container = registry.getListenerContainer(config.getServiceName());
         if (container != null && container.isRunning()) {
             container.stop();
@@ -153,6 +70,10 @@ public class NewDynamicJmsListenerService {
         Connection connection = null;
         Session session = null;
         try {
+            //Development Use Only
+            if (!config.getServiceName().equals("CustomerDetails"))
+                return;
+
             // Create a new connection
             ConnectionFactory connectionFactory = createConnectionFactory(
                     config.getRequest_Queue_Address(),
@@ -169,7 +90,12 @@ public class NewDynamicJmsListenerService {
             Destination destination = session.createQueue(config.getRequest_Queue_Name());
             CustomMessageListener listener = (CustomMessageListener) chooseListener(config.getServiceName());
             MessageConsumer consumer = session.createConsumer(destination);
-
+            if (!config.getResponse_Queue_Address().isEmpty()) {
+                MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),
+                        config.getResponse_Queue_Username(), config.getResponse_Queue_Password(),
+                        config.getResponse_Queue_Name());
+                listener.setPublisher(publisher);
+            }
             // Set the message listener
             consumer.setMessageListener(listener);
 
@@ -183,6 +109,7 @@ public class NewDynamicJmsListenerService {
             e.printStackTrace(); // Handle exception
         }
     }
+
     private void stopExistingListener(MsQueueConfig config) {
         // Assuming you maintain a map or list of connections/sessions
         Connection existingConnection = connections.get(config.getServiceName());
@@ -208,6 +135,7 @@ public class NewDynamicJmsListenerService {
             }
         }
     }
+
     private void closeConnection(Session session, Connection connection) {
         try {
             if (session != null) {
@@ -222,7 +150,6 @@ public class NewDynamicJmsListenerService {
     }
 
 
-
     private ConnectionFactory createConnectionFactory(String brokerUrl, String username, String password) {
         ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
         connectionFactory.setBrokerURL(brokerUrl);
@@ -230,8 +157,9 @@ public class NewDynamicJmsListenerService {
         connectionFactory.setPassword(password);
         return connectionFactory;
     }
-    private MessageListener chooseListener(String queueName){
-        switch (queueName){
+
+    private MessageListener chooseListener(String queueName) {
+        switch (queueName) {
 //            case "QBatchPostingReq":
 //                return batchPostingMessageListener;
 //            case "QCustomerSearchReq":
