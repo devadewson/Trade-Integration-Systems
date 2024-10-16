@@ -5,16 +5,12 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.maybank.integratorapp.component.MessagePublisher;
-import com.maybank.integratorapp.component.coresystem.ProcessFXRate;
 import com.maybank.integratorapp.component.coresystem.ProcessSwiftIn;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
-import com.maybank.integratorapp.model.mq.fxratefcc.response.ExchangeRateRecord;
-import com.maybank.integratorapp.model.mq.fxratefcc.response.ExchangeRateRecords;
 import com.maybank.integratorapp.model.mq.swiftin.response.ServiceRequest;
-import com.maybank.integratorapp.model.rest.fxratelist.response.FxRateListData;
-import com.maybank.integratorapp.service.MsQueueConfigService;
+import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.util.MQUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 

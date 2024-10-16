@@ -1,4 +1,4 @@
-package com.maybank.integratorapp.service;
+package com.maybank.integratorapp.data.service;
 
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.MsQueueConfigRepository;
