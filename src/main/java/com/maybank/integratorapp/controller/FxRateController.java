@@ -13,14 +13,8 @@ import com.maybank.integratorapp.model.mq.fxrate.response.FXRate;
 import com.maybank.integratorapp.model.mq.fxrate.response.ServiceRequest;
 import com.maybank.integratorapp.model.mq.fxratefcc.response.ExchangeRateRecord;
 import com.maybank.integratorapp.model.mq.fxratefcc.response.ExchangeRateRecords;
-import com.maybank.integratorapp.model.rest.accountinquiry.request.AccountInquiry;
-import com.maybank.integratorapp.model.rest.accountinquiry.request.AccountInquiryRequest;
-import com.maybank.integratorapp.model.rest.accountinquiry.request.Body;
-import com.maybank.integratorapp.model.rest.accountinquiry.request.ChannelHeader;
-import com.maybank.integratorapp.model.rest.fxrate.request.FxRateRequest;
-import com.maybank.integratorapp.model.rest.fxrate.response.FxRateResponse;
 import com.maybank.integratorapp.model.rest.fxratelist.response.FxRateListData;
-import com.maybank.integratorapp.service.MsQueueConfigService;
+import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.util.MQUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
@@ -178,47 +172,6 @@ public class FxRateController {
 
 
 
-        }
-        catch (Exception e){
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @PostMapping("/TestAccountInquiry")
-    public ResponseEntity<String> GetAccountInquryFTI(){
-        try{
-
-//
-            String apiUrl = "http://10.235.66.96:7800/accountservicesapi/v1/AccountServices";
-            Body req = new Body();
-
-            AccountInquiry accountInquiry = new AccountInquiry();
-            ChannelHeader header = new ChannelHeader();
-            AccountInquiryRequest accountInquiryRequest = new AccountInquiryRequest();
-
-            header.setChannelID("RCMS");
-
-            accountInquiryRequest.setAccountNo("1001146880");
-            accountInquiryRequest.setAccountBranchCode("001");
-            accountInquiryRequest.setAccountCurrency("016");
-
-            accountInquiry.setChannelHeader(header);
-            accountInquiry.setAccountInquiryRequest(accountInquiryRequest);
-
-            req.setAccountInquiry(accountInquiry);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
-            // Create the HttpEntity object with request body and headers
-            HttpEntity<Body> request = new HttpEntity<Body>(req, headers);
-
-            RestTemplate restTemplate = new RestTemplate();
-            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl,request, String.class);
-
-            response.getBody();
-
-            return new ResponseEntity<>(HttpStatus.OK);
         }
         catch (Exception e){
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
