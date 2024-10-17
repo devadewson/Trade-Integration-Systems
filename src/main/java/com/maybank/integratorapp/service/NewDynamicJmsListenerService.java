@@ -160,25 +160,20 @@ public class NewDynamicJmsListenerService {
 
     private MessageListener chooseListener(String queueName) {
         switch (queueName) {
-//            case "QBatchPostingReq":
-//                return batchPostingMessageListener;
-//            case "QCustomerSearchReq":
-//                return customerSearchMessageListener;
-//            case "AccountInquiry":
-//                return accountInquiryMessageListener;
-//            case "SwiftOut":
-//                return swiftOutMessageListener;
-//            case "AccountBalance":
-//            default:
-//                return accountBalanceMessageListener;
-//            case "CustomerDetail":
-//                return customerDetailMessageListener;
-//            case "AccountInquiry":
-//            default:
-//                return accountInquiryMessageListener;
+            case "QBatchPostingReq":
+                return batchPostingMessageListener;
+            case "QCustomerSearchReq":
+                return customerSearchMessageListener;
+            case "AccountInquiry":
+                return accountInquiryMessageListener;
+            case "SwiftOut":
+                return swiftOutMessageListener;
             case "CustomerDetails":
-            default:
                 return customerDetailMessageListener;
+            case "AccountBalance":
+            default:
+                return accountBalanceMessageListener;
+
         }
     }
 }
