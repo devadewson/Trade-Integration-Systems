@@ -159,6 +159,8 @@ public class NewDynamicJmsListenerService {
         Connection connection = null;
         Session session = null;
         try {
+            if(!config.getServiceName().equals("CustomerSearch"))
+                return;
             // Create a new connection
             ConnectionFactory connectionFactory = createConnectionFactory(
                     config.getRequest_Queue_Address(),
@@ -226,8 +228,7 @@ public class NewDynamicJmsListenerService {
             e.printStackTrace(); // Handle exception as needed
         }
     }
-
-
+    
 
     private ConnectionFactory createConnectionFactory(String brokerUrl, String username, String password) {
         ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
@@ -238,10 +239,10 @@ public class NewDynamicJmsListenerService {
     }
     private MessageListener chooseListener(String queueName){
         switch (queueName){
-//            case "QBatchPostingReq":
-//                return batchPostingMessageListener;
-//            case "QCustomerSearchReq":
-//                return customerSearchMessageListener;
+            case "QBatchPostingReq":
+                return batchPostingMessageListener;
+            case "CSearch.Req-Dev":
+                return customerSearchMessageListener;
             case "SwiftOut":
                 return swiftOutMessageListener;
             case "AccountBalance":
