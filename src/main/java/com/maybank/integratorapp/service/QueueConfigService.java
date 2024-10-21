@@ -17,7 +17,7 @@ public class QueueConfigService {
     @Autowired
     private MsQueueConfigRepository queueConfigRepository;
 
-    @Scheduled(fixedDelay = 60000) // Run every 5 seconds
+    @Scheduled(fixedDelay = 60000) // Run every 1 minutes
     public void checkForConfigUpdates() {
         List<MsQueueConfig> queueConfigs = (List<MsQueueConfig>) queueConfigRepository.findAll();
         System.out.println("Refreshing Queue configuration...");
