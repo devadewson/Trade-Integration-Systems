@@ -64,4 +64,5 @@ public class vw_tbr_mapping {
     public void setMapping_type(String mapping_type) {
         this.mapping_type = mapping_type;
     }
+
 }
