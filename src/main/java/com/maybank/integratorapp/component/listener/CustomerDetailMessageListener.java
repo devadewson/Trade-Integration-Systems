@@ -22,7 +22,6 @@ import org.apache.activemq.command.ActiveMQDestination;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -75,7 +74,7 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
             CustomerDetailsResponse customerDetailsResponse = new CustomerDetailsResponse();
 
             detailsResponse.setInfo(informationResponse.getResponseDetail().getResponseData());
-
+            responseHeader.setCorrelationID(message.getJMSCorrelationID());
             responseHeader.setService("Customer");
             responseHeader.setOperation("CustomerDetails");
             responseHeader.setStatus(informationResponse.getResponseDetail().getResponseData() + "_" +
@@ -113,15 +112,14 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
             customerDetailsResponse.setResidenceCountry(national);
             customerDetailsResponse.setCustomerType(custType);
 
-            String responseXml = xmlMapper.writeValueAsString(serviceResponse);;
+            String responseXml = xmlMapper.writeValueAsString(serviceResponse);
             System.out.println("===========================responseXml=================================");
             System.out.println(responseXml);
             System.out.println("============================================================\n");
 
             MsQueueConfig config = queueConfigService.findByServiceName("CustomerDetails");
             if(config != null && config.getEnableStatus() == 1){
-                String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
-                String correlationId = "CUSTOMERDETAILsDATA_"+date;
+                String correlationId = message.getJMSCorrelationID();
 
                 MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),
                         config.getResponse_Queue_Username(),config.getResponse_Queue_Password(), config.getResponse_Queue_Name());

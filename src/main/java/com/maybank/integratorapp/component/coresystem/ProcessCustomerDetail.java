@@ -1,6 +1,9 @@
 package com.maybank.integratorapp.component.coresystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maybank.integratorapp.data.repository.MsParameterRepository;
+import com.maybank.integratorapp.data.repository.MsQueueConfigRepository;
+import com.maybank.integratorapp.data.service.MsParameterService;
 import com.maybank.integratorapp.model.mq.customerdetail.response.AddressDetail;
 import com.maybank.integratorapp.model.mq.customerdetail.response.AddressDetails;
 import com.maybank.integratorapp.model.mq.customerdetail.response.CustomerDetailsResponse;
@@ -17,19 +20,24 @@ import com.maybank.integratorapp.model.rest.CustomerDetail.request.CustomerInfor
 import com.maybank.integratorapp.model.rest.CustomerDetail.response.CustomerInformationResponse;
 import com.maybank.integratorapp.model.rest.CustomerDetail.response.CustomerInformationResponseData;
 import com.maybank.integratorapp.model.rest.CustomerDetail.response.CustomerInformationResponseWraper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestTemplate;
 
 public class ProcessCustomerDetail {
+
+    @Autowired
+    private MsParameterRepository parameterRepository;
+
     public CustomerInformationResponse getCustomerDetail(String gcifNo){
         CustomerDetailsResponse customerDetailsResponse = new CustomerDetailsResponse();
         CustomerInformationResponseData customerInformationResponseData = new CustomerInformationResponseData();
         CustomerInformationResponse customerInformationResponse = new CustomerInformationResponse();
 
         try {
-            String apiUrl = "http://10.235.66.96:7800/accountservicesapi/v1/AccountServices";
+            String apiUrl = parameterRepository.findValueByPrmKey("CustomerInformationRequest");
             ChannelHeader channelHeader = new ChannelHeader();
             channelHeader.setMessageID("TESTING");
             channelHeader.setBranchCode("270");
@@ -88,7 +96,7 @@ public class ProcessCustomerDetail {
         AccountListResponseData accountListResponseData = new AccountListResponseData();
         String res = "";
         try {
-            String apiUrl = "http://10.235.66.96:7800/accountservicesapi/v1/AccountServices";
+            String apiUrl = parameterRepository.findValueByPrmKey("CustomerInformationRequest");;
             ChannelHeader channelHeader = new ChannelHeader();
             channelHeader.setMessageID("TESTING");
             channelHeader.setBranchCode("270");

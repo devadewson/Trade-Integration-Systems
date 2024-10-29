@@ -20,13 +20,10 @@ import com.maybank.integratorapp.util.MQUtil;
 import org.apache.activemq.command.ActiveMQDestination;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.TextMessage;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -83,7 +80,7 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
             AvailBalResponse availBalResponse = new AvailBalResponse();
 
             detailsResponse.setInfo(accountInquiryResponse.getResponseDetail().getResponse_data());
-
+            responseHeader.setCorrelationID(message.getJMSCorrelationID());
             responseHeader.setService("AccountInquiry");
             responseHeader.setOperation("AccountInquiry");
             responseHeader.setStatus(accountInquiryResponse.getResponseDetail().getResponse_data() + "_" +
@@ -101,8 +98,7 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
 
             MsQueueConfig config = queueConfigService.findByServiceName("AccountInquiry");
             if(config != null && config.getEnableStatus() == 1){
-                String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
-                String correlationId = "ACCOUNTINQUIRYDATA_"+date;
+                String correlationId = message.getJMSCorrelationID();
 
                 MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),
                         config.getResponse_Queue_Username(),config.getResponse_Queue_Password(), config.getResponse_Queue_Name());

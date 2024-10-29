@@ -1,10 +1,12 @@
 package com.maybank.integratorapp.component.coresystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maybank.integratorapp.data.repository.MsParameterRepository;
 import com.maybank.integratorapp.model.rest.AccountInquiry.request.*;
 import com.maybank.integratorapp.model.rest.AccountInquiry.response.AccountInquiryResponse;
 import com.maybank.integratorapp.model.rest.AccountInquiry.response.AccountInquiryResponseWrapper;
 import com.maybank.integratorapp.model.rest.AccountInquiry.response.accountInquiryResponseData;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -13,12 +15,15 @@ import java.util.Map;
 
 @Component
 public class ProcessAccountInquiry {
+    @Autowired
+    MsParameterRepository parameterRepository;
+
     public AccountInquiryResponse getAccInq(){
         AccountInquiryResponse res = new AccountInquiryResponse();
         accountInquiryResponseData responseData = new accountInquiryResponseData();
 
         try {
-            String apiUrl = "http://10.235.66.96:7800/accountservicesapi/v1/AccountServices";
+            String apiUrl = parameterRepository.findValueByPrmKey("CustomerInformationRequest");;
 
             ChannelHeader channelHeader = new ChannelHeader();
             channelHeader.setMessageID("TESTING");
@@ -101,7 +106,7 @@ public class ProcessAccountInquiry {
         AccountInquiryResponse res = new AccountInquiryResponse();
         accountInquiryResponseData responseData = new accountInquiryResponseData();
         try{
-            String apiUrl = "http://10.235.66.96:7800/accountservicesapi/v1/AccountServices";
+            String apiUrl = parameterRepository.findValueByPrmKey("CustomerInformationRequest");;
             System.out.println("===========================test=================================");
             System.out.println(message);
             System.out.println("============================================================");
