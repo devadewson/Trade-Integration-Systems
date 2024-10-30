@@ -13,11 +13,16 @@ public class MsTBRField {
 
     private Long TBR_Id;
     private String DestinationField;
+    private String DestinationFieldDataType;
     private String SourceField;
     private int FieldLength;
     private String PaddingChar;
     private String PaddingPosition;
     private String DefaultValue;
+    private String MappingCurrency;
+    private String MappingAccountType;
+    private String MappingDebitCredit;
+    private String MappingPosition;
 
     public Long getId() {
         return id;
@@ -81,5 +86,45 @@ public class MsTBRField {
 
     public void setDefaultValue(String defaultValue) {
         DefaultValue = defaultValue;
+    }
+
+    public String getDestinationFieldDataType() {
+        return DestinationFieldDataType;
+    }
+
+    public void setDestinationFieldDataType(String destinationFieldDataType) {
+        DestinationFieldDataType = destinationFieldDataType;
+    }
+
+    public String getMappingCurrency() {
+        return MappingCurrency;
+    }
+
+    public void setMappingCurrency(String mappingCurrency) {
+        MappingCurrency = mappingCurrency;
+    }
+
+    public String getMappingAccountType() {
+        return MappingAccountType;
+    }
+
+    public void setMappingAccountType(String mappingAccountType) {
+        MappingAccountType = mappingAccountType;
+    }
+
+    public String getMappingDebitCredit() {
+        return MappingDebitCredit;
+    }
+
+    public void setMappingDebitCredit(String mappingDebitCredit) {
+        MappingDebitCredit = mappingDebitCredit;
+    }
+
+    public String getMappingPosition() {
+        return MappingPosition;
+    }
+
+    public void setMappingPosition(String mappingPosition) {
+        MappingPosition = mappingPosition;
     }
 }
