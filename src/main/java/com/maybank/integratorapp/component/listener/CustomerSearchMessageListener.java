@@ -13,12 +13,12 @@ import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.model.mq.customersearch.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.customersearch.response.CustomerSearchResult;
 import com.maybank.integratorapp.model.mq.customersearch.response.ServiceResponse;
-import com.maybank.integratorapp.service.MsQueueConfigService;
+import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.util.MQUtil;
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
+import jakarta.jms.Queue;
 import jakarta.jms.TextMessage;
-import org.apache.activemq.command.ActiveMQDestination;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -80,16 +80,8 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
 
             //Send Response To QUEUE Response
             String responseXml = new XmlMapper().writeValueAsString(response);
-            MsQueueConfig config = queueConfigService.findByServiceName("CustomerSearch");
-            if(config != null && config.getEnableStatus() == 1){
-                String correlationId = message.getJMSCorrelationID();
 
-                MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),
-                        config.getResponse_Queue_Username(),config.getResponse_Queue_Password(), config.getResponse_Queue_Name());
-                publisher.PublishMessage(responseXml, correlationId);
-            }else{
-                System.out.println("MsQueueConfig 'CustomerDetail' is Null");
-            }
+            publisher.PublishMessage(responseXml, message.getJMSCorrelationID());
 
             response.getResponseHeader().setStatus("Success");
 
@@ -111,8 +103,8 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
     }
 
     private void initializeLogData(LogQueueData logData, TextMessage message) throws JMSException  {
-        ActiveMQDestination sourceQueue = (ActiveMQDestination) message.getJMSDestination();
-        logData.setOrigin("MQ_" + sourceQueue.getPhysicalName());
+        Queue sourceQueue = (Queue) message.getJMSDestination();
+        logData.setOrigin("MQ_"+sourceQueue.getQueueName());
         logData.setMessageUID(new MQUtil().getMessageUID());
         logData.setReqMessage(message.getText());
         logData.setCreated_date(new Date());

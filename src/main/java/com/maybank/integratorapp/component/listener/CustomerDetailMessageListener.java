@@ -13,12 +13,12 @@ import com.maybank.integratorapp.model.mq.customerdetail.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.customerdetail.response.*;
 import com.maybank.integratorapp.model.rest.AccountList.response.AccountListResponse;
 import com.maybank.integratorapp.model.rest.CustomerDetail.response.CustomerInformationResponse;
-import com.maybank.integratorapp.service.MsQueueConfigService;
+import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.util.MQUtil;
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
+import jakarta.jms.Queue;
 import jakarta.jms.TextMessage;
-import org.apache.activemq.command.ActiveMQDestination;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -47,17 +47,12 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
             System.out.println("Received 1 Message With CorrelationID : " + message.getJMSCorrelationID());
             String _message = message.getBody(String.class);
 
-            System.out.println("===========================xmlRequest=================================");
-            System.out.println(_message);
-            System.out.println("============================================================\n");
-
-            ActiveMQDestination sourceQueue = (ActiveMQDestination) message.getJMSDestination();
-            String time = new SimpleDateFormat("HH-mm-ss").format(new Date());
-            _data.setOrigin("MQ_"+sourceQueue.getPhysicalName());
+            Queue sourceQueue = (Queue) message.getJMSDestination();
+            _data.setOrigin("MQ_"+sourceQueue.getQueueName());
             _data.setMessageUID(new MQUtil().getMessageUID());
             _data.setReqMessage(_message);
             _data.setCreated_date(new Date());
-            _data.setCorrelationID(message.getJMSCorrelationID()+ "_"+ time);
+            _data.setCorrelationID(message.getJMSCorrelationID());
 
             _data = dataDTO.save(_data);
 
@@ -94,7 +89,7 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
             serviceResponse.setResponseHeader(responseHeader);
             serviceResponse.setCustomerDetailsResponse(customerDetailsResponse);
 
-            AccountListResponse accountListResponse = processCustomerDetail.getAccListByGcifNo("G000709212");
+            AccountListResponse accountListResponse = processCustomerDetail.getAccListByGcifNo(gcifNo);
             String cifNo = accountListResponse.getAccountListResponseData().getAccountData().get(0).getCifNo();
             String taxId = informationResponse.getCustomerInformationResponseData().getNPWP();
             String lineOfBussiness = informationResponse.getCustomerInformationResponseData().getLineOfBusiness();
@@ -113,20 +108,8 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
             customerDetailsResponse.setCustomerType(custType);
 
             String responseXml = xmlMapper.writeValueAsString(serviceResponse);
-            System.out.println("===========================responseXml=================================");
-            System.out.println(responseXml);
-            System.out.println("============================================================\n");
 
-            MsQueueConfig config = queueConfigService.findByServiceName("CustomerDetails");
-            if(config != null && config.getEnableStatus() == 1){
-                String correlationId = message.getJMSCorrelationID();
-
-                MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),
-                        config.getResponse_Queue_Username(),config.getResponse_Queue_Password(), config.getResponse_Queue_Name());
-                publisher.PublishMessage(responseXml, correlationId);
-            }else{
-                System.out.println("MsQueueConfig 'CustomerDetail' is Null");
-            }
+            publisher.PublishMessage(responseXml, message.getJMSCorrelationID());
 
             _data.setStatus("Success");
             _data.setDelivery_date(new Date());

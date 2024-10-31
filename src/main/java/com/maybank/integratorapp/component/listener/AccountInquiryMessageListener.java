@@ -15,9 +15,9 @@ import com.maybank.integratorapp.model.mq.accountinquiry.response.Details;
 import com.maybank.integratorapp.model.mq.accountinquiry.response.ResponseHeader;
 import com.maybank.integratorapp.model.mq.accountinquiry.response.ServiceResponse;
 import com.maybank.integratorapp.model.rest.AccountInquiry.response.*;
-import com.maybank.integratorapp.service.MsQueueConfigService;
+import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.util.MQUtil;
-import org.apache.activemq.command.ActiveMQDestination;
+import jakarta.jms.Queue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -51,17 +51,12 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
             System.out.println("Received 1 Message With CorrelationID : "+ message.getJMSCorrelationID());
             String _message = message.getBody(String.class);
 
-            System.out.println("===========================xmlRequest=================================");
-            System.out.println(_message);
-            System.out.println("============================================================\n");
-
-            ActiveMQDestination sourceQueue = (ActiveMQDestination) message.getJMSDestination();
-            String time = new SimpleDateFormat("HH-mm-ss").format(new Date());
-            _data.setOrigin("MQ_"+sourceQueue.getPhysicalName());
+            Queue sourceQueue = (Queue) message.getJMSDestination();
+            _data.setOrigin("MQ_"+sourceQueue.getQueueName());
             _data.setMessageUID(new MQUtil().getMessageUID());
             _data.setReqMessage(_message);
             _data.setCreated_date(new Date());
-            _data.setCorrelationID(message.getJMSCorrelationID()+ "_"+ time);
+            _data.setCorrelationID(message.getJMSCorrelationID());
 
             _data = dataDTO.save(_data);
 
@@ -92,20 +87,8 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
             serviceResponse.setResponseHeader(responseHeader);
 
             String responseXml = xmlMapper.writeValueAsString(serviceResponse);;
-            System.out.println("===========================xmlResponse=================================");
-            System.out.println(responseXml);
-            System.out.println("============================================================\n");
 
-            MsQueueConfig config = queueConfigService.findByServiceName("AccountInquiry");
-            if(config != null && config.getEnableStatus() == 1){
-                String correlationId = message.getJMSCorrelationID();
-
-                MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),
-                        config.getResponse_Queue_Username(),config.getResponse_Queue_Password(), config.getResponse_Queue_Name());
-                publisher.PublishMessage(responseXml, correlationId);
-            }else{
-                System.out.println("MsQueueConfig 'AccountInquiry' is Null");
-            }
+            publisher.PublishMessage(responseXml, message.getJMSCorrelationID());
 
             _data.setStatus("Success");
             _data.setDelivery_date(new Date());

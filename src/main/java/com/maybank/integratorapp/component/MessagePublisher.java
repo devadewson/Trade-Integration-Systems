@@ -1,7 +1,7 @@
 package com.maybank.integratorapp.component;
 
+import com.ibm.mq.jakarta.jms.MQConnectionFactory;
 import jakarta.jms.*;
-import org.apache.activemq.ActiveMQConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.jms.core.JmsTemplate;
@@ -10,14 +10,8 @@ import org.springframework.stereotype.Component;
 //@Component
 public class MessagePublisher {
 
-//    @Autowired
-//    private JmsTemplate jmsTemplate;
-
-    @Autowired
-    private Environment env;
-
-    public MessagePublisher(String brokerUrl, String username,String password,String destinationQueue){
-        this.connectionFactory= createConnectionFactory(brokerUrl,username,password);
+    public MessagePublisher(String brokerUrl,int port, String manager,String channel, String username,String password,String destinationQueue){
+        this.connectionFactory= createIBMConnectionFactory(brokerUrl,port,manager,channel,username,password);
         this.destinationQueue = destinationQueue;
     }
 
@@ -27,15 +21,32 @@ public class MessagePublisher {
     public String getDestinationQueue() {
         return destinationQueue;
     }
+    public ConnectionFactory createIBMConnectionFactory(String brokerUrl,int port,String manager,String channel, String username, String password) {
+        try {
+            MQConnectionFactory connectionFactory = new MQConnectionFactory();
+//            connectionFactory.setTransportType(JMSC.MQJMS_TP_CLIENT_MQ_TCPIP);
+            connectionFactory.setQueueManager(manager); // Replace with your queue manager name
+            connectionFactory.setHostName(brokerUrl); // Replace with your hostname
+            connectionFactory.setPort(port); // Replace with your port number
+            connectionFactory.setChannel(channel); // Replace with your channel name
+//            connectionFactory.setStringProperty(WMQConstants.WMQ_CCSID, "1208"); // Set CCSID if necessary
 
-    private ConnectionFactory createConnectionFactory(String brokerUrl, String username, String password) {
-        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
-        connectionFactory.setBrokerURL(brokerUrl);
-        connectionFactory.setUserName(username);
-        connectionFactory.setPassword(password);
+            Connection connection = connectionFactory.createConnection(username, password);
 
-        return connectionFactory;
+            return connectionFactory;
+        } catch (JMSException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to create IBM MQ connection factory", e);
+        }
     }
+//    private ConnectionFactory createConnectionFactory(String brokerUrl, String username, String password) {
+//        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
+//        connectionFactory.setBrokerURL(brokerUrl);
+//        connectionFactory.setUserName(username);
+//        connectionFactory.setPassword(password);
+//
+//        return connectionFactory;
+//    }
 //    @Value("${queue.address}")
 //    private String queueAddress;
 //    @Value("${queue.accountinquiry.response}")

@@ -90,7 +90,14 @@ public class FxRateController {
                 _data.setDestination(config.getResponse_Queue_Username());
                 _data = dataDTO.save(_data);
 
-                MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),config.getResponse_Queue_Username(),config.getResponse_Queue_Password(), config.getResponse_Queue_Name());
+                MessagePublisher publisher = new MessagePublisher(
+                        config.getResponse_Queue_Address(),
+                        Integer.parseInt(config.getRequest_Queue_Port()),
+                        config.getRequest_Queue_Manager(),
+                        config.getRequest_Queue_Channel(),
+                        config.getResponse_Queue_Username(),
+                        config.getResponse_Queue_Password(),
+                        config.getResponse_Queue_Name());
                 publisher.PublishMessage(xml, correlationId);
 
                 return new ResponseEntity<>(xml, HttpStatus.OK);
@@ -162,7 +169,14 @@ public class FxRateController {
                 _data.setDestination(config.getResponse_Queue_Username());
                 _data = dataDTO.save(_data);
 
-                MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),config.getResponse_Queue_Username(),config.getResponse_Queue_Password(), config.getResponse_Queue_Name());
+                MessagePublisher publisher = new MessagePublisher(
+                        config.getResponse_Queue_Address(),
+                        Integer.parseInt(config.getRequest_Queue_Port()),
+                        config.getRequest_Queue_Manager(),
+                        config.getRequest_Queue_Channel(),
+                        config.getResponse_Queue_Username(),
+                        config.getResponse_Queue_Password(),
+                        config.getResponse_Queue_Name());
                 publisher.PublishMessage(xml, correlationId);
 
                 return new ResponseEntity<>(xml, HttpStatus.OK);

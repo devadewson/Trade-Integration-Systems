@@ -14,11 +14,7 @@ import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.model.mq.accountinquiry.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.accountinquiry.response.ServiceResponse;
 import com.maybank.integratorapp.util.MQUtil;
-import jakarta.jms.JMSException;
-import jakarta.jms.Message;
-import jakarta.jms.MessageListener;
-import jakarta.jms.TextMessage;
-import org.apache.activemq.command.ActiveMQDestination;
+import jakarta.jms.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -54,8 +50,8 @@ public class AccountInformationMessageListener implements CustomMessageListener 
                 String _message = message.getBody(String.class);
 
 
-                ActiveMQDestination sourceQueue = (ActiveMQDestination) message.getJMSDestination();
-                _data.setOrigin("MQ_"+sourceQueue.getPhysicalName());
+                Queue sourceQueue = (Queue) message.getJMSDestination();
+                _data.setOrigin("MQ_"+sourceQueue.getQueueName());
                 _data.setMessageUID(new MQUtil().getMessageUID());
                 _data.setReqMessage(_message);
                 _data.setCreated_date(new Date());

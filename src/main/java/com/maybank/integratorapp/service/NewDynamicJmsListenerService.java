@@ -1,11 +1,13 @@
 package com.maybank.integratorapp.service;
 
+import com.ibm.mq.jakarta.jms.MQConnectionFactory;
+import com.ibm.msg.client.jakarta.wmq.WMQConstants;
+import com.ibm.msg.client.jakarta.wmq.compat.jms.internal.JMSC;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.listener.*;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import jakarta.jms.*;
-import org.apache.activemq.ActiveMQConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
@@ -71,12 +73,15 @@ public class NewDynamicJmsListenerService {
         Session session = null;
         try {
             //Development Use Only
-            if (!config.getServiceName().equals("CustomerDetails"))
-                return;
+//            if (!config.getServiceName().equals("CustomerDetails"))
+//                return;
 
             // Create a new connection
-            ConnectionFactory connectionFactory = createConnectionFactory(
+            ConnectionFactory connectionFactory = createIBMConnectionFactory(
                     config.getRequest_Queue_Address(),
+                    Integer.parseInt(config.getRequest_Queue_Port()),
+                    config.getRequest_Queue_Manager(),
+                    config.getRequest_Queue_Channel(),
                     config.getRequest_Queue_Username(),
                     config.getRequest_Queue_Password()
             );
@@ -91,8 +96,13 @@ public class NewDynamicJmsListenerService {
             CustomMessageListener listener = (CustomMessageListener) chooseListener(config.getServiceName());
             MessageConsumer consumer = session.createConsumer(destination);
             if (!config.getResponse_Queue_Address().isEmpty()) {
-                MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),
-                        config.getResponse_Queue_Username(), config.getResponse_Queue_Password(),
+                MessagePublisher publisher = new MessagePublisher(
+                        config.getResponse_Queue_Address(),
+                        Integer.parseInt(config.getRequest_Queue_Port()),
+                        config.getRequest_Queue_Manager(),
+                        config.getRequest_Queue_Channel(),
+                        config.getResponse_Queue_Username(),
+                        config.getResponse_Queue_Password(),
                         config.getResponse_Queue_Name());
                 listener.setPublisher(publisher);
             }
@@ -149,20 +159,37 @@ public class NewDynamicJmsListenerService {
         }
     }
 
+    public ConnectionFactory createIBMConnectionFactory(String brokerUrl,int port, String manager, String channel, String username, String password) {
+        try {
+            MQConnectionFactory connectionFactory = new MQConnectionFactory();
+//            connectionFactory.setTransportType(JMSC.MQJMS_TP_CLIENT_MQ_TCPIP);
+            connectionFactory.setQueueManager(manager); // Replace with your queue manager name
+            connectionFactory.setHostName(brokerUrl); // Replace with your hostname
+            connectionFactory.setPort(port); // Replace with your port number
+            connectionFactory.setChannel(channel); // Replace with your channel name
+//            connectionFactory.setStringProperty(WMQConstants.WMQ_CCSID, "1208"); // Set CCSID if necessary
 
-    private ConnectionFactory createConnectionFactory(String brokerUrl, String username, String password) {
-        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
-        connectionFactory.setBrokerURL(brokerUrl);
-        connectionFactory.setUserName(username);
-        connectionFactory.setPassword(password);
-        return connectionFactory;
+            Connection connection = connectionFactory.createConnection(username, password);
+
+            return connectionFactory;
+        } catch (JMSException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to create IBM MQ connection factory", e);
+        }
     }
+//    private ConnectionFactory createConnectionFactory(String brokerUrl, String username, String password) {
+//        IBMM connectionFactory = new ActiveMQConnectionFactory();
+//        connectionFactory.setBrokerURL(brokerUrl);
+//        connectionFactory.setUserName(username);
+//        connectionFactory.setPassword(password);
+//        return connectionFactory;
+//    }
 
     private MessageListener chooseListener(String queueName) {
         switch (queueName) {
-            case "QBatchPostingReq":
+            case "BatchPosting":
                 return batchPostingMessageListener;
-            case "QCustomerSearchReq":
+            case "CustomerSearch":
                 return customerSearchMessageListener;
             case "AccountInquiry":
                 return accountInquiryMessageListener;
