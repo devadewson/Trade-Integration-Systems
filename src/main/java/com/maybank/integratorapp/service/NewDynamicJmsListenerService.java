@@ -2,6 +2,7 @@ package com.maybank.integratorapp.service;
 
 import com.ibm.mq.jakarta.jms.MQConnectionFactory;
 import com.ibm.msg.client.jakarta.wmq.WMQConstants;
+import com.ibm.msg.client.jakarta.wmq.common.CommonConstants;
 import com.ibm.msg.client.jakarta.wmq.compat.jms.internal.JMSC;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
@@ -90,7 +91,6 @@ public class NewDynamicJmsListenerService {
 
             // Create a new session
             session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
-
             // Create a queue and a message consumer
             Destination destination = session.createQueue(config.getRequest_Queue_Name());
             CustomMessageListener listener = (CustomMessageListener) chooseListener(config.getServiceName());
@@ -99,8 +99,8 @@ public class NewDynamicJmsListenerService {
                 MessagePublisher publisher = new MessagePublisher(
                         config.getResponse_Queue_Address(),
                         Integer.parseInt(config.getRequest_Queue_Port()),
-                        config.getRequest_Queue_Manager(),
-                        config.getRequest_Queue_Channel(),
+                        config.getResponse_Queue_Manager(),
+                        config.getResponse_Queue_Channel(),
                         config.getResponse_Queue_Username(),
                         config.getResponse_Queue_Password(),
                         config.getResponse_Queue_Name());
@@ -162,6 +162,8 @@ public class NewDynamicJmsListenerService {
     public ConnectionFactory createIBMConnectionFactory(String brokerUrl,int port, String manager, String channel, String username, String password) {
         try {
             MQConnectionFactory connectionFactory = new MQConnectionFactory();
+            connectionFactory.setTransportType(WMQConstants.WMQ_CM_CLIENT);
+//            connectionFactory.setIntProperty(CommonConstants.WMQ_CONNECTION_MODE, CommonConstants.WMQ_CM_CLIENT);
 //            connectionFactory.setTransportType(JMSC.MQJMS_TP_CLIENT_MQ_TCPIP);
             connectionFactory.setQueueManager(manager); // Replace with your queue manager name
             connectionFactory.setHostName(brokerUrl); // Replace with your hostname
@@ -199,7 +201,7 @@ public class NewDynamicJmsListenerService {
                 return customerDetailMessageListener;
             case "AccountBalance":
             default:
-                return accountBalanceMessageListener;
+                return accountInquiryMessageListener;
 
         }
     }

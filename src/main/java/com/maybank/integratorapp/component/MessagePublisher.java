@@ -1,6 +1,7 @@
 package com.maybank.integratorapp.component;
 
 import com.ibm.mq.jakarta.jms.MQConnectionFactory;
+import com.ibm.msg.client.jakarta.wmq.WMQConstants;
 import jakarta.jms.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -24,6 +25,7 @@ public class MessagePublisher {
     public ConnectionFactory createIBMConnectionFactory(String brokerUrl,int port,String manager,String channel, String username, String password) {
         try {
             MQConnectionFactory connectionFactory = new MQConnectionFactory();
+            connectionFactory.setTransportType(WMQConstants.WMQ_CM_CLIENT);
 //            connectionFactory.setTransportType(JMSC.MQJMS_TP_CLIENT_MQ_TCPIP);
             connectionFactory.setQueueManager(manager); // Replace with your queue manager name
             connectionFactory.setHostName(brokerUrl); // Replace with your hostname

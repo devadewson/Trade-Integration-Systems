@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>IBM MQ Sandbox</title>
+</head>
+<body>
+<h1>Send Message to IBM MQ</h1>
+<form action="/sendMessage" method="post">
+    <label for="serviceName">Service Name:</label>
+    <select id="serviceName" name="serviceName" required>
+        <option th:each="queue : ${queueConfigs}"
+                th:value="${queue.ServiceName}"
+                th:text="${queue.ServiceName}"></option>
+    </select>
+
+    <label for="message">Message:</label>
+    <input type="text" id="message" name="message" required>
+
+    <label for="correlationId">CorrelationID:</label>
+    <input type="text" id="correlationId" name="correlationId" required>
+
+    <button type="submit">Send</button>
+</form>
+<p th:text="${message}"></p>
+</body>
+</html>
