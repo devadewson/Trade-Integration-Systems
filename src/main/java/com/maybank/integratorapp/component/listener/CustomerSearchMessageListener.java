@@ -5,10 +5,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
-import com.maybank.integratorapp.component.SystemProcess;
 import com.maybank.integratorapp.component.coresystem.ProcessCostumerSearch;
 import com.maybank.integratorapp.data.entity.LogQueueData;
-import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.model.mq.customersearch.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.customersearch.response.CustomerSearchResult;
@@ -23,11 +21,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-import java.text.SimpleDateFormat;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.logging.Logger;
+
 
 @Component
 public class CustomerSearchMessageListener implements CustomMessageListener {
