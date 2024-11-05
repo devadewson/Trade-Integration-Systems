@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maybank.integratorapp.data.repository.MsParameterRepository;
 import com.maybank.integratorapp.model.mq.customersearch.request.CustomerSearchRequest;
 import com.maybank.integratorapp.model.mq.customersearch.response.CustomerSearchResult;
 import com.maybank.integratorapp.model.rest.CustomerSearchh.request.*;
@@ -16,6 +17,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -25,10 +27,12 @@ import java.util.Map;
 
 @Component
 public  class ProcessCostumerSearch {
+    @Autowired
+    MsParameterRepository parameterRepository;
     public CustomerSearchResult getCustomerSearchResult(String gcifNo) {
         CustomerSearchResult customerSearchResult = new CustomerSearchResult();
 
-        String api = "http://10.235.66.96:7800/accountservicesapi/v1/AccountServices";
+        String api = parameterRepository.findValueByPrmKey("CustomerSearchRequest");
 
         try {
             // Buat request CustomerInformation
