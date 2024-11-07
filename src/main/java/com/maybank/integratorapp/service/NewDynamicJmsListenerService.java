@@ -37,6 +37,10 @@ public class NewDynamicJmsListenerService {
     private CustomerDetailMessageListener customerDetailMessageListener;
     @Autowired
     private ApplicationContext context;
+    @Autowired
+    private FacilitiesMessageListener facilitiesMessageListener;
+    @Autowired
+    private FacilitiesDetailMessageListener facilitiesDetailMessageListener;
 
     @Autowired
     @Qualifier("jmsListenerEndpointRegistry")
@@ -199,6 +203,10 @@ public class NewDynamicJmsListenerService {
                 return swiftOutMessageListener;
             case "CustomerDetails":
                 return customerDetailMessageListener;
+            case "Facilities":
+                return facilitiesMessageListener;
+            case "FacilitiesDetails":
+                return facilitiesDetailMessageListener;
             case "AccountBalance":
             default:
                 return accountInquiryMessageListener;
