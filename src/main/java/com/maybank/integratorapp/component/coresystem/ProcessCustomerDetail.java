@@ -24,8 +24,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+@Component
 public class ProcessCustomerDetail {
 
     @Autowired
@@ -91,12 +93,13 @@ public class ProcessCustomerDetail {
         return customerInformationResponse;
     }
 
-    public AccountListResponse getAccListByGcifNo(String gcifNo){
+    public AccountListResponse getAccListByGcifNo(String gcifNo) {
         AccountListResponse accountListResponse = new AccountListResponse();
         AccountListResponseData accountListResponseData = new AccountListResponseData();
         String res = "";
         try {
-            String apiUrl = parameterRepository.findValueByPrmKey("CustomerInformationRequest");;
+            String apiUrl = parameterRepository.findValueByPrmKey("CustomerInformationRequest");
+
             ChannelHeader channelHeader = new ChannelHeader();
             channelHeader.setMessageID("TESTING");
             channelHeader.setBranchCode("270");
@@ -135,9 +138,9 @@ public class ProcessCustomerDetail {
             System.out.println(res);
             System.out.println("============================================================\n");
 
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        return  accountListResponse;
+        return accountListResponse;
     }
 }
