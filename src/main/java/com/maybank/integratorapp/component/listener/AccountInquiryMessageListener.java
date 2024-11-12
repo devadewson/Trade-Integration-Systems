@@ -36,6 +36,8 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
     MsQueueConfigService queueConfigService;
 
     @Autowired
+    ProcessAccountInquiry processAccountInquiry;
+    @Autowired
     private Environment env;
     public void setPublisher(MessagePublisher publisher) {
         this.publisher = publisher;
@@ -45,11 +47,14 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
     @Override
     public void onMessage(Message message) {
         if (message instanceof TextMessage) {}
-        String responseText = "";
+        String responseXml = "";
         LogQueueData _data = new LogQueueData();
         try {
             System.out.println("Received 1 Message With CorrelationID : "+ message.getJMSCorrelationID());
             String _message = message.getBody(String.class);
+            System.out.println("===========================xmlRequest=================================");
+            System.out.println(_message);
+            System.out.println("============================================================\n");
 
             Queue sourceQueue = (Queue) message.getJMSDestination();
             _data.setOrigin("MQ_"+sourceQueue.getQueueName());
@@ -66,7 +71,6 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
             String branch = request.getAvailBALRequest().getExternalAccount();
             String currency = request.getAvailBALRequest().getPostingCurrency();
 
-            ProcessAccountInquiry processAccountInquiry = new ProcessAccountInquiry();
             AccountInquiryResponse accountInquiryResponse = processAccountInquiry.getAccInqWithVar(accNo, branch, currency);
 
             ServiceResponse serviceResponse = new ServiceResponse();
@@ -86,13 +90,15 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
             serviceResponse.setAvailBalResponse(availBalResponse);
             serviceResponse.setResponseHeader(responseHeader);
 
-            String responseXml = xmlMapper.writeValueAsString(serviceResponse);;
-
-            publisher.PublishMessage(responseXml, message.getJMSCorrelationID());
-
+            responseXml = xmlMapper.writeValueAsString(serviceResponse);;
+            System.out.println("===========================responseXml=================================");
+            System.out.println(responseXml);
+            System.out.println("============================================================\n");
             _data.setStatus("Success");
             _data.setDelivery_date(new Date());
             _data.setUpdated_date(new Date());
+
+            message.acknowledge();
 
         } catch (JMSException e) {
             _data.setStatus("Error");
@@ -100,10 +106,28 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
             _data.setUpdated_date(new Date());
 
             throw new RuntimeException(e);
-        } catch (JsonMappingException e) {
-            throw new RuntimeException(e);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
+        }
+
+        dataDTO.save(_data);
+        MsQueueConfig config = queueConfigService.findByServiceName("AccountInquiry");
+        if (config != null && config.getEnableStatus() == 1) {
+            String correlationId = null;
+            try {
+                correlationId = message.getJMSCorrelationID();
+            } catch (JMSException e) {
+                throw new RuntimeException(e);
+            }
+
+            MessagePublisher publisher = new MessagePublisher(
+                    config.getResponse_Queue_Address(), Integer.parseInt(config.getResponse_Queue_Port()), config.getResponse_Queue_Manager(),
+                    config.getResponse_Queue_Channel(), config.getResponse_Queue_Username(), config.getResponse_Queue_Password(),
+                    config.getResponse_Queue_Name());
+
+            publisher.PublishMessage(responseXml, correlationId);
+        } else {
+            System.out.println("MsQueueConfig 'AccountInquiry' is Null");
         }
     }
 }
