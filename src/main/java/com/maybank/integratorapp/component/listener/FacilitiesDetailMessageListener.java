@@ -51,6 +51,7 @@ public class FacilitiesDetailMessageListener implements CustomMessageListener {
                 _data.setCorrelationID(message.getJMSCorrelationID());
 
                 _data = dataDTO.save(_data);
+                message.acknowledge();
 
                 XmlMapper xmlMapper = new XmlMapper();
                 ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);
@@ -61,7 +62,7 @@ public class FacilitiesDetailMessageListener implements CustomMessageListener {
                 System.out.println("============================================================\n");
 
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                System.out.println(e.getMessage());
             }
         }
     }

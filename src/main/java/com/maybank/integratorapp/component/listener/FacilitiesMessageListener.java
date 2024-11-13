@@ -4,7 +4,6 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.data.entity.LogQueueData;
-import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.model.mq.facilities.request.ServiceRequest;
@@ -51,6 +50,7 @@ public class FacilitiesMessageListener implements CustomMessageListener {
                 _data.setCorrelationID(message.getJMSCorrelationID());
 
                 _data = dataDTO.save(_data);
+                message.acknowledge();
 
                 XmlMapper xmlMapper = new XmlMapper();
                 ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);
@@ -61,7 +61,7 @@ public class FacilitiesMessageListener implements CustomMessageListener {
                 System.out.println("============================================================\n");
 
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                System.out.println(e.getMessage());
             }
         }
     }
