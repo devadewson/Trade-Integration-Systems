@@ -62,6 +62,9 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
 
         try {
             initializeLogData(logData, message);
+            dataDTO.save(logData);
+            message.acknowledge();
+
 
             ServiceRequest request = parseRequest(message);
 
@@ -87,13 +90,13 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
             logData.setDelivery_date(new Date());
             logData.setUpdated_date(new Date());
 
-            message.acknowledge();
+
 
         } catch (JMSException | JsonProcessingException e) {
             handleException(e, response, logData);
         }
 
-        dataDTO.save(logData);
+
 
     }
     private CustomerSearchResult customerSearchResultResponse(String customerNumber) {
@@ -126,17 +129,17 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
         String errorMsg;
 
         if (e instanceof JMSException) {
-            errorMsg = "MessageQueue Error";
+            System.out.println(e.getMessage());
         } else if (e instanceof JsonMappingException) {
-            errorMsg = "Mapping Error";
+            System.out.println(e.getMessage());
         } else if (e instanceof JsonProcessingException) {
-            errorMsg = "Parse Mapping Error";
+            System.out.println(e.getMessage());
         } else {
-            errorMsg = "Unknown Error";
+            System.out.println(e.getMessage());
         }
 
         response.getResponseHeader().setStatus("Error");
-        response.getResponseHeader().getDetails().setError(errorMsg);
+        response.getResponseHeader().getDetails().setError(e.getMessage());
 
         logData.setStatus("Error");
         logData.setDelivery_date(new Date());
