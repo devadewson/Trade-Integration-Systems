@@ -51,16 +51,18 @@ public class NewDynamicJmsListenerService {
 
     public void configureListeners(List<MsQueueConfig> queueConfigs) {
         for (MsQueueConfig config : queueConfigs) {
-
-            if ((!config.getRequest_Queue_Name().equals(null)
-                    && !config.getRequest_Queue_Name().equals(""))
-            ) {
-                if (config.getEnableStatus() == 1) {
-                    createAndRegisterNewListener(config);
-                } else {
-                    stopExistingListener(config);
+            if(!sessions.containsKey(config.getServiceName())){
+                if ((!config.getRequest_Queue_Name().equals(null)
+                        && !config.getRequest_Queue_Name().equals(""))
+                ) {
+                    if (config.getEnableStatus() == 1) {
+                        createAndRegisterNewListener(config);
+                    } else {
+                        stopExistingListener(config);
+                    }
                 }
             }
+
         }
     }
 
@@ -78,8 +80,8 @@ public class NewDynamicJmsListenerService {
         Session session = null;
         try {
             //Development Use Only
-//            if (!config.getServiceName().equals("CustomerDetails"))
-//                return;
+            if (!config.getServiceName().equals("SwiftOut"))
+                return;
 
             // Create a new connection
             ConnectionFactory connectionFactory = createIBMConnectionFactory(
