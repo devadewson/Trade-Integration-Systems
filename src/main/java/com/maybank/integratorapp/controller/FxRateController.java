@@ -10,7 +10,9 @@ import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.model.mq.fxrate.response.FXRate;
+import com.maybank.integratorapp.model.mq.fxrate.response.ItemRequest;
 import com.maybank.integratorapp.model.mq.fxrate.response.ServiceRequest;
+import com.maybank.integratorapp.model.mq.fxrate.response.ServiceRequestChild;
 import com.maybank.integratorapp.model.mq.fxratefcc.response.ExchangeRateRecord;
 import com.maybank.integratorapp.model.mq.fxratefcc.response.ExchangeRateRecords;
 import com.maybank.integratorapp.model.rest.fxratelist.response.FxRateListData;
@@ -90,7 +92,14 @@ public class FxRateController {
                 _data.setDestination(config.getResponse_Queue_Username());
                 _data = dataDTO.save(_data);
 
-                MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),config.getResponse_Queue_Username(),config.getResponse_Queue_Password(), config.getResponse_Queue_Name());
+                MessagePublisher publisher = new MessagePublisher(
+                        config.getResponse_Queue_Address(),
+                        Integer.parseInt(config.getRequest_Queue_Port()),
+                        config.getResponse_Queue_Manager(),
+                        config.getResponse_Queue_Channel(),
+                        config.getResponse_Queue_Username(),
+                        config.getResponse_Queue_Password(),
+                        config.getResponse_Queue_Name());
                 publisher.PublishMessage(xml, correlationId);
 
                 return new ResponseEntity<>(xml, HttpStatus.OK);
@@ -112,16 +121,34 @@ public class FxRateController {
 
             MsQueueConfig config = queueConfigService.findByServiceName("FxRateFTI");
             if(config != null && config.getEnableStatus() == 1){
+                String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+                String correlationId = "FXRATEDATA_"+date;
+
                 LogQueueData _data = new LogQueueData();
 
                 ProcessFXRate fxRate = new ProcessFXRate();
                 List<FxRateListData> data = fxRate.getAllFxRate();
 
                 ServiceRequest response = new ServiceRequest();
-                List<FXRate> records = response.getFxRate();
+                response.getRequestHeader().setCorrelationID(correlationId);
+                response.getRequestHeader().setService("TIBulk");
+                response.getRequestHeader().setOperation("Item");
+                response.getRequestHeader().getCredentials().setName("SUPERVISOR");
+                response.getRequestHeader().setReplyFormat("FULL");
+
+                List<ItemRequest> records = response.getItemRequest();
 
                 // mapping each FxRateListData into ExchangeRateRecord
                 for (FxRateListData item : data) {
+                    ItemRequest itemRequest = new ItemRequest();
+                    ServiceRequestChild child = new ServiceRequestChild();
+                    child.getRequestHeader().setCorrelationID(correlationId);
+                    child.getRequestHeader().setService("TI");
+                    child.getRequestHeader().setOperation("FXRate");
+                    child.getRequestHeader().getCredentials().setName("SUPERVISOR");
+                    child.getRequestHeader().setReplyFormat("STATUS");
+                    child.getRequestHeader().setNoOverride("Y");
+
                     FXRate dataRecord = new FXRate();
 
                     String _baseCcy = item.getCcy().split("\\.")[0];
@@ -133,7 +160,10 @@ public class FxRateController {
 //                    dataRecord.setMidTtRate(item.getBid());
                     dataRecord.setSellExchangeRate(item.getAsk());
 
-                    records.add(dataRecord);
+                    child.setFxRate(dataRecord);
+                    itemRequest.setServiceRequestChild(child);
+
+                    records.add(itemRequest);
                 }
 
                 XmlMapper xmlMapper = new XmlMapper();
@@ -148,8 +178,6 @@ public class FxRateController {
                     throw new RuntimeException(e);
                 }
 
-                String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
-                String correlationId = "FXRATEDATA_"+date;
 
                 // logging
                 _data.setMessageUID(new MQUtil().getMessageUID());
@@ -159,10 +187,17 @@ public class FxRateController {
                 _data.setDelivery_date(new Date());
                 _data.setUpdated_date(new Date());
                 _data.setResMessage(xml);
-                _data.setDestination(config.getResponse_Queue_Username());
+                _data.setDestination(config.getResponse_Queue_Name());
                 _data = dataDTO.save(_data);
 
-                MessagePublisher publisher = new MessagePublisher(config.getResponse_Queue_Address(),config.getResponse_Queue_Username(),config.getResponse_Queue_Password(), config.getResponse_Queue_Name());
+                MessagePublisher publisher = new MessagePublisher(
+                        config.getResponse_Queue_Address(),
+                        Integer.parseInt(config.getRequest_Queue_Port()),
+                        config.getResponse_Queue_Manager(),
+                        config.getResponse_Queue_Channel(),
+                        config.getResponse_Queue_Username(),
+                        config.getResponse_Queue_Password(),
+                        config.getResponse_Queue_Name());
                 publisher.PublishMessage(xml, correlationId);
 
                 return new ResponseEntity<>(xml, HttpStatus.OK);

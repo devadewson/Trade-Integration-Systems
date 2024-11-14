@@ -8,6 +8,9 @@ import java.io.Serializable;
 //@XmlAccessorType(XmlAccessType.FIELD)
 public class RequestHeader implements Serializable {
     //    @XmlElement(name = "Service")
+    public RequestHeader(){
+        this.credentials = new Credentials();
+    }
     @JacksonXmlProperty(localName = "Service")
     private String service;
     @JacksonXmlProperty(localName = "Operation")

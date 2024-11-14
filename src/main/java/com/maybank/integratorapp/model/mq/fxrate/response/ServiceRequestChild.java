@@ -2,7 +2,6 @@ package com.maybank.integratorapp.model.mq.fxrate.response;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,31 +10,31 @@ import java.util.List;
 //@Setter
 //@XmlRootElement(name = "ServiceRequest", namespace = "urn:control.services.tiplus2.misys.com")
 //@XmlAccessorType(XmlAccessType.FIELD)
-@JacksonXmlRootElement(localName = "ServiceRequest", namespace = "urn:control.services.tiplus2.misys.com")
-public class ServiceRequest {
+//@JacksonXmlRootElement(localName = "ServiceRequest", namespace = "urn:control.services.tiplus2.misys.com")
+public class ServiceRequestChild {
+    public ServiceRequestChild(){
+        this.fxRate = new FXRate();
+        this.requestHeader = new RequestHeader();
+    }
     //    @XmlElement(name = "RequestHeader")
 //@XmlElement(name = "RequestHeader")
-    public ServiceRequest(){
-        this.requestHeader= new RequestHeader();
-        this.itemRequest = new ArrayList<>();
-    }
     @JacksonXmlProperty(localName = "RequestHeader")
     private RequestHeader requestHeader;
     //    @XmlElement(name = "AvailBalRequest", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
 //@XmlElement(name = "AvailBalRequest", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
-    @JacksonXmlElementWrapper(useWrapping = false)
-    @JacksonXmlProperty(localName = "ItemRequest", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
-    private List<ItemRequest> itemRequest;
+    @JacksonXmlProperty(localName = "FXRate", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
+    private FXRate fxRate;
 
     public RequestHeader getRequestHeader() { return requestHeader; }
     public void setRequestHeader(RequestHeader value) { this.requestHeader = value; }
 
-    public List<ItemRequest> getItemRequest() {
-        return itemRequest;
+
+    public FXRate getFxRate() {
+        return fxRate;
     }
 
-    public void setItemRequest(List<ItemRequest> itemRequest) {
-        this.itemRequest = itemRequest;
+    public void setFxRate(FXRate fxRate) {
+        this.fxRate = fxRate;
     }
 }
 
