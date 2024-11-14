@@ -84,15 +84,16 @@ public  class ProcessCostumerSearch {
                     return customerSearchResult;
 
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    System.out.println(e.getMessage());
                 }
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                System.out.println(e.getMessage());
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            System.out.println(e.getMessage());
         }
+        return customerSearchResult;
     }
-    }
+    }   
 
 
