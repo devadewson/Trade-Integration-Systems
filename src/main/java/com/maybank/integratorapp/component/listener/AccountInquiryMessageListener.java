@@ -1,7 +1,6 @@
 package com.maybank.integratorapp.component.listener;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
@@ -24,7 +23,6 @@ import org.springframework.stereotype.Component;
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.TextMessage;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 @Component
@@ -64,6 +62,7 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
             _data.setCorrelationID(message.getJMSCorrelationID());
 
             _data = dataDTO.save(_data);
+            message.acknowledge();
 
             XmlMapper xmlMapper = new XmlMapper();
             ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);
@@ -98,16 +97,14 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
             _data.setDelivery_date(new Date());
             _data.setUpdated_date(new Date());
 
-            message.acknowledge();
-
         } catch (JMSException e) {
             _data.setStatus("Error");
             _data.setDelivery_date(new Date());
             _data.setUpdated_date(new Date());
 
-            throw new RuntimeException(e);
+            System.out.println(e.getMessage());
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            System.out.println(e.getMessage());
         }
 
         dataDTO.save(_data);
@@ -117,7 +114,7 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
             try {
                 correlationId = message.getJMSCorrelationID();
             } catch (JMSException e) {
-                throw new RuntimeException(e);
+                System.out.println(e.getMessage());
             }
 
             MessagePublisher publisher = new MessagePublisher(

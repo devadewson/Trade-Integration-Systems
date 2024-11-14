@@ -2,8 +2,6 @@ package com.maybank.integratorapp.component.coresystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maybank.integratorapp.data.repository.MsParameterRepository;
-import com.maybank.integratorapp.data.repository.MsQueueConfigRepository;
-import com.maybank.integratorapp.data.service.MsParameterService;
 import com.maybank.integratorapp.model.mq.customerdetail.response.AddressDetail;
 import com.maybank.integratorapp.model.mq.customerdetail.response.AddressDetails;
 import com.maybank.integratorapp.model.mq.customerdetail.response.CustomerDetailsResponse;
@@ -88,7 +86,7 @@ public class ProcessCustomerDetail {
             customerDetailsResponse.setAddressDetails(addressDetails);
 
         } catch (Exception e){
-            throw new RuntimeException(e);
+            System.out.println(e.getMessage());
         }
         return customerInformationResponse;
     }
@@ -139,7 +137,7 @@ public class ProcessCustomerDetail {
             System.out.println("============================================================\n");
 
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            System.out.println(e.getMessage());
         }
         return accountListResponse;
     }
