@@ -33,7 +33,6 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
     @Autowired
     private LogQueueDataRepository dataDTO;
 
-    //    @Autowired private MessagePublisher publisher;
     @Autowired
     private Environment env;
     @Autowired
@@ -59,12 +58,10 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
         ServiceResponse response = new ServiceResponse();
         LogQueueData logData = new LogQueueData();
 
-
         try {
             initializeLogData(logData, message);
             dataDTO.save(logData);
             message.acknowledge();
-
 
             ServiceRequest request = parseRequest(message);
 
@@ -90,17 +87,10 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
             logData.setDelivery_date(new Date());
             logData.setUpdated_date(new Date());
 
-
-
         } catch (JMSException | JsonProcessingException e) {
             handleException(e, response, logData);
         }
 
-
-
-    }
-    private CustomerSearchResult customerSearchResultResponse(String customerNumber) {
-        return processCustomerSearch.getCustomerSearchResult(customerNumber);
     }
 
     private void initializeLogData(LogQueueData logData, TextMessage message) throws JMSException  {
@@ -123,6 +113,9 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
     private ServiceRequest parseRequest(TextMessage message) throws JsonProcessingException, JMSException {
         XmlMapper xmlMapper = new XmlMapper();
         return xmlMapper.readValue(message.getText(), ServiceRequest.class);
+    }
+    private CustomerSearchResult customerSearchResultResponse(String customerNumber) {
+        return processCustomerSearch.getCustomerSearchResult(customerNumber);
     }
 
     private void handleException(Exception e, ServiceResponse response, LogQueueData logData) {
