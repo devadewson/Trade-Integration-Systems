@@ -26,6 +26,7 @@ import org.springframework.web.client.RestTemplate;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -130,16 +131,42 @@ public class ProcessCompositeTBR {
 
     public void doPosting(List<Posting> data){
 
+        // group the posting
         List<PostingGroup> finalData = groupPosting(data);
+
+        // condition check if there is cross valas
+
 
         // post to TBR
         for (PostingGroup postingGroup:finalData) {
-            postTbr(postingGroup);
+
+            // check if its cross valas
+            if(postingGroup.getFlagCrossValas().equals("N"))
+                postTbr(postingGroup);
+            else{
+                // do cross valas logic here
+            }
+
+            // check & post to RTGS
+            if(postingGroup.getPostings().stream().anyMatch(x->x.getAccountTypeAlias().equals("RPKP")));{
+                postRtgs(postingGroup);
+            }
+
         }
 
-        // check if its cross valas
-        // post to RTGS
     }
+
+    private void postRtgs(PostingGroup postingGroup) {
+        try{
+            PostingExtender rpkpPosting = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("RPKP")).findFirst().get();
+
+        }
+        catch (Exception e){
+            
+        }
+
+    }
+
     public void postTbr(PostingGroup data){
         try{
 
@@ -148,7 +175,7 @@ public class ProcessCompositeTBR {
             List<vw_tbr_mapping> mappings = data.getMappings();
             List<MsTBRField> fieldsList = tbrFieldService.findFieldsByTbrCode(tbrNumber);
 
-            // transform the currency into IDR/FCY1/FCY2
+
 
 //            List<String> propertyNames = new ArrayList<>();
 //            fieldsList.forEach(s-> propertyNames.add(s.getDestinationField()));
@@ -233,12 +260,44 @@ public class ProcessCompositeTBR {
             MsCurrency currency = msCurrencyService.findByIsoCode(data.getPostingCcy());
 
             if(currency!=null){
-                data.setPostingCcyAlias(currency.getInternalCode());
+                data.setPostingCcyNumber(currency.getInternalCode());
             }
 
             finalListPosting.add(data);
         }
 
+        // check cross valas
+        if(finalListPosting.stream().allMatch(x->!x.getPostingCcy().equals("IDR"))){
+            boolean allDifferentCurrencies = finalListPosting.stream()
+                    .map(Posting::getPostingCcy) // Extract currencies
+                    .distinct() // Remove duplicates
+                    .count() == finalListPosting.size(); // Compare with original list size
+
+            if (allDifferentCurrencies) {
+                // Logic for when all postings have different currencies
+
+                Map<String, Integer> currencyCountMap = new HashMap<>();
+
+                finalListPosting.forEach(posting -> {
+                    String currency = posting.getPostingCcy();
+                    // Get the current count for this currency, or start from 1 if it's the first occurrence
+                    int count = currencyCountMap.getOrDefault(currency, 0) + 1;
+                    currencyCountMap.put(currency, count);
+
+                    // Set PostingCcyAlias based on the count
+                    posting.setPostingCcyAlias("FCY" + count);
+                });
+            }
+        }else{
+            // Mixed currency (with IDR and non-IDR)
+            finalListPosting.forEach(posting -> {
+                if (posting.getPostingCcy().equals("IDR")) {
+                    posting.setPostingCcyAlias("IDR");
+                } else {
+                    posting.setPostingCcyAlias("FCY");
+                }
+            });
+        }
 
         List<vw_tbr_mapping> listMapping = (List<vw_tbr_mapping>)dataDTO.findAll();
 
@@ -306,6 +365,17 @@ public class ProcessCompositeTBR {
             }
         }
 
+
+        // check & set cross valas flag logic
+        groupedPostings.forEach(x->
+        {
+            if(x.getPostings().stream().anyMatch(s->s.getPostingCcyAlias().equals("FCY1"))){
+                x.setFlagCrossValas("Y");
+            }else{
+                x.setFlagCrossValas("N");
+            }
+        });
+
         // find respective TBR grouping
         for (PostingGroup group:groupedPostings) {
             for (PostingGroup groupCondition:finalGroupedMapping) {
@@ -317,6 +387,7 @@ public class ProcessCompositeTBR {
                 }
             }
         }
+
 
         // printline
 
@@ -434,6 +505,7 @@ public class ProcessCompositeTBR {
     }
     public class PostingExtender extends Posting{
         private String PostingCcyAlias;
+        private String PostingCcyNumber;
         private String AccountTypeAlias;
 
         public String getPostingCcyAlias() {
@@ -451,11 +523,20 @@ public class ProcessCompositeTBR {
         public void setAccountTypeAlias(String accountTypeAlias) {
             AccountTypeAlias = accountTypeAlias;
         }
+
+        public String getPostingCcyNumber() {
+            return PostingCcyNumber;
+        }
+
+        public void setPostingCcyNumber(String postingCcyNumber) {
+            PostingCcyNumber = postingCcyNumber;
+        }
     }
     public class PostingGroup{
         public int GroupId;
         public String TbrCode;
         public String MappingType;
+        public String FlagCrossValas;
         public List<vw_tbr_mapping> Mappings = new ArrayList<>();
         public List<PostingExtender> Postings = new ArrayList<>();
 
@@ -497,6 +578,14 @@ public class ProcessCompositeTBR {
 
         public void setPostings(List<PostingExtender> postings) {
             Postings = postings;
+        }
+
+        public String getFlagCrossValas() {
+            return FlagCrossValas;
+        }
+
+        public void setFlagCrossValas(String flagCrossValas) {
+            FlagCrossValas = flagCrossValas;
         }
     }
 }

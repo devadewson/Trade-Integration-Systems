@@ -78,6 +78,9 @@ public class ProcessFXRate {
                 FxRateListResponse responseList = response.getBody();
 
                 finalData = responseList.getRespData();
+
+                finalData = responseList.getRespData().stream().filter(s->
+                        s.getTenor().equals("TODAY") && s.getCcy().startsWith("IDR")).toList();
             }
 
 
