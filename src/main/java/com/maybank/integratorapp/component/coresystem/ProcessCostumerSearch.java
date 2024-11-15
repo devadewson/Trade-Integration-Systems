@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 @Component
 public  class ProcessCostumerSearch {
@@ -31,13 +33,19 @@ public  class ProcessCostumerSearch {
             CustomerInformation req = new CustomerInformation();
             CustomerInformationWraper wraper = new CustomerInformationWraper();
 
-            req.getChannelHeader().setMessageID("");
-            req.getChannelHeader().setBranchCode("");
-            req.getChannelHeader().setChannelID("");
+            String branchCode = parameterRepository.findValueByPrmKey("ChannelHeaderBranchCode");
+            String channelId = parameterRepository.findValueByPrmKey("ChannelHeaderChannelId");
+            String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+            String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
+            ChannelHeader channelHeader = new ChannelHeader();
+
+            req.getChannelHeader().setMessageID("TESTING");
+            req.getChannelHeader().setBranchCode(branchCode);
+            req.getChannelHeader().setChannelID(channelId);
             req.getChannelHeader().setReference("");
             req.getChannelHeader().setSequenceNo("");
-            req.getChannelHeader().setTransactionDate("");
-            req.getChannelHeader().setTransactionTime("");
+            req.getChannelHeader().setTransactionDate(date);
+            req.getChannelHeader().setTransactionTime(time);
             req.getCustomerInformationRequest().setGCIFNo(gcifNo);
 
             wraper.setCustomerInformation(req);
@@ -94,6 +102,6 @@ public  class ProcessCostumerSearch {
         }
         return customerSearchResult;
     }
-    }   
+    }
 
 
