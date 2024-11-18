@@ -1,0 +1,102 @@
+:root {
+    --main: #ffc600;
+    --secondary: #ffd748;
+    --tertiary: #ffdd66;
+    --grey: #fff4cc;
+}
+
+.bg-main {
+    background-color: var(--main) !important;
+}
+
+.bg-menu {
+    background-color: var(--tertiary) !important;
+}
+
+.nav-item .active {
+    border: none;
+    background-color: var(--main) !important;
+    color: black !important;
+}
+
+.nav-link {
+    border: 1px solid var(--main);
+    color: black !important;
+}
+
+.nav-pills {
+    gap: 10px;
+}
+
+.btn-main {
+    border: 1px solid var(--main);
+    color: black !important;
+}
+
+    .btn-main.active {
+        background-color: var(--main) !important;
+    }
+
+    .btn-main:hover {
+        /*border: 1px solid var(--main);*/
+        background-color: var(--secondary) !important;
+    }
+
+.accordion-menu-button:not(.collapsed) {
+    background-color: var(--main) !important;
+    box-shadow: none;
+}
+
+.accordion-menu-button {
+    border: 1px solid var(--main);
+}
+
+.accordion-body-menu {
+    /*padding: 0 !important;*/
+    padding: 5px;
+    background-color: var(--grey);
+}
+
+.btn-menu {
+    width: 100%;
+    border: none;
+    text-align: left;
+    padding-left: 25px;
+    border-radius: 5px;
+    margin-bottom:5px;
+    margin-top:5px;
+}
+
+.accordion-menu-button:focus {
+    border-color: none !important;
+    box-shadow: none !important;
+}
+
+@keyframes wiggle {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    80% {
+        transform: rotate(0deg);
+    }
+
+    85% {
+        transform: rotate(5deg);
+    }
+
+    95% {
+        transform: rotate(-5deg);
+    }
+
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+.wiggle {
+    display: inline-block;
+    animation-name: wiggle;
+    animation-duration : 0.5s;
+    animation-iteration-count : 1;
+}

@@ -2,6 +2,7 @@ package com.maybank.integratorapp.component.coresystem;
 
 import com.maybank.integratorapp.component.SftpFileTransfer;
 import com.maybank.integratorapp.data.repository.MsParameterRepository;
+import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
 import com.maybank.integratorapp.data.service.MsParameterService;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.util.MQUtil;
@@ -24,11 +25,14 @@ public class ProcessSwiftOut {
 
     @Autowired
     MsParameterService repo;
+    @Autowired
+    LogInterfaceProcessService logger;
 
-    public void putFileContent(List<String> fileContent, String correlationId) {
+    public void putFileContent(List<String> fileContent, String correlationId, Long idLogParent) {
 
         try {
 
+            this.logger.SetLogParent(idLogParent);
             // Sftp Config
             String sftpHost = repo.findValueByPrmKey("SwiftOutSftpAddress");
             String sftpUsername = repo.findValueByPrmKey("SwiftOutSftpUsername");
@@ -55,18 +59,20 @@ public class ProcessSwiftOut {
                 String completePath = specificPath+"\\"+fileName;
                 try (PrintWriter out = new PrintWriter(completePath)) {
                     out.println(str.trim());
-                    System.out.println("Successfully Create SWIFT File "+fileName);
+                    logger.Log("SwiftOut - Creating Swift File","Creating swift file from data","DATA-LOCAL",str);
+
                 }
                 i++;
             }
 
             // Transfer all file
             SftpFileTransfer sftp = new SftpFileTransfer(sftpHost,sftpUsername,sftpPassword,sftpKey,sftpPath);
-            sftp.putSwiftFile(specificPath);
+            sftp.putSwiftFile(specificPath,logger);
 
 
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.Log("SwiftOut - Creating Swift File","Creating swift file from data","ERROR",e.getMessage());
+
         }
 
     }

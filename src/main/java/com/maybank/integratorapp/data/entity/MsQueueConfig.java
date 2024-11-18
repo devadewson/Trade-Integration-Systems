@@ -15,7 +15,9 @@ public class MsQueueConfig {
     private String ListenerName;
     private String Request_Queue_Name;
     private String Request_Queue_Address;
-
+    private String Request_Queue_Manager;
+    private String Request_Queue_Port;
+    private String Request_Queue_Channel;
     private String Request_Queue_Username;
     private String Request_Queue_Password;
 
@@ -23,6 +25,13 @@ public class MsQueueConfig {
     private String Response_Queue_Address;
 
     private String Response_Queue_Username;
+    private String Response_Queue_Manager;
+    private String Response_Queue_Port;
+    private String Response_Queue_Channel;
+
+    private String Response_Queue_Password;
+
+    private int EnableStatus;
 
     public String getListenerName() {
         return ListenerName;
@@ -120,10 +129,51 @@ public class MsQueueConfig {
         EnableStatus = enableStatus;
     }
 
-    private String Response_Queue_Password;
+    public String getRequest_Queue_Manager() {
+        return Request_Queue_Manager;
+    }
 
-    private int EnableStatus;
+    public void setRequest_Queue_Manager(String request_Queue_Manager) {
+        Request_Queue_Manager = request_Queue_Manager;
+    }
 
+    public String getRequest_Queue_Port() {
+        return Request_Queue_Port;
+    }
 
+    public void setRequest_Queue_Port(String request_Queue_Port) {
+        Request_Queue_Port = request_Queue_Port;
+    }
 
+    public String getRequest_Queue_Channel() {
+        return Request_Queue_Channel;
+    }
+
+    public void setRequest_Queue_Channel(String request_Queue_Channel) {
+        Request_Queue_Channel = request_Queue_Channel;
+    }
+
+    public String getResponse_Queue_Manager() {
+        return Response_Queue_Manager;
+    }
+
+    public void setResponse_Queue_Manager(String response_Queue_Manager) {
+        Response_Queue_Manager = response_Queue_Manager;
+    }
+
+    public String getResponse_Queue_Port() {
+        return Response_Queue_Port;
+    }
+
+    public void setResponse_Queue_Port(String response_Queue_Port) {
+        Response_Queue_Port = response_Queue_Port;
+    }
+
+    public String getResponse_Queue_Channel() {
+        return Response_Queue_Channel;
+    }
+
+    public void setResponse_Queue_Channel(String response_Queue_Channel) {
+        Response_Queue_Channel = response_Queue_Channel;
+    }
 }

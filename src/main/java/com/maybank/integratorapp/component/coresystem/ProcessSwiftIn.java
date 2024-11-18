@@ -1,6 +1,7 @@
 package com.maybank.integratorapp.component.coresystem;
 
 import com.maybank.integratorapp.component.SftpFileTransfer;
+import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
 import com.maybank.integratorapp.data.service.MsParameterService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -20,7 +21,7 @@ import java.util.Map;
 public class ProcessSwiftIn {
     @Autowired
     MsParameterService repo;
-    public Map<String, List<String>> getFileContent(){
+    public Map<String, List<String>> getFileContent(LogInterfaceProcessService logger){
 //        Path folderPath = Paths.get("D:\\Agung\\Projects\\BankTrade Trade Transformation\\IntegrationList");
         Map<String, List<String>> fileContents = new HashMap<>();
 
@@ -35,28 +36,34 @@ public class ProcessSwiftIn {
             String localpath = repo.findValueByPrmKey("SwiftInLocalPath");
 
             SftpFileTransfer sftp = new SftpFileTransfer(sftpHost,sftpUsername,sftpPassword,sftpKey,sftpPath);
-            sftp.getSwiftFile(localpath);
+            List<String> listFileProcessed = sftp.getSwiftFile(localpath,logger);
             Path folderPath = Paths.get(localpath);
 
-            Files.walkFileTree(folderPath, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    if (file.toString().endsWith(".txt")) {
-                        System.out.println("Reading file: " + file.getFileName());
-                        List<String> fileContent = Files.readAllLines(file, StandardCharsets.UTF_8);
-                        fileContents.put(file.getFileName().toString(), fileContent);
-                    }
-                    return FileVisitResult.CONTINUE;
+            for (String pathFile:listFileProcessed) {
+                Path file = Paths.get(pathFile);  // Convert the String path into a Path object
+
+                // Check if the file exists before attempting to read it
+                if (Files.exists(file) && Files.isReadable(file)) {
+                    System.out.println("Reading file: " + file.getFileName());
+                    logger.Log("SwiftIn - Reading Swift File", "Reading swift file", "READ-LOCAL",file.getFileName().toString());
+
+                    List<String> fileContent = Files.readAllLines(file, StandardCharsets.UTF_8);  // Read the file content
+                    fileContents.put(file.getFileName().toString(), fileContent);  // Store the file content with the file name as the key
+                } else {
+                    System.err.println("File not found or not readable: " + pathFile);
+                    logger.Log("SwiftIn - File Read Error", "File not found or not readable", "ERROR");
                 }
-            });
+            }
+
         } catch (IOException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
+            logger.Log("SwiftIn - Reading Swift File","Reading swift file from local","ERROR",e.getMessage());
         }
 
         return fileContents;
     }
 
-    public void moveToBackup(){
+    public void moveToBackup(LogInterfaceProcessService logger){
         try {
             String localpath = repo.findValueByPrmKey("SwiftInLocalPath");
             String backuppath = repo.findValueByPrmKey("SwiftInBackupPath");
@@ -81,16 +88,21 @@ public class ProcessSwiftIn {
                     if (Files.isRegularFile(file)) { // Check if it is a file (not a directory)
                         Path targetPath = targetDir.resolve(file.getFileName());
                         Files.move(file, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                        logger.Log("SwiftIn - Backup Files","File Moved to backup folder","BACKUP",file.getFileName().toString());
+
                         System.out.println("Moved: " + file.getFileName() + " to " + targetPath);
                     }
                 }
             } catch (IOException e) {
-                System.err.println("Error moving files: " + e.getMessage());
+//                System.err.println("Error moving files: " + e.getMessage());
+                logger.Log("SwiftIn - Backup Files","File Moved to backup folder","ERROR",e.getMessage());
+
             }
 
         }
         catch (Exception e){
-            e.printStackTrace();
+//            e.printStackTrace();
+            logger.Log("SwiftIn - Backup Files","File Moved to backup folder","ERROR",e.getMessage());
         }
     }
 }

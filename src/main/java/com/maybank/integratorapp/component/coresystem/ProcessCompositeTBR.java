@@ -1,15 +1,10 @@
 package com.maybank.integratorapp.component.coresystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.maybank.integratorapp.data.entity.MsAccountType;
-import com.maybank.integratorapp.data.entity.MsCurrency;
-import com.maybank.integratorapp.data.entity.MsTBRField;
-import com.maybank.integratorapp.data.entity.vw_tbr_mapping;
+import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.FtiAccountTypeRepository;
 import com.maybank.integratorapp.data.repository.VwTbrMappingRepository;
-import com.maybank.integratorapp.data.service.FtiAccountTypeService;
-import com.maybank.integratorapp.data.service.MsCurrencyService;
-import com.maybank.integratorapp.data.service.MsTBRFieldService;
+import com.maybank.integratorapp.data.service.*;
 import com.maybank.integratorapp.model.mq.batchposting.request.Posting;
 import com.maybank.integratorapp.model.rest.compositetbr.request.RestEnvelope;
 import com.maybank.integratorapp.util.DynamicClassGenerator;
@@ -45,6 +40,14 @@ public class ProcessCompositeTBR {
     private MsCurrencyService msCurrencyService;
     @Autowired
     private VwTbrMappingRepository dataDTO;
+
+    @Autowired
+    private MsParameterService parameterService;
+
+    @Autowired
+    LogInterfaceProcessService logger;
+
+
     public List<Posting> populateSamplePosting(){
         List<Posting> listPosting = new ArrayList<>();
 
@@ -129,11 +132,13 @@ public class ProcessCompositeTBR {
         return listPosting;
     }
 
-    public void doPosting(List<Posting> data){
+    public void doPosting(List<Posting> data, Long idLogParent){
 
+        this.logger.SetLogParent(idLogParent);
         // group the posting
+        logger.Log("Posting - Group Posting Data","Group posting into pair of debit credit","START");
         List<PostingGroup> finalData = groupPosting(data);
-
+        logger.Log("Posting - Group Posting Data","Group posting into pair of debit credit","END");
         // condition check if there is cross valas
 
 
@@ -141,8 +146,14 @@ public class ProcessCompositeTBR {
         for (PostingGroup postingGroup:finalData) {
 
             // check if its cross valas
-            if(postingGroup.getFlagCrossValas().equals("N"))
+            if (postingGroup.getFlagCrossValas().equals("N"))
+            {
+                logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "START");
+
                 postTbr(postingGroup);
+                logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "END");
+
+            }
             else{
                 // do cross valas logic here
             }
@@ -175,15 +186,6 @@ public class ProcessCompositeTBR {
             List<vw_tbr_mapping> mappings = data.getMappings();
             List<MsTBRField> fieldsList = tbrFieldService.findFieldsByTbrCode(tbrNumber);
 
-
-
-//            List<String> propertyNames = new ArrayList<>();
-//            fieldsList.forEach(s-> propertyNames.add(s.getDestinationField()));
-
-//            Object finalTbr = DynamicClassGenerator.generateClass("TBRData",propertyNames);
-//            propertyNames.add("TBRNumber");
-//            propertyNames.add("TBRDesc");
-
             List<DynamicClassPropertyMap> propertyMapList = new ArrayList<>();
             propertyMapList.add(new DynamicClassPropertyMap("TBRNumber","String"));
             propertyMapList.add(new DynamicClassPropertyMap("TBRDesc","String"));
@@ -207,14 +209,17 @@ public class ProcessCompositeTBR {
 
 //            dynamicClass.getMethod("setSourceAccountNo", String.class).invoke(instance, "1002031");
 //            String sourceAccountNo = (String) dynamicClass.getMethod("getSourceAccountNo").invoke(instance);
+            String url = parameterService.findValueByPrmKey("CompositeTBRRequest");
+            String ChannelHeaderBranchCode = parameterService.findValueByPrmKey("ChannelHeaderBranchCode");
+            String ChannelHeaderChannelId = parameterService.findValueByPrmKey("ChannelHeaderChannelId");
 
-            String url = "http://10.235.66.95:7804/transactionservicesapi/v1/CompositeTBR";
+//            String url = "http://10.235.66.95:7804/transactionservicesapi/v1/CompositeTBR";
             List<Object> tbrData = new ArrayList<>();
             tbrData.add(instance);
             RestEnvelope envelope = new RestEnvelope();
 
-            envelope.getCompositeTBR().getChannelHeader().setChannelID("COOLPAY");
-            envelope.getCompositeTBR().getChannelHeader().setBranchCode("001");
+            envelope.getCompositeTBR().getChannelHeader().setChannelID(ChannelHeaderChannelId);
+            envelope.getCompositeTBR().getChannelHeader().setBranchCode(ChannelHeaderBranchCode);
 
             envelope.getCompositeTBR().getExecuteCompositeTransactionRequest().setTransactionName("Testing New FTI TBR");
             envelope.getCompositeTBR().getExecuteCompositeTransactionRequest().setTBRData(tbrData);
@@ -228,84 +233,89 @@ public class ProcessCompositeTBR {
 
             String jsonPayload = objectMapper.writerWithDefaultPrettyPrinter() // enable pretty print
                                     .writeValueAsString(envelope);
+            logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "DATA-REQ",jsonPayload);
 
             System.out.println("Serialized JSON Payload: " + jsonPayload);
 
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
             String response = restTemplate.exchange(url, HttpMethod.POST, request, String.class).getBody();
+            logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "DATA-RES",response);
 
             System.out.println("Response from API: " + response);
         }catch (Exception e){
-            System.out.println(e.getMessage());
+            logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "ERROR",e.getMessage());
+
 //            throw e;
         }
     }
     public List<PostingGroup> groupPosting(List<Posting> listPosting){
 //        List<Posting> listPosting = new ArrayList<>();
+        List<PostingGroup> groupedPostings = new ArrayList<>();
 
-        // for sample only
-        listPosting = populateSamplePosting2();
+        try{
+// for sample only
+            listPosting = populateSamplePosting2();
 
-        List<PostingExtender> finalListPosting = new ArrayList<>();
-        for (Posting posting : listPosting) {
-            PostingExtender data = new PostingExtender();
-            ReflectionUtils.copyProperties(posting,data);
+            List<PostingExtender> finalListPosting = new ArrayList<>();
+            for (Posting posting : listPosting) {
+                PostingExtender data = new PostingExtender();
+                ReflectionUtils.copyProperties(posting,data);
 
-            MsAccountType accountType = ftiAccountTypeService.findByFtiAccountType(data.getAccountType());
+                MsAccountType accountType = ftiAccountTypeService.findByFtiAccountType(data.getAccountType());
 
-            if(accountType!=null){
-                data.setAccountTypeAlias(accountType.getAccountType());
+                if(accountType!=null){
+                    data.setAccountTypeAlias(accountType.getAccountType());
+                }
+
+                MsCurrency currency = msCurrencyService.findByIsoCode(data.getPostingCcy());
+
+                if(currency!=null){
+                    data.setPostingCcyNumber(currency.getInternalCode());
+                }
+
+                finalListPosting.add(data);
             }
 
-            MsCurrency currency = msCurrencyService.findByIsoCode(data.getPostingCcy());
+            // check cross valas
+            if(finalListPosting.stream().allMatch(x->!x.getPostingCcy().equals("IDR"))){
+                boolean allDifferentCurrencies = finalListPosting.stream()
+                        .map(Posting::getPostingCcy) // Extract currencies
+                        .distinct() // Remove duplicates
+                        .count() == finalListPosting.size(); // Compare with original list size
 
-            if(currency!=null){
-                data.setPostingCcyNumber(currency.getInternalCode());
-            }
+                if (allDifferentCurrencies) {
+                    // Logic for when all postings have different currencies
 
-            finalListPosting.add(data);
-        }
+                    Map<String, Integer> currencyCountMap = new HashMap<>();
 
-        // check cross valas
-        if(finalListPosting.stream().allMatch(x->!x.getPostingCcy().equals("IDR"))){
-            boolean allDifferentCurrencies = finalListPosting.stream()
-                    .map(Posting::getPostingCcy) // Extract currencies
-                    .distinct() // Remove duplicates
-                    .count() == finalListPosting.size(); // Compare with original list size
+                    finalListPosting.forEach(posting -> {
+                        String currency = posting.getPostingCcy();
+                        // Get the current count for this currency, or start from 1 if it's the first occurrence
+                        int count = currencyCountMap.getOrDefault(currency, 0) + 1;
+                        currencyCountMap.put(currency, count);
 
-            if (allDifferentCurrencies) {
-                // Logic for when all postings have different currencies
-
-                Map<String, Integer> currencyCountMap = new HashMap<>();
-
+                        // Set PostingCcyAlias based on the count
+                        posting.setPostingCcyAlias("FCY" + count);
+                    });
+                }
+            }else{
+                // Mixed currency (with IDR and non-IDR)
                 finalListPosting.forEach(posting -> {
-                    String currency = posting.getPostingCcy();
-                    // Get the current count for this currency, or start from 1 if it's the first occurrence
-                    int count = currencyCountMap.getOrDefault(currency, 0) + 1;
-                    currencyCountMap.put(currency, count);
-
-                    // Set PostingCcyAlias based on the count
-                    posting.setPostingCcyAlias("FCY" + count);
+                    if (posting.getPostingCcy().equals("IDR")) {
+                        posting.setPostingCcyAlias("IDR");
+                    } else {
+                        posting.setPostingCcyAlias("FCY");
+                    }
                 });
             }
-        }else{
-            // Mixed currency (with IDR and non-IDR)
-            finalListPosting.forEach(posting -> {
-                if (posting.getPostingCcy().equals("IDR")) {
-                    posting.setPostingCcyAlias("IDR");
-                } else {
-                    posting.setPostingCcyAlias("FCY");
-                }
-            });
-        }
 
-        List<vw_tbr_mapping> listMapping = (List<vw_tbr_mapping>)dataDTO.findAll();
+            List<vw_tbr_mapping> listMapping = (List<vw_tbr_mapping>)dataDTO.findAll();
 
-        // Group the list by TbrCode and MappingType
-        Map<String, Map<String, List<vw_tbr_mapping>>> groupedMapping = listMapping.stream()
-                .collect(Collectors.groupingBy(
-                        vw_tbr_mapping::getTbrcode,
-                        Collectors.groupingBy(vw_tbr_mapping::getMapping_type)
+            // Group the list by TbrCode and MappingType
+            Map<String, Map<String, List<vw_tbr_mapping>>> groupedMapping = listMapping.stream()
+                    .collect(Collectors.groupingBy(
+                            vw_tbr_mapping::getTbrcode,
+                            Collectors.groupingBy(vw_tbr_mapping::getMapping_type)
 //                        Collectors.groupingBy(vw_tbr_mapping::getMapping_type,
 //                                Collectors.collectingAndThen(
 //                                        Collectors.toMap(
@@ -316,94 +326,97 @@ public class ProcessCompositeTBR {
 //                                        map -> new ArrayList<>(map.values()) // Convert the map values back to a list
 //                                )
 //                        )
-                ));
-        List<PostingGroup> finalGroupedMapping = new ArrayList<>();
+                    ));
+            List<PostingGroup> finalGroupedMapping = new ArrayList<>();
 
-        for (Map.Entry<String, Map<String, List<vw_tbr_mapping>>> tbrEntry : groupedMapping.entrySet()) {
-            String tbrCode = tbrEntry.getKey();
-            for (Map.Entry<String, List<vw_tbr_mapping>> mappingEntry : tbrEntry.getValue().entrySet()) {
-                PostingGroup group = new PostingGroup();
-                group.setTbrCode(tbrCode);
-                group.setMappingType(mappingEntry.getKey());
-                group.setMappings(mappingEntry.getValue());
-                group.setPostings(new ArrayList<>()); // Initialize the postings list
-
-                finalGroupedMapping.add(group);
-            }
-        }
-
-        List<PostingGroup> finalData = new ArrayList<>();
-        List<PostingGroup> groupedPostings = new ArrayList<>();
-
-        int groupId = 1;
-
-        // grouping posting
-        for (int i = 0; i < finalListPosting.size(); i++) {
-            if ("D".equals(finalListPosting.get(i).getDebitCreditFlag())) {
-                PostingExtender found = finalListPosting.get(i);
-
-                boolean alreadyGrouped = groupedPostings.stream()
-                        .anyMatch(pg -> pg.getPostings().contains(found));
-
-                if (!alreadyGrouped) {
+            for (Map.Entry<String, Map<String, List<vw_tbr_mapping>>> tbrEntry : groupedMapping.entrySet()) {
+                String tbrCode = tbrEntry.getKey();
+                for (Map.Entry<String, List<vw_tbr_mapping>> mappingEntry : tbrEntry.getValue().entrySet()) {
                     PostingGroup group = new PostingGroup();
-                    group.setGroupId(groupId++);
-                    group.getPostings().add(found);
+                    group.setTbrCode(tbrCode);
+                    group.setMappingType(mappingEntry.getKey());
+                    group.setMappings(mappingEntry.getValue());
+                    group.setPostings(new ArrayList<>()); // Initialize the postings list
 
-                    // continue to look for subsequent C postings until the next D is encountered
-                    for (int j = i + 1; j < finalListPosting.size(); j++) {
-                        group.getPostings().add(finalListPosting.get(j));
+                    finalGroupedMapping.add(group);
+                }
+            }
 
-                        if ("C".equals(finalListPosting.get(j).getDebitCreditFlag()) &&
-                                (j + 1 < finalListPosting.size() && "D".equals(finalListPosting.get(j + 1).getDebitCreditFlag()))) {
-                            break;
+            List<PostingGroup> finalData = new ArrayList<>();
+
+            int groupId = 1;
+
+            // grouping posting
+            for (int i = 0; i < finalListPosting.size(); i++) {
+                if ("D".equals(finalListPosting.get(i).getDebitCreditFlag())) {
+                    PostingExtender found = finalListPosting.get(i);
+
+                    boolean alreadyGrouped = groupedPostings.stream()
+                            .anyMatch(pg -> pg.getPostings().contains(found));
+
+                    if (!alreadyGrouped) {
+                        PostingGroup group = new PostingGroup();
+                        group.setGroupId(groupId++);
+                        group.getPostings().add(found);
+
+                        // continue to look for subsequent C postings until the next D is encountered
+                        for (int j = i + 1; j < finalListPosting.size(); j++) {
+                            group.getPostings().add(finalListPosting.get(j));
+
+                            if ("C".equals(finalListPosting.get(j).getDebitCreditFlag()) &&
+                                    (j + 1 < finalListPosting.size() && "D".equals(finalListPosting.get(j + 1).getDebitCreditFlag()))) {
+                                break;
+                            }
                         }
+
+                        groupedPostings.add(group);
                     }
-
-                    groupedPostings.add(group);
                 }
             }
-        }
 
 
-        // check & set cross valas flag logic
-        groupedPostings.forEach(x->
-        {
-            if(x.getPostings().stream().anyMatch(s->s.getPostingCcyAlias().equals("FCY1"))){
-                x.setFlagCrossValas("Y");
-            }else{
-                x.setFlagCrossValas("N");
-            }
-        });
+            // check & set cross valas flag logic
+            groupedPostings.forEach(x->
+            {
+                if(x.getPostings().stream().anyMatch(s->s.getPostingCcyAlias().equals("FCY1"))){
+                    x.setFlagCrossValas("Y");
+                }else{
+                    x.setFlagCrossValas("N");
+                }
+            });
 
-        // find respective TBR grouping
-        for (PostingGroup group:groupedPostings) {
-            for (PostingGroup groupCondition:finalGroupedMapping) {
-                if(isGroupConditionMet(group,groupCondition)){
-                    group.setTbrCode(groupCondition.getTbrCode());
-                    group.setMappingType(groupCondition.getMappingType());
-                    group.setMappings(groupCondition.getMappings());
-                    break;
+            // find respective TBR grouping
+            for (PostingGroup group:groupedPostings) {
+                for (PostingGroup groupCondition:finalGroupedMapping) {
+                    if(isGroupConditionMet(group,groupCondition)){
+                        group.setTbrCode(groupCondition.getTbrCode());
+                        group.setMappingType(groupCondition.getMappingType());
+                        group.setMappings(groupCondition.getMappings());
+                        break;
+                    }
                 }
             }
+
+
+            // printline
+
+//            for (PostingGroup group : groupedPostings) {
+//                System.out.println("TbrCode: " + group.getTbrCode());
+//                System.out.println("MappingType: " + group.getMappingType());
+//
+//                System.out.println("Postings:");
+//                for (Posting posting : group.getPostings()) {
+//                    System.out.println(" - Sequence: " + posting.getPostingSeqNo() +
+//                            ", AccountType: " + posting.getAccountType() +
+//                            ", Currency: " + posting.getPostingCcy() +
+//                            ", DebitCredit: " + posting.getDebitCreditFlag());
+//                }
+//
+//            }
+        } catch (Exception e){
+            logger.Log("Posting - Group Posting Data","Grouped posting into pair of debit credit","ERROR",e.getMessage());
         }
 
-
-        // printline
-
-        for (PostingGroup group : groupedPostings) {
-            System.out.println("TbrCode: " + group.getTbrCode());
-            System.out.println("MappingType: " + group.getMappingType());
-
-            System.out.println("Postings:");
-            for (Posting posting : group.getPostings()) {
-                System.out.println(" - Sequence: " + posting.getPostingSeqNo() +
-                        ", AccountType: " + posting.getAccountType() +
-                        ", Currency: " + posting.getPostingCcy() +
-                        ", DebitCredit: " + posting.getDebitCreditFlag());
-            }
-
-        }
 
         return groupedPostings;
 

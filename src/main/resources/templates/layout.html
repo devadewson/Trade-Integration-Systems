@@ -1,0 +1,15 @@
+<!-- Example: main.html (layout) -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(main)">
+<head th:replace="~{fragments/header.html :: head}"></head>
+<body>
+<div th:insert="~{fragments/nav.html :: nav}"></div>
+<div class="container">
+    <main id="mainpart" th:replace="${main}"></main>
+</div>
+
+<!--<div th:replace="${main}"></div>-->
+
+</body>
+<footer th:replace="~{fragments/footer.html}"></footer>
+</html>
