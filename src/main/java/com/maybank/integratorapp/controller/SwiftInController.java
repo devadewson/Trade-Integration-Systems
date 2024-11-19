@@ -9,6 +9,7 @@ import com.maybank.integratorapp.component.coresystem.ProcessSwiftIn;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
+import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
 import com.maybank.integratorapp.model.mq.swiftin.response.ServiceRequest;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.util.MQUtil;
@@ -29,6 +30,9 @@ public class SwiftInController {
     MsQueueConfigService queueConfigService;
     @Autowired
     private LogQueueDataRepository dataDTO;
+
+    @Autowired
+    LogInterfaceProcessService logger;
     
     @Autowired
     ProcessSwiftIn swiftIn;
@@ -39,8 +43,15 @@ public class SwiftInController {
 
             MsQueueConfig config = queueConfigService.findByServiceName("SwiftIn");
             if(config != null && config.getEnableStatus() == 1){
+                LogQueueData _data = new LogQueueData();
+                _data.setMessageUID(new MQUtil().getMessageUID());
+                _data.setOrigin("Integrator Scheduler");
+                _data.setCreated_date(new Date());
+                dataDTO.save(_data);
+                logger.SetLogParent(_data.getId());
+                logger.Log("SwiftIn - SwiftIn Scheduler","Begin","START");
 
-                Map<String, List<String>> fileContents = swiftIn.getFileContent();
+                Map<String, List<String>> fileContents = swiftIn.getFileContent(logger);
 //            ProcessFXRate fxRate = new ProcessFXRate();
 //            List<FxRateListData> data = fxRate.getAllFxRate();
 
@@ -48,8 +59,16 @@ public class SwiftInController {
                 fileContents.forEach((fileName, content) -> {
                     ServiceRequest response = new ServiceRequest();
                     response.getSwiftIn().setMessage(String.join("\n", content));
-                    LogQueueData _data = new LogQueueData();
+                    LogQueueData data = new LogQueueData();
+                    data.setMessageUID(new MQUtil().getMessageUID());
+                    data.setOrigin("SwiftSAA");
+                    data.setCreated_date(new Date());
+                    data.setStatus("Success");
+                    data.setDelivery_date(new Date());
+                    data.setUpdated_date(new Date());
+                    data = dataDTO.save(data);
 
+                    logger.SetLogParent(data.getId());
 //                    System.out.println("File: " + fileName);
 //                    content.forEach(System.out::println);
 //                    System.out.println();
@@ -67,19 +86,15 @@ public class SwiftInController {
                     }
 
                     String date = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date());
-                    String correlationId = "SwiftIn_"+date;
-
+                    String correlationId = "SwiftIn_"+date+"_"+MQUtil.generateRandomString(6);
+                    logger.Log("SwiftIn - Sending Swift Messages","Sending to FTI Queues","START");
                     // logging
-                    _data.setMessageUID(new MQUtil().getMessageUID());
-                    _data.setOrigin("SwiftSAA");
-                    _data.setCreated_date(new Date());
-                    _data.setCorrelationID(correlationId);
-                    _data.setStatus("Success");
-                    _data.setDelivery_date(new Date());
-                    _data.setUpdated_date(new Date());
-                    _data.setResMessage(xml);
-                    _data.setDestination(config.getResponse_Queue_Name());
-                    _data = dataDTO.save(_data);
+
+                    data.setCorrelationID(correlationId);
+                    data.setResMessage(xml);
+                    data.setDestination(config.getResponse_Queue_Name());
+                    data = dataDTO.save(data);
+
 
                     MessagePublisher publisher = new MessagePublisher(
                             config.getResponse_Queue_Address(),
@@ -90,11 +105,15 @@ public class SwiftInController {
                             config.getResponse_Queue_Password(),
                             config.getResponse_Queue_Name());
                     publisher.PublishMessage(xml, correlationId);
+                    logger.Log("SwiftIn - Sending Swift Messages","Sending to FTI Queues","END");
 
 
                 });
 
-                swiftIn.moveToBackup();
+                logger.SetLogParent(_data.getId());
+                swiftIn.moveToBackup(logger);
+
+                logger.Log("SwiftIn - SwiftIn Scheduler","End","END");
 
                 return new ResponseEntity<>("SwiftIn Success", HttpStatus.OK);
             }else{
@@ -105,6 +124,7 @@ public class SwiftInController {
 
         }
         catch (Exception e){
+            logger.Log("SwiftIn - SwiftIn Scheduler","Error","ERROR",e.getMessage());
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

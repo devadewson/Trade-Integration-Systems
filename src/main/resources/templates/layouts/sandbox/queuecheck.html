@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
+<body>
+<main>
+    <div class="accordion" id="accordionExample">
+        <th:block th:if="${#lists.isEmpty(queueMessages)}">
+            <p>No messages in the queue.</p>
+        </th:block>
+        <div class="accordion-item" th:each="message : ${queueMessages}">
+            <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                        aria-expanded="true" th:attr="aria-controls=${'collapse' + message.id}, data-bs-target=${'#collapse' + message.id}">
+                    <span th:text="${message.correlationID}"></span> - <span th:text="${message.created_date}"></span>
+                </button>
+            </h2>
+            <div class="accordion-collapse collapse"
+                 th:attr="id=${'collapse' + message.id}, aria-labelledby=${'heading' + message.id}"
+                 data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                    <pre class="mb-0"><code th:text="${message.resMessage}"></code></pre>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</main>
+</body>
+</html>

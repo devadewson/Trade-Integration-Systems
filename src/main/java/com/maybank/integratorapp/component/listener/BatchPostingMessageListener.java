@@ -6,8 +6,10 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.SystemProcess;
+import com.maybank.integratorapp.component.coresystem.ProcessCompositeTBR;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
+import com.maybank.integratorapp.model.mq.batchposting.request.Posting;
 import com.maybank.integratorapp.model.mq.batchposting.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.accountinquiry.response.ServiceResponse;
 import com.maybank.integratorapp.util.MQUtil;
@@ -16,11 +18,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+
 @Component
 public class BatchPostingMessageListener implements CustomMessageListener {
     @Autowired
     private LogQueueDataRepository dataDTO;
+    @Autowired
+    private ProcessCompositeTBR processCompositeTBR;
 
 //    @Autowired private MessagePublisher publisher;
     @Autowired
@@ -65,25 +72,14 @@ public class BatchPostingMessageListener implements CustomMessageListener {
                 response.getResponseHeader().setOperation(request.getRequestHeader().getOperation());
                 response.getResponseHeader().setSourceSystem(request.getRequestHeader().getTargetSystem());
                 response.getResponseHeader().setTargetSystem(request.getRequestHeader().getSourceSystem());
-//            xmlMapper.readValue(_message, ServiceRequest.class);
-//            ObjectMapper mapper = new ObjectMapper();
-//            RequestModel requestModel = mapper.readValue(_message, RequestModel.class);
-//            SystemMessage messageReceipt = new ObjectMapper().reader().readValue(_message);
 
+                List<Posting> _postings = new ArrayList<>();
+                request.getBatchRequest().getServiceRequestChild().forEach(s->
+                        _postings.add(s.getPosting())
+                        );
 
-//            System.out.println("Account Balance : "+request.getData().getBalance());
-//            messageReceipt.data.setSource("MQReply");
-                SystemProcess process = new SystemProcess();
-//            DCIFInquiryServices process = new DCIFInquiryServices();
+                processCompositeTBR.doPosting(_postings,_data.getId());
 
-//            BodyData data = requestModel.getData();
-//            data.setBalance(process.doSomething());
-//            double balance = ;
-//            data.setBalance(process.getAccountBalance(requestModel.getData().getAccount()));
-
-//            AvailBalResponse _availBalResponse = response.getAvailBalResponse();
-//            _availBalResponse.setBalance(process.getAccountBalance(request.getAvailBALRequest().getBackOfficeAccount()));
-//                response.getAvailBalResponse().setBalance(process.getAccountBalanceNew(request.().getBackOfficeAccount()));
                 response.getResponseHeader().setStatus("Success");
 
                 _data.setStatus("Success");
