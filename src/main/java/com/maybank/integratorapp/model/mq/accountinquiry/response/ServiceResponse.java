@@ -8,7 +8,7 @@ import com.maybank.integratorapp.model.mq.accountinquiry.response.ResponseHeader
 @JacksonXmlRootElement(localName = "ServiceResponse")
 public class ServiceResponse {
 
-    @JacksonXmlProperty(localName = "ResponseHeader")
+    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "ResponseHeader")
     private ResponseHeader responseHeader;
 
     @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "AvailBalResponse")

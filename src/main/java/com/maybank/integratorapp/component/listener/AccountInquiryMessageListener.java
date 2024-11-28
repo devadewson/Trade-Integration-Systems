@@ -84,8 +84,14 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
             responseHeader.setStatus(accountInquiryResponse.getResponseDetail().getResponse_data() + "_" +
                     accountInquiryResponse.getResponseDetail().getError_origin() +"_"+
                     accountInquiryResponse.getResponseDetail().getResponse_code());
-            availBalResponse.setBalance(accountInquiryResponse.getAccountInquiryResponseData().getBalance());
+            String balance = accountInquiryResponse.getAccountInquiryResponseData().getBalance();
+            // Remove +
+            availBalResponse.setBalance(balance.replaceAll("[-+.^:,]",""));
 
+            // If getBalance [0] = +, Y : N
+            String negative = balance.substring(0,1).equals("+") ? "Y" : "N";
+            availBalResponse.setNegative(negative);
+            availBalResponse.setErrorMessage("HOLDCODE-"+accountInquiryResponse.getAccountInquiryResponseData().getAccountStatus());
             serviceResponse.setAvailBalResponse(availBalResponse);
             serviceResponse.setResponseHeader(responseHeader);
 

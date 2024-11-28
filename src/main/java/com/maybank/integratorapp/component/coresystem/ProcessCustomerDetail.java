@@ -24,6 +24,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 @Component
 public class ProcessCustomerDetail {
@@ -38,13 +40,18 @@ public class ProcessCustomerDetail {
 
         try {
             String apiUrl = parameterRepository.findValueByPrmKey("CustomerInformationRequest");
+            String branchCode = parameterRepository.findValueByPrmKey("ChannelHeaderBranchCode");
+            String channelId = parameterRepository.findValueByPrmKey("ChannelHeaderChannelId");
+            String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+            String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
+
             ChannelHeader channelHeader = new ChannelHeader();
             channelHeader.setMessageID("TESTING");
-            channelHeader.setBranchCode("270");
-            channelHeader.setChannelID("M2U");
+            channelHeader.setBranchCode(branchCode);
+            channelHeader.setChannelID(channelId);
             channelHeader.setReference("M2U/123/2013");
-            channelHeader.setTransactionDate("24-09-2024");
-            channelHeader.setTransactionTime("10:18:43");
+            channelHeader.setTransactionDate(date);
+            channelHeader.setTransactionTime(time);
 
             CustomerInformationRequest customerInformationRequest = new CustomerInformationRequest();
             customerInformationRequest.setGCIFNo(gcifNo);
@@ -97,14 +104,18 @@ public class ProcessCustomerDetail {
         String res = "";
         try {
             String apiUrl = parameterRepository.findValueByPrmKey("CustomerInformationRequest");
+            String branchCode = parameterRepository.findValueByPrmKey("ChannelHeaderBranchCode");
+            String channelId = parameterRepository.findValueByPrmKey("ChannelHeaderChannelId");
+            String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+            String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
 
             ChannelHeader channelHeader = new ChannelHeader();
             channelHeader.setMessageID("TESTING");
-            channelHeader.setBranchCode("270");
-            channelHeader.setChannelID("M2U");
+            channelHeader.setBranchCode(branchCode);
+            channelHeader.setChannelID(channelId);
             channelHeader.setReference("M2U/123/2013");
-            channelHeader.setTransactionDate("24-09-2024");
-            channelHeader.setTransactionTime("10:18:43");
+            channelHeader.setTransactionDate(date);
+            channelHeader.setTransactionTime(time);
 
             AccountListRequest accountListRequest = new AccountListRequest();
             accountListRequest.setGCIFNo(gcifNo);

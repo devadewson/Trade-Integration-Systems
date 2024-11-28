@@ -66,7 +66,7 @@ public class ProcessAccountBalance {
         newReq.getBody().getAccountInquiry().getChannelHeader().setChannelID("Payroll");
         newReq.getBody().getAccountInquiry().getChannelHeader().setBranchCode("270");
         newReq.getBody().getAccountInquiry().getChannelHeader().setClientSupervisorID("AA");
-        newReq.getBody().getAccountInquiry().getChannelHeader().setMessageID("TESTINGFROMMQ");
+        newReq.getBody().getAccountInquiry().getChannelHeader().setClientUserID("TESTINGFROMMQ");
         newReq.getBody().getAccountInquiry().getAccountInquiryRequest().setAccountNo(accountNumber);
         newReq.getBody().getAccountInquiry().getAccountInquiryRequest().setAccountCurrency("016");
         newReq.getBody().getAccountInquiry().getAccountInquiryRequest().setAccountBranchCode("003");
@@ -106,7 +106,8 @@ public class ProcessAccountBalance {
                 var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
                 _response = outputResponse;
                 SoapEnvelope res = mapper.readValue(_response, SoapEnvelope.class);
-                balance = res.getBody().getAccountInquiryResponseData().getResponseData().getBalance();
+                balance = res.getBody().getAccountInquiryResponseData().getResponseData()
+                        .getBalance();
             } catch (ClientProtocolException e) {
                 throw new RuntimeException(e);
             } catch (IOException e) {
