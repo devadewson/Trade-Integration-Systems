@@ -8,10 +8,6 @@ import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.model.mq.facilities.request.ServiceRequest;
-import com.maybank.integratorapp.model.mq.facilities.response.FacilitiesResponse;
-import com.maybank.integratorapp.model.mq.facilities.response.ResponseHeader;
-import com.maybank.integratorapp.model.mq.facilities.response.ServiceResponse;
-import com.maybank.integratorapp.model.soap.limit.XLBT.response.SoapEnvelope;
 import com.maybank.integratorapp.util.MQUtil;
 import jakarta.jms.Message;
 import jakarta.jms.Queue;
@@ -32,7 +28,6 @@ public class FacilitiesMessageListener implements CustomMessageListener {
         this.publisher = publisher;
     }
     private MessagePublisher publisher;
-
     @Autowired
     ProcessFacilities processFacilities;
 

@@ -3,8 +3,7 @@ package com.maybank.integratorapp.component.coresystem;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.maybank.integratorapp.model.mq.facilities.request.ServiceRequest;
-import com.maybank.integratorapp.model.mq.facilities.response.*;
+import com.maybank.integratorapp.model.mq.facilitiesdetails.response.*;
 import com.maybank.integratorapp.model.soap.limit.XLBT.request.SoapEnvelope;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -14,6 +13,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.springframework.stereotype.Component;
+import com.maybank.integratorapp.model.mq.facilitiesdetails.request.ServiceRequest;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -22,10 +22,9 @@ import java.util.Date;
 import java.util.List;
 
 @Component
-public class ProcessFacilities {
-
-    public ServiceResponse getFacilities(ServiceRequest serviceRequest){
-
+public class ProcessFacilitiesDetails {
+    public ServiceResponse getFacilitiesDetails(ServiceRequest serviceRequest)
+    {
         String soapUrl = "http://10.230.83.57:65085/services/CMSService";
         String correlationID = serviceRequest.getRequestHeader().getCorrelationID();
         String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
@@ -57,6 +56,7 @@ public class ProcessFacilities {
         com.maybank.integratorapp.model.soap.
                 limit.XLBT.response.SoapEnvelope res = new com.maybank.integratorapp.model.
                 soap.limit.XLBT.response.SoapEnvelope();
+
         try {
             xml = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapReq);
 //            System.out.println("Before");
@@ -76,24 +76,22 @@ public class ProcessFacilities {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-
-        ServiceResponse serviceResponseMq = new ServiceResponse();
+        List<FacilityDetailsResponse> detailsResponseList = new ArrayList<>();
+        ServiceResponse serviceResponseMq = new ServiceResponse(detailsResponseList);
         ResponseHeader responseHeaderMq = new ResponseHeader();
-        FacilitiesResponse facilitiesResponseMq = new FacilitiesResponse();
         Details detailsResponseMq = new Details();
 
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+        try(CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPost httpPost = new HttpPost(soapUrl);
             httpPost.setHeader("Content-Type", "text/xml");
             httpPost.setEntity(new StringEntity(xml, ContentType.TEXT_XML));
             String _response = "";
 
-            try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
-                if (response.getStatusLine().getStatusCode() == 200){
-                    // Handle response if needed
+            try(CloseableHttpResponse response = httpClient.execute(httpPost)) {
+                if (response.getStatusLine().getStatusCode() == 200){ // Handle response if needed
+
                     var _res = response.getEntity();
                     var _resStream = _res.getContent();
-
                     var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
 
                     _response = outputResponse;
@@ -107,7 +105,7 @@ public class ProcessFacilities {
 
                     responseHeaderMq.setCorrelationID(serviceRequest.getRequestHeader().getCorrelationID());
                     responseHeaderMq.setService("LIMIT");
-                    responseHeaderMq.setOperation("FACILITIES");
+                    responseHeaderMq.setOperation("FACILITIESDETAILS");
                     responseHeaderMq.setStatus("SUCCEEDED");
 
                     detailsResponseMq.setInfo(String.valueOf(response.getStatusLine().getStatusCode()));
@@ -115,57 +113,52 @@ public class ProcessFacilities {
 
                     int total = res.getBody().getXlbtResponse().getCmsXlbtResponse()
                             .getLoanAccounts().size();
-                    List<FacilityDetails> facilityDetailsList = new ArrayList<>(total);
-                    for (int i = 0; i < total; i++) {
-                        FacilityDetails details = new FacilityDetails();
+                    detailsResponseList = new ArrayList<>(total);
+                    for (int i = 0; i < total; i++){
+                        FacilityDetailsResponse detailsResponse = new FacilityDetailsResponse();
 
-                        details.setDescription(res.getBody().getXlbtResponse().getCmsXlbtResponse().
-                                getLoanAccounts().get(i).getDescription());
-                        details.setStatus(res.getBody().getXlbtResponse().getCmsXlbtResponse().
-                                getLoanAccounts().get(i).getStatus());
-                        details.setCurrency(res.getBody().getXlbtResponse().getCmsXlbtResponse().
-                                getLoanAccounts().get(i).getLoancurrencycode());
-                        details.setExtraDataKey(res.getBody().getXlbtResponse().getCmsXlbtResponse().
-                                getLoanAccounts().get(i).getKey());
-                        details.setStartDate(res.getBody().getXlbtResponse().getCmsXlbtResponse().
-                                getLoanAccounts().get(i).getNotedate());
-                        details.setExpiryDate(res.getBody().getXlbtResponse().getCmsXlbtResponse().
-                                getLoanAccounts().get(i).getMaturitydate());
+                        detailsResponse.setCurrency(res.getBody().getXlbtResponse().getCmsXlbtResponse()
+                                .getLoanAccounts().get(i).getLoancurrencycode());
+                        detailsResponse.setDescription(res.getBody().getXlbtResponse().getCmsXlbtResponse()
+                                .getLoanAccounts().get(i).getDescription());
+                        detailsResponse.setStatus(res.getBody().getXlbtResponse().getCmsXlbtResponse()
+                                .getLoanAccounts().get(i).getStatus());
+                        detailsResponse.setExtraDataKey(res.getBody().getXlbtResponse().getCmsXlbtResponse()
+                                .getLoanAccounts().get(i).getKey());
+                        detailsResponse.setStartDate(res.getBody().getXlbtResponse().getCmsXlbtResponse()
+                                .getLoanAccounts().get(i).getNotedate());
+                        detailsResponse.setExpiryDate(res.getBody().getXlbtResponse().getCmsXlbtResponse()
+                                .getLoanAccounts().get(i).getMaturitydate());
 
-                        facilityDetailsList.add(details);
+                        detailsResponseList.add(detailsResponse);
                     }
-                    FacilityDetailss facilityDetailssHead = new FacilityDetailss();
-                    facilityDetailssHead.setFacilityDetails(facilityDetailsList);
 
-                    FacilityResponseExtraDetails responseExtraDetails = new FacilityResponseExtraDetails();
-                    responseExtraDetails.setExtraDataKey("ExtraDataKey");
-                    responseExtraDetails.setFieldName("FieldName");
-                    responseExtraDetails.setFieldValue("FieldValue");
+                    FacilityExtraDetailss extraDetailssHead = new FacilityExtraDetailss();
 
-                    FacilityResponseExtraDetailss responseExtraDetailssHead = new FacilityResponseExtraDetailss();
-                    responseExtraDetailssHead.setFacilityResponseExtraDetails(responseExtraDetails);
+                    FacilityExtraDetails extraDetails = new FacilityExtraDetails();
+                    extraDetails.setExtraDataKey("ExtraDataKey");
+                    extraDetails.setName("FieldName");
+                    extraDetails.setValue("FieldValue");
 
-                    facilitiesResponseMq.setFacilityDetailss(facilityDetailssHead);
-                    facilitiesResponseMq.setFacilityResponseExtraDetailss(responseExtraDetailssHead);
-
+                    extraDetailssHead.setFacilityExtraDetails(extraDetails);
+                    serviceResponseMq.setFacilityDetailsResponse(detailsResponseList);
                     serviceResponseMq.setResponseHeader(responseHeaderMq);
-                    serviceResponseMq.setFacilitiesResponse(facilitiesResponseMq);
+
+                    XmlMapper xmlMapper = new XmlMapper();
+                    String responseXml = xmlMapper.writeValueAsString(serviceResponseMq);
+                    System.out.println("===========================responseXml=================================");
+                    System.out.println(responseXml);
+                    System.out.println("============================================================\n");
                 }
 
-                XmlMapper xmlMapper = new XmlMapper();
-                String responseXml = xmlMapper.writeValueAsString(serviceResponseMq);
-                System.out.println("===========================responseXml=================================");
-                System.out.println(responseXml);
-                System.out.println("============================================================\n");
-
-            } catch (ClientProtocolException e) {
-                System.out.println(e);
-            } catch (IOException e) {
+            }catch (ClientProtocolException e) {
                 System.out.println(e);
             }
+
         } catch (IOException e) {
             System.out.println(e);
         }
+
         return serviceResponseMq;
     }
 
