@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.component.listener;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -7,6 +8,7 @@ import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.coresystem.ProcessCostumerSearch;
 import com.maybank.integratorapp.data.entity.LogQueueData;
+import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.model.mq.customersearch.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.customersearch.response.CustomerSearchResult;
@@ -54,52 +56,88 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
         }
     }
 
+    private void forwardMessage(TextMessage message){
+        MsQueueConfig config = queueConfigService.findByServiceName("CustomerDetails");
+        MessagePublisher publisher = new MessagePublisher(
+                config.getRequest_Queue_Address(),
+                Integer.parseInt(config.getRequest_Queue_Port()),
+                config.getRequest_Queue_Manager(),
+                config.getRequest_Queue_Channel(),
+                config.getRequest_Queue_Username(),
+                config.getRequest_Queue_Password(),
+                config.getRequest_Queue_Name());
+        try {
+            publisher.PublishMessage(message.getText(), message.getJMSCorrelationID());
+        } catch (JMSException e) {
+            throw new RuntimeException(e);
+        }
+    }
     private void processMessage(TextMessage message) {
         ServiceResponse response = new ServiceResponse();
         LogQueueData logData = new LogQueueData();
 
         try {
             initializeLogData(logData, message);
-            dataDTO.save(logData);
-            message.acknowledge();
 
+            //new logic, if the Operation Tag is CustomerDetails, forward the message to another queues
+            if(message.getText().contains("<Operation>CustomerDetails</Operation>")){
+                forwardMessage(message);
+                message.acknowledge();
+                return;
+            }
             ServiceRequest request = parseRequest(message);
 
-            String customerNumber = request.getCustomerSearchRequest().getCustomerNumber();
-
+//            String customerNumber = request.getCustomerSearchRequest().getCustomerNumber();
+            String customerNumber = request.getCustomerSearchRequest().getCustomerMnemonic();
             CustomerSearchResult customerSearchResultResponse = customerSearchResultResponse(customerNumber);
 
             // Set CustomerSearchResult ke dalam CustomerSearchResults
             List<CustomerSearchResult> results = new ArrayList<>();
             results.add(customerSearchResultResponse);
             response.getCustomerSearchResponse().getCustomerSearchResults().setCustomerSearchResult(results);
+            response.getResponseHeader().setStatus("SUCCEEDED");
 
             setInitialResponseHeader(response, request);
 
             //Send Response To QUEUE Response
-            String responseXml = new XmlMapper().writeValueAsString(response);
+            XmlMapper xmlMapper = new XmlMapper();
+            xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+            String responseXml = xmlMapper.writeValueAsString(response);
 
             publisher.PublishMessage(responseXml, message.getJMSCorrelationID());
 
-            response.getResponseHeader().setStatus("Success");
 
             logData.setStatus("Success");
+            logData.setResMessage(responseXml);
             logData.setDelivery_date(new Date());
             logData.setUpdated_date(new Date());
+
+            message.acknowledge();
 
         } catch (JMSException | JsonProcessingException e) {
             handleException(e, response, logData);
         }
 
+        dataDTO.save(logData);
+
+    }
+    private CustomerSearchResult customerSearchResultResponse(String customerNumber) {
+        return processCustomerSearch.getCustomerSearchResult(customerNumber);
     }
 
-    private void initializeLogData(LogQueueData logData, TextMessage message) throws JMSException  {
-        Queue sourceQueue = (Queue) message.getJMSDestination();
-        logData.setOrigin("MQ_"+sourceQueue.getQueueName());
-        logData.setMessageUID(new MQUtil().getMessageUID());
-        logData.setReqMessage(message.getText());
-        logData.setCreated_date(new Date());
-        logData.setCorrelationID(message.getJMSCorrelationID());
+    private void initializeLogData(LogQueueData logData, TextMessage message)  {
+        Queue sourceQueue = null;
+        try {
+            sourceQueue = (Queue) message.getJMSDestination();
+            logData.setOrigin("MQ_"+sourceQueue.getQueueName());
+            logData.setMessageUID(new MQUtil().getMessageUID());
+            logData.setReqMessage(message.getText());
+            logData.setCreated_date(new Date());
+            logData.setCorrelationID(message.getJMSCorrelationID());
+        } catch (JMSException e) {
+            throw new RuntimeException(e);
+        }
+
 
     }
     private void setInitialResponseHeader(ServiceResponse response, ServiceRequest request) {
@@ -114,10 +152,6 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
         XmlMapper xmlMapper = new XmlMapper();
         return xmlMapper.readValue(message.getText(), ServiceRequest.class);
     }
-    private CustomerSearchResult customerSearchResultResponse(String customerNumber) {
-        return processCustomerSearch.getCustomerSearchResult(customerNumber);
-    }
-
     private void handleException(Exception e, ServiceResponse response, LogQueueData logData) {
         String errorMsg;
 

@@ -3,10 +3,10 @@ package com.maybank.integratorapp.model.mq.customerdetail.response;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-@JacksonXmlRootElement(localName = "ServiceResponse")
+@JacksonXmlRootElement(localName = "ServiceResponse",namespace = "urn:control.services.tiplus2.misys.com")
 public class ServiceResponse {
 
-    @JacksonXmlProperty(localName = "ResponseHeader")
+    @JacksonXmlProperty(localName = "ResponseHeader",namespace = "urn:control.services.tiplus2.misys.com")
     private ResponseHeader responseHeader;
 
     @JacksonXmlProperty(localName = "CustomerDetailsResponse", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")

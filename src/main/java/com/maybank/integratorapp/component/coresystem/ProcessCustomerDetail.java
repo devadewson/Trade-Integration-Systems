@@ -2,6 +2,8 @@ package com.maybank.integratorapp.component.coresystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maybank.integratorapp.data.repository.MsParameterRepository;
+import com.maybank.integratorapp.data.repository.MsQueueConfigRepository;
+import com.maybank.integratorapp.data.service.MsParameterService;
 import com.maybank.integratorapp.model.mq.customerdetail.response.AddressDetail;
 import com.maybank.integratorapp.model.mq.customerdetail.response.AddressDetails;
 import com.maybank.integratorapp.model.mq.customerdetail.response.CustomerDetailsResponse;
@@ -130,7 +132,8 @@ public class ProcessCustomerDetail {
 
             accountListResponse = accountListResponseWrapper.getAccountListResponse();
             accountListResponseData = accountListResponse.getAccountListResponseData();
-            res = accountListResponseData.getAccountData().get(0).getCifNo();
+            if(accountListResponseData.getAccountData() != null)
+                res = accountListResponseData.getAccountData().get(0).getCifNo();
 
             System.out.println("===========================res=================================");
             System.out.println(res);

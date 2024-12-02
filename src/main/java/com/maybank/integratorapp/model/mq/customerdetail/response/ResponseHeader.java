@@ -1,12 +1,24 @@
 package com.maybank.integratorapp.model.mq.customerdetail.response;
 
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
+
 public class ResponseHeader {
+    @JacksonXmlProperty(localName = "Service",namespace = "urn:control.services.tiplus2.misys.com")
+
     private String service;
+    @JacksonXmlProperty(localName = "Operation",namespace = "urn:control.services.tiplus2.misys.com")
     private String operation;
+    @JacksonXmlProperty(localName = "Status",namespace = "urn:control.services.tiplus2.misys.com")
     private String status;
+    @JacksonXmlProperty(localName = "Details",namespace = "urn:control.services.tiplus2.misys.com")
     private Details details;
+    @JacksonXmlProperty(localName = "CorrelationId",namespace = "urn:control.services.tiplus2.misys.com")
     private String correlationID;
+    @JacksonXmlProperty(localName = "TargetSystem",namespace = "urn:control.services.tiplus2.misys.com")
+
     private String targetSystem;
+    @JacksonXmlProperty(localName = "SourceSystem",namespace = "urn:control.services.tiplus2.misys.com")
+
     private String sourceSystem;
 
     public String getService() { return service; }

@@ -76,6 +76,10 @@ public  class ProcessCostumerSearch {
                     CustomerInformationResponseWraper res = objectMapper.readValue(responseString, CustomerInformationResponseWraper.class);
 
                    //Maaping respon ESB to respon FTI
+                    customerSearchResult.setGroup("ADIMAH");
+                    customerSearchResult.setAccountOfficer("*");
+                    customerSearchResult.setBlocked("N");
+                    customerSearchResult.setCustomerMnemonic(gcifNo);
                     customerSearchResult.setCustomerNumber(res.getCustomerInformationResponse().getCustomerInformationResponseData().getGCIFNo());
                     customerSearchResult.setFullName(res.getCustomerInformationResponse().getCustomerInformationResponseData().getFullName());
                     customerSearchResult.setCountryOfResidence(res.getCustomerInformationResponse().getCustomerInformationResponseData().getNationality());

@@ -90,6 +90,15 @@ public class CustomerInformationResponseData {
     private String ShareHolderName1;
     @JsonProperty("ShareHolderPct1")
     private String ShareHolderPct1;
+    @JsonProperty("ShareHolderName2")
+    private String ShareHolderName2;
+    @JsonProperty("ShareHolderPct2")
+    private String ShareHolderPct2;
+    @JsonProperty("ShareHolderName3")
+    private String ShareHolderName3;
+    @JsonProperty("ShareHolderPct3")
+    private String ShareHolderPct3;
+    
     @JsonProperty("AuthorizedPersonName1")
     private String AuthorizedPersonName1;
     @JsonProperty("AuthorizedPersonIDType1")
@@ -455,5 +464,37 @@ public class CustomerInformationResponseData {
 
     public void setAuthorizedPersonIDNo1(String authorizedPersonIDNo1) {
         AuthorizedPersonIDNo1 = authorizedPersonIDNo1;
+    }
+
+    public String getShareHolderName2() {
+        return ShareHolderName2;
+    }
+
+    public void setShareHolderName2(String shareHolderName2) {
+        ShareHolderName2 = shareHolderName2;
+    }
+
+    public String getShareHolderPct2() {
+        return ShareHolderPct2;
+    }
+
+    public void setShareHolderPct2(String shareHolderPct2) {
+        ShareHolderPct2 = shareHolderPct2;
+    }
+
+    public String getShareHolderName3() {
+        return ShareHolderName3;
+    }
+
+    public void setShareHolderName3(String shareHolderName3) {
+        ShareHolderName3 = shareHolderName3;
+    }
+
+    public String getShareHolderPct3() {
+        return ShareHolderPct3;
+    }
+
+    public void setShareHolderPct3(String shareHolderPct3) {
+        ShareHolderPct3 = shareHolderPct3;
     }
 }

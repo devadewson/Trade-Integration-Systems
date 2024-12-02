@@ -2,19 +2,19 @@ package com.maybank.integratorapp.model.mq.customerdetail.response;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 public class CustometExtraData {
-    @JacksonXmlProperty(namespace = "urn:common.service.ti.apps.tiplus2.misys.com", localName = "LineOfBusiness")
-    private String LineOfBusiness;
-    @JacksonXmlProperty(namespace = "urn:common.service.ti.apps.tiplus2.misys.com", localName = "TaxId")
+    @JacksonXmlProperty(namespace = "urn:custom.service.ti.apps.tiplus2.misys.com", localName = "LineOfBusiness")
+    private String lineOfBusiness;
+    @JacksonXmlProperty(namespace = "urn:custom.service.ti.apps.tiplus2.misys.com", localName = "TaxID")
     private String taxId;
-    @JacksonXmlProperty(namespace = "urn:common.service.ti.apps.tiplus2.misys.com", localName = "CifNumber")
+    @JacksonXmlProperty(namespace = "urn:custom.service.ti.apps.tiplus2.misys.com", localName = "CIFNO")
     private String cifNumber;
 
     public String getLineOfBusiness() {
-        return LineOfBusiness;
+        return lineOfBusiness;
     }
 
-    public void setLineOfBusiness(String lineOfBusiness) {
-        LineOfBusiness = lineOfBusiness;
+    public void setLineOfBusiness(String _lineOfBusiness) {
+        lineOfBusiness = _lineOfBusiness;
     }
 
     public String getTaxId() {
