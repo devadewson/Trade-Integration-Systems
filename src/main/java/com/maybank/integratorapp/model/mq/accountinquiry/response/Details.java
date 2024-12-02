@@ -6,10 +6,8 @@ public class Details {
     @JacksonXmlProperty(localName = "Error")
     private String error;
     @JacksonXmlProperty(localName = "Warning")
-
     private String warning;
     @JacksonXmlProperty(localName = "Info")
-
     private String info;
 
     public String getError() {

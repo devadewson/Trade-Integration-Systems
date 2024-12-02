@@ -3,6 +3,7 @@ package com.maybank.integratorapp.component.listener;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
+import com.maybank.integratorapp.component.coresystem.ProcessFacilitiesDetails;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
@@ -29,6 +30,9 @@ public class FacilitiesDetailMessageListener implements CustomMessageListener {
     }
     private MessagePublisher publisher;
 
+    @Autowired
+    private ProcessFacilitiesDetails processFacilitiesDetails;
+
     @Override
     public void onMessage(Message message) {
         if (message instanceof TextMessage) {
@@ -51,10 +55,12 @@ public class FacilitiesDetailMessageListener implements CustomMessageListener {
                 _data.setCorrelationID(message.getJMSCorrelationID());
 
                 _data = dataDTO.save(_data);
-                message.acknowledge();
+//                message.acknowledge();
 
                 XmlMapper xmlMapper = new XmlMapper();
                 ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);
+                request.getRequestHeader().setCorrelationID(message.getJMSCorrelationID());
+                var resultSoap = processFacilitiesDetails.getFacilitiesDetails(request);
 
                 responseXml = xmlMapper.writeValueAsString(request);
                 System.out.println("===========================responseXml=================================");

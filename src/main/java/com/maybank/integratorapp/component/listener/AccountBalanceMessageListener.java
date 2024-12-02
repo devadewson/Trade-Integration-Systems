@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.component.listener;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -80,19 +81,20 @@ public class AccountBalanceMessageListener implements CustomMessageListener {
 //                    response.getAvailBalResponse().setBalance(process.getAccountBalance(request.getAvailBALRequest().getBackOfficeAccount()));
                 response.getAvailBalResponse().setBalance(process.getAccountBalanceNew(request.getAvailBALRequest().getBackOfficeAccount()));
 
-                response.getResponseHeader().setStatus("Success");
-                response.getResponseHeader().getDetails().setInfo("Success");
+                response.getResponseHeader().setStatus("SUCCEEDED");
+                response.getResponseHeader().getDetails().setInfo("SUCCEEDED");
                 // Serialize the object to XML
                 String xmlResponse = xmlMapper.writeValueAsString(response);
 
-                _data.setStatus("Success");
+                _data.setStatus("SUCCEEDED");
+                _data.setResMessage(xmlResponse);
                 _data.setDelivery_date(new Date());
                 _data.setUpdated_date(new Date());
                 _data.setResMessage(xmlResponse);
                 _data.setDestination(this.publisher.getDestinationQueue());
 
 
-                message.acknowledge();
+//                message.acknowledge();
 //                if(jwtService.validateToken(request.getRequestHeader().getCredentials().getCertificate())){
 //
 //                    SystemProcess process = new SystemProcess();
@@ -161,6 +163,7 @@ public class AccountBalanceMessageListener implements CustomMessageListener {
             dataDTO.save(_data);
 
             XmlMapper xmlMapper = new XmlMapper();
+            xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             // Serialize the object to XML
             String xml = null;
             try {
@@ -169,7 +172,7 @@ public class AccountBalanceMessageListener implements CustomMessageListener {
                 throw new RuntimeException(e);
             }
 
-            publisher.PublishMessage(xml,response.getResponseHeader().getCorrelationID());
+//            publisher.PublishMessage(xml,response.getResponseHeader().getCorrelationID());
         }
     }
 
