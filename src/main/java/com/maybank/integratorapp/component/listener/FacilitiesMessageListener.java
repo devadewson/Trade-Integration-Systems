@@ -36,6 +36,7 @@ public class FacilitiesMessageListener implements CustomMessageListener {
         if (message instanceof TextMessage){
             LogQueueData _data = new LogQueueData();
             String responseXml = "";
+            String correlationId = "";
             try {
                 System.out.println("Received 1 Message With CorrelationID : " + message.getJMSCorrelationID());
                 String _message = message.getBody(String.class);
@@ -44,16 +45,16 @@ public class FacilitiesMessageListener implements CustomMessageListener {
                 System.out.println(_message);
                 System.out.println("============================================================\n");
 
+                correlationId = message.getJMSCorrelationID();
+
                 Queue sourceQueue = (Queue) message.getJMSDestination();
-                _data.setOrigin("MQ_" + sourceQueue.getQueueName());
-                _data.setOrigin("MQ_" + sourceQueue.getQueueName());
+                _data.setOrigin("MQ_"+sourceQueue.getQueueName());
                 _data.setMessageUID(new MQUtil().getMessageUID());
                 _data.setReqMessage(_message);
                 _data.setCreated_date(new Date());
-                _data.setCorrelationID(message.getJMSCorrelationID());
-
+                _data.setCorrelationID(correlationId);
                 _data = dataDTO.save(_data);
-//                message.acknowledge();
+                message.acknowledge();
 
                 XmlMapper xmlMapper = new XmlMapper();
                 ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);

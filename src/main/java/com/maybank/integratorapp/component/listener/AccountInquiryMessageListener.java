@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.component.listener;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.maybank.integratorapp.component.CustomMessageListener;
@@ -8,6 +9,7 @@ import com.maybank.integratorapp.component.coresystem.ProcessAccountInquiry;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
+import com.maybank.integratorapp.data.service.MsCurrencyService;
 import com.maybank.integratorapp.model.mq.accountinquiry.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.accountinquiry.response.AvailBalResponse;
 import com.maybank.integratorapp.model.mq.accountinquiry.response.Details;
@@ -35,6 +37,10 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
 
     @Autowired
     ProcessAccountInquiry processAccountInquiry;
+
+    @Autowired
+    MsCurrencyService msCurrencyService;
+
     @Autowired
     private Environment env;
     public void setPublisher(MessagePublisher publisher) {
@@ -44,93 +50,97 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
     private MessagePublisher publisher;
     @Override
     public void onMessage(Message message) {
-        if (message instanceof TextMessage) {}
-        String responseXml = "";
-        LogQueueData _data = new LogQueueData();
-        try {
-            System.out.println("Received 1 Message With CorrelationID : "+ message.getJMSCorrelationID());
-            String _message = message.getBody(String.class);
-            System.out.println("===========================xmlRequest=================================");
-            System.out.println(_message);
-            System.out.println("============================================================\n");
-
-            Queue sourceQueue = (Queue) message.getJMSDestination();
-            _data.setOrigin("MQ_"+sourceQueue.getQueueName());
-            _data.setMessageUID(new MQUtil().getMessageUID());
-            _data.setReqMessage(_message);
-            _data.setCreated_date(new Date());
-            _data.setCorrelationID(message.getJMSCorrelationID());
-
-            _data = dataDTO.save(_data);
-            message.acknowledge();
-
-            XmlMapper xmlMapper = new XmlMapper();
-            ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);
-            String accNo = request.getAvailBALRequest().getBackOfficeAccount();
-            String branch = request.getAvailBALRequest().getExternalAccount();
-            String currency = request.getAvailBALRequest().getPostingCurrency();
-
-            AccountInquiryResponse accountInquiryResponse = processAccountInquiry.getAccInqWithVar(accNo, branch, currency);
-
-            ServiceResponse serviceResponse = new ServiceResponse();
-            ResponseHeader responseHeader = new ResponseHeader();
-            Details detailsResponse = new Details();
-            AvailBalResponse availBalResponse = new AvailBalResponse();
-
-            detailsResponse.setInfo(accountInquiryResponse.getResponseDetail().getResponse_data());
-            responseHeader.setCorrelationID(message.getJMSCorrelationID());
-            responseHeader.setService("AccountInquiry");
-            responseHeader.setOperation("AccountInquiry");
-            responseHeader.setStatus(accountInquiryResponse.getResponseDetail().getResponse_data() + "_" +
-                    accountInquiryResponse.getResponseDetail().getError_origin() +"_"+
-                    accountInquiryResponse.getResponseDetail().getResponse_code());
-            String balance = accountInquiryResponse.getAccountInquiryResponseData().getBalance();
-            // Remove +
-            availBalResponse.setBalance(balance.replaceAll("[-+.^:,]",""));
-
-            // If getBalance [0] = +, Y : N
-            String negative = balance.substring(0,1).equals("+") ? "Y" : "N";
-            availBalResponse.setNegative(negative);
-            availBalResponse.setErrorMessage("HOLDCODE-"+accountInquiryResponse.getAccountInquiryResponseData().getAccountStatus());
-            serviceResponse.setAvailBalResponse(availBalResponse);
-            serviceResponse.setResponseHeader(responseHeader);
-
-            responseXml = xmlMapper.writeValueAsString(serviceResponse);;
-            System.out.println("===========================responseXml=================================");
-            System.out.println(responseXml);
-            System.out.println("============================================================\n");
-            _data.setStatus("Success");
-            _data.setDelivery_date(new Date());
-            _data.setUpdated_date(new Date());
-
-        } catch (JMSException e) {
-            _data.setStatus("Error");
-            _data.setDelivery_date(new Date());
-            _data.setUpdated_date(new Date());
-
-            System.out.println(e.getMessage());
-        } catch (JsonProcessingException e) {
-            System.out.println(e.getMessage());
-        }
-
-        dataDTO.save(_data);
-        MsQueueConfig config = queueConfigService.findByServiceName("AccountInquiry");
-        if (config != null && config.getEnableStatus() == 1) {
-            String correlationId = null;
+        if (message instanceof TextMessage) {
+            String responseXml = "";
+            String correlationId = "";
+            LogQueueData _data = new LogQueueData();
             try {
+                System.out.println("Received 1 Message With CorrelationID : "+ message.getJMSCorrelationID());
+                String _message = message.getBody(String.class);
+                System.out.println("===========================xmlRequest=================================");
+                System.out.println(_message);
+                System.out.println("============================================================\n");
+
                 correlationId = message.getJMSCorrelationID();
-            } catch (JMSException e) {
+
+                Queue sourceQueue = (Queue) message.getJMSDestination();
+                _data.setOrigin("MQ_"+sourceQueue.getQueueName());
+                _data.setMessageUID(new MQUtil().getMessageUID());
+                _data.setReqMessage(_message);
+                _data.setCreated_date(new Date());
+                _data.setCorrelationID(correlationId);
+
+                _data = dataDTO.save(_data);
+
+                XmlMapper xmlMapper = new XmlMapper();
+                ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);
+                String accNo = request.getAvailBALRequest().getBackOfficeAccount();
+                // ambil branch dari digit ke-2 sampai 4 dari akun
+                String branch = accNo.substring(1,4);
+                String currency = msCurrencyService.findByIsoCode(request.getAvailBALRequest().getPostingCurrency()).getInternalCode();
+//            String branch = request.getAvailBALRequest().getExternalAccount();
+//            String currency = request.getAvailBALRequest().getPostingCurrency();
+
+                AccountInquiryResponse accountInquiryResponse = processAccountInquiry.getAccInqWithVar(accNo, branch, currency);
+
+                ServiceResponse serviceResponse = new ServiceResponse();
+                ResponseHeader responseHeader = new ResponseHeader();
+                Details detailsResponse = new Details();
+                AvailBalResponse availBalResponse = new AvailBalResponse();
+
+                detailsResponse.setInfo(accountInquiryResponse.getResponseDetail().getResponse_data());
+                responseHeader.setCorrelationID(request.getRequestHeader().getCorrelationID());
+                responseHeader.setService(request.getRequestHeader().getService());
+                responseHeader.setOperation(request.getRequestHeader().getOperation());
+                responseHeader.setSourceSystem(request.getRequestHeader().getTargetSystem());
+                responseHeader.setTargetSystem(request.getRequestHeader().getSourceSystem());
+
+                if(accountInquiryResponse.getAccountInquiryResponseData()!= null){
+                    responseHeader.setStatus("SUCCEEDED");
+                    String balance = accountInquiryResponse.getAccountInquiryResponseData().getBalance();
+                    String formattedBalance = balance.substring(1).replace(".", "");
+                    if(balance.startsWith("+"))
+                        availBalResponse.setNegative("N");
+                    else
+                        availBalResponse.setNegative("Y");
+                    availBalResponse.setBlocked("N");
+                    availBalResponse.setApplies("Y");
+                    availBalResponse.setErrorOrWarning("N");
+                    availBalResponse.setCheckedInBackOffice("Y");
+                    availBalResponse.setErrorCode("N");
+                    availBalResponse.setErrorMessage("HOLDCODE-"+accountInquiryResponse.getAccountInquiryResponseData().getAccountStatus());
+                    availBalResponse.setBalance(formattedBalance);
+
+                }
+                else {
+                    responseHeader.setStatus("ERROR");
+                    responseHeader.setDetails(new Details());
+                    responseHeader.getDetails().setError(accountInquiryResponse.getResponseDetail().getResponse_data());
+                }
+                serviceResponse.setAvailBalResponse(availBalResponse);
+                serviceResponse.setResponseHeader(responseHeader);
+
+                xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+                responseXml = xmlMapper.writeValueAsString(serviceResponse);
+                System.out.println("===========================responseXml=================================");
+                System.out.println(responseXml);
+                System.out.println("============================================================\n");
+                _data.setResMessage(responseXml);
+                _data.setStatus("Success");
+                _data.setDelivery_date(new Date());
+                _data.setUpdated_date(new Date());
+
+                message.acknowledge();
+
+            } catch (JMSException | JsonProcessingException e) {
                 System.out.println(e.getMessage());
             }
 
-            MessagePublisher publisher = new MessagePublisher(
-                    config.getResponse_Queue_Address(), Integer.parseInt(config.getResponse_Queue_Port()), config.getResponse_Queue_Manager(),
-                    config.getResponse_Queue_Channel(), config.getResponse_Queue_Username(), config.getResponse_Queue_Password(),
-                    config.getResponse_Queue_Name());
+            dataDTO.save(_data);
 
             publisher.PublishMessage(responseXml, correlationId);
-        } else {
-            System.out.println("MsQueueConfig 'AccountInquiry' is Null");
+
         }
+
     }
 }

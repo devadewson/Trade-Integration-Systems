@@ -1,13 +1,14 @@
 package com.maybank.integratorapp.model.soap.limit.XLBT.request;
 
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlAttribute;
 import jakarta.xml.bind.annotation.XmlValue;
 
-@XmlAccessorType(XmlAccessType.FIELD)
 public class AdditionalHeader {
-    @XmlAttribute(name = "param")
+
+    @JacksonXmlProperty(isAttribute = true,localName = "param")
     private String param;
 
     @XmlValue

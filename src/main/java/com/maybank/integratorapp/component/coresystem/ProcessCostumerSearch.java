@@ -90,7 +90,7 @@ public  class ProcessCostumerSearch {
                             res.getCustomerInformationResponse().getCustomerInformationResponseData().getAddressLine6()+" " + res.getCustomerInformationResponse().getCustomerInformationResponseData().getAddressLine7()+" " +
                             res.getCustomerInformationResponse().getCustomerInformationResponseData().getAddressLine8() +" "+ res.getCustomerInformationResponse().getCustomerInformationResponseData().getAddressLine9()+" " +
                             res.getCustomerInformationResponse().getCustomerInformationResponseData().getAddressLine10();
-
+                    Address = Address.substring(0,59);
                     customerSearchResult.setLocation(Address);
 
                     return customerSearchResult;

@@ -87,8 +87,8 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
             }
             ServiceRequest request = parseRequest(message);
 
-//            String customerNumber = request.getCustomerSearchRequest().getCustomerNumber();
-            String customerNumber = request.getCustomerSearchRequest().getCustomerMnemonic();
+            String customerNumber = request.getCustomerSearchRequest().getCustomerNumber();
+//            String customerNumber = request.getCustomerSearchRequest().getCustomerMnemonic();
             CustomerSearchResult customerSearchResultResponse = customerSearchResultResponse(customerNumber);
 
             // Set CustomerSearchResult ke dalam CustomerSearchResults

@@ -3,8 +3,10 @@ package com.maybank.integratorapp.component.coresystem;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.maybank.integratorapp.model.mq.facilities.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.facilities.response.*;
+import com.maybank.integratorapp.model.soap.limit.XLBT.request.AdditionalHeader;
 import com.maybank.integratorapp.model.soap.limit.XLBT.request.SoapEnvelope;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -13,6 +15,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -24,6 +27,9 @@ import java.util.List;
 @Component
 public class ProcessFacilities {
 
+    @Autowired
+    ProcessCustomerDetail customerDetail;
+
     public ServiceResponse getFacilities(ServiceRequest serviceRequest){
 
         String soapUrl = "http://10.230.83.57:65085/services/CMSService";
@@ -32,7 +38,8 @@ public class ProcessFacilities {
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
 
         SoapEnvelope soapReq = new SoapEnvelope();
-        soapReq.getBody().getxLBT().getChannelHeader().setChannelID("");
+//        soapReq.getBody().getxLBT().getChannelHeader().setAdditionalHeader(new AdditionalHeader());
+//        soapReq.getBody().getxLBT().getChannelHeader().getAdditionalHeader().setParam("maxpage,20;");
         soapReq.getBody().getxLBT().getChannelHeader().setBranchCode("003");
         soapReq.getBody().getxLBT().getChannelHeader().setChannelID("BT");
         soapReq.getBody().getxLBT().getChannelHeader().setClientSupervisorID("LKE");
@@ -47,11 +54,13 @@ public class ProcessFacilities {
 
         XmlMapper mapper = new XmlMapper();
 
-        mapper.enable(MapperFeature.USE_ANNOTATIONS)
-                .enable(MapperFeature.USE_WRAPPER_NAME_AS_PROPERTY_NAME)
-                .enable(MapperFeature.AUTO_DETECT_CREATORS)
-                .enable(MapperFeature.AUTO_DETECT_FIELDS)
-                .enable(MapperFeature.USE_STD_BEAN_NAMING);
+//        mapper.enable(MapperFeature.USE_ANNOTATIONS)
+//                .enable(MapperFeature.USE_WRAPPER_NAME_AS_PROPERTY_NAME)
+//                .enable(MapperFeature.AUTO_DETECT_CREATORS)
+//                .enable(MapperFeature.AUTO_DETECT_FIELDS)
+//                .enable(MapperFeature.USE_STD_BEAN_NAMING);
+        mapper.setDefaultUseWrapper(false); // Avoid unnecessary wrapping
+        mapper.configure(ToXmlGenerator.Feature.WRITE_XML_DECLARATION, true);
 
         String xml = null;
         com.maybank.integratorapp.model.soap.
@@ -62,15 +71,15 @@ public class ProcessFacilities {
 //            System.out.println("Before");
 //            System.out.println(xml);
 //            System.out.println("======================================================================");
-            xml = xml.replace("<soapenv:Envelope xmlns=\"http://schemas.xmlsoap.org/soap/envelope/\">",
-                    "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " +
-                            "xmlns:cms=\"http://cms.middleware.bankbii.com/\">");
-
-            xml = xml.replace("<wstxns1:XLBT xmlns:wstxns1=\"http://www.bankbii.com/AccountServices/\">",
-                    "<cms:XLBT>");
-
-            xml = xml.replace(" xmlns=\"\"", "");
-            xml = xml.replace("</wstxns1:XLBT>", "</cms:XLBT>");
+//            xml = xml.replace("<soapenv:Envelope xmlns=\"http://schemas.xmlsoap.org/soap/envelope/\">",
+//                    "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " +
+//                            "xmlns:cms=\"http://cms.middleware.bankbii.com/\">");
+//
+//            xml = xml.replace("<wstxns1:XLBT xmlns:wstxns1=\"http://www.bankbii.com/AccountServices/\">",
+//                    "<cms:XLBT>");
+//
+//            xml = xml.replace(" xmlns=\"\"", "");
+//            xml = xml.replace("</wstxns1:XLBT>", "</cms:XLBT>");
 
             System.out.println(xml);
         } catch (JsonProcessingException e) {

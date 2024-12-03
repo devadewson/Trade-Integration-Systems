@@ -4,7 +4,6 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import com.maybank.integratorapp.model.soap.accountinquiry.request.ChannelHeader;
 
-@JacksonXmlRootElement(localName = "cms:XLBT")
 public class XLBT {
     public XLBT() {
         this.channelHeader = new ChannelHeader();

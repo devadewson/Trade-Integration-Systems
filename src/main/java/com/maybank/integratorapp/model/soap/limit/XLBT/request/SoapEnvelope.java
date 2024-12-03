@@ -3,15 +3,15 @@ package com.maybank.integratorapp.model.soap.limit.XLBT.request;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-@JacksonXmlRootElement(localName = "soapenv:Envelope", namespace = "http://schemas.xmlsoap.org/soap/envelope/")
+@JacksonXmlRootElement(localName = "Envelope", namespace = "http://schemas.xmlsoap.org/soap/envelope/")
 public class SoapEnvelope {
     public SoapEnvelope(){
         this.body = new Body();
     }
 
-    @JacksonXmlProperty(localName = "soapenv:Header",namespace = "http://schemas.xmlsoap.org/soap/envelope/")
+    @JacksonXmlProperty(localName = "Header",namespace = "http://schemas.xmlsoap.org/soap/envelope/")
     private String header;
-    @JacksonXmlProperty(localName = "soapenv:Body",namespace = "http://schemas.xmlsoap.org/soap/envelope/")
+    @JacksonXmlProperty(localName = "Body",namespace = "http://schemas.xmlsoap.org/soap/envelope/")
     private Body body;
     public String getHeader() {
         return header;

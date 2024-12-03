@@ -1,9 +1,11 @@
 package com.maybank.integratorapp.model.soap.accountinquiry.request;
 
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.maybank.integratorapp.model.soap.limit.XLBT.request.AdditionalHeader;
 
 public class ChannelHeader {
+    @JacksonXmlElementWrapper(useWrapping = false)
     @JacksonXmlProperty(localName = "additionalHeader")
     private AdditionalHeader additionalHeader;
 
