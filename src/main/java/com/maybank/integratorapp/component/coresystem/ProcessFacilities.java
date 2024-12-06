@@ -4,10 +4,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
+import com.maybank.integratorapp.data.entity.MsCompanyLimit;
+import com.maybank.integratorapp.data.entity.MsFacility;
+import com.maybank.integratorapp.data.entity.MsFacilityUtilize;
+import com.maybank.integratorapp.data.entity.MsUtilizeRunningNumber;
+import com.maybank.integratorapp.data.repository.MsFacilityRepository;
+import com.maybank.integratorapp.data.repository.MsFacilityUtilizeRepository;
+import com.maybank.integratorapp.data.repository.MsUtilizeRunningNumberRepository;
+import com.maybank.integratorapp.data.repository.MscompanylimitRepository;
 import com.maybank.integratorapp.model.mq.facilities.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.facilities.response.*;
 import com.maybank.integratorapp.model.soap.limit.XLBT.request.AdditionalHeader;
 import com.maybank.integratorapp.model.soap.limit.XLBT.request.SoapEnvelope;
+import com.maybank.integratorapp.model.soap.limit.XLBT.response.LoanAccounts;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -20,26 +29,34 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+
 
 @Component
 public class ProcessFacilities {
+    @Autowired
+    MsFacilityRepository msFacilityRepository;
+
+    @Autowired
+    MsFacilityUtilizeRepository msFacilityUtilizeRepository;
+    @Autowired
+    MscompanylimitRepository mscompanylimitRepository;
+
+    @Autowired
+    MsUtilizeRunningNumberRepository msUtilizeRunningNumberRepository;
 
     @Autowired
     ProcessCustomerDetail customerDetail;
 
-    public ServiceResponse getFacilities(ServiceRequest serviceRequest){
+    public ServiceResponse getFacilities(String cifno, Long idcompanyLimit) {
 
         String soapUrl = "http://10.230.83.57:65085/services/CMSService";
-        String correlationID = serviceRequest.getRequestHeader().getCorrelationID();
+        String correlationID = "serviceRequest.getRequestHeader().getCorrelationID();";
         String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
 
         SoapEnvelope soapReq = new SoapEnvelope();
-//        soapReq.getBody().getxLBT().getChannelHeader().setAdditionalHeader(new AdditionalHeader());
-//        soapReq.getBody().getxLBT().getChannelHeader().getAdditionalHeader().setParam("maxpage,20;");
         soapReq.getBody().getxLBT().getChannelHeader().setBranchCode("003");
         soapReq.getBody().getxLBT().getChannelHeader().setChannelID("BT");
         soapReq.getBody().getxLBT().getChannelHeader().setClientSupervisorID("LKE");
@@ -49,16 +66,11 @@ public class ProcessFacilities {
         soapReq.getBody().getxLBT().getChannelHeader().setTransactionDate(date);
         soapReq.getBody().getxLBT().getChannelHeader().setTransactionTime(time);
 
-        soapReq.getBody().getxLBT().getcMS_XLBTRequest().setCifno("0004613980");
+        soapReq.getBody().getxLBT().getcMS_XLBTRequest().setCifno(cifno);
         soapReq.getBody().getxLBT().getcMS_XLBTRequest().setAid("XLBT");
 
         XmlMapper mapper = new XmlMapper();
 
-//        mapper.enable(MapperFeature.USE_ANNOTATIONS)
-//                .enable(MapperFeature.USE_WRAPPER_NAME_AS_PROPERTY_NAME)
-//                .enable(MapperFeature.AUTO_DETECT_CREATORS)
-//                .enable(MapperFeature.AUTO_DETECT_FIELDS)
-//                .enable(MapperFeature.USE_STD_BEAN_NAMING);
         mapper.setDefaultUseWrapper(false); // Avoid unnecessary wrapping
         mapper.configure(ToXmlGenerator.Feature.WRITE_XML_DECLARATION, true);
 
@@ -68,18 +80,6 @@ public class ProcessFacilities {
                 soap.limit.XLBT.response.SoapEnvelope();
         try {
             xml = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapReq);
-//            System.out.println("Before");
-//            System.out.println(xml);
-//            System.out.println("======================================================================");
-//            xml = xml.replace("<soapenv:Envelope xmlns=\"http://schemas.xmlsoap.org/soap/envelope/\">",
-//                    "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " +
-//                            "xmlns:cms=\"http://cms.middleware.bankbii.com/\">");
-//
-//            xml = xml.replace("<wstxns1:XLBT xmlns:wstxns1=\"http://www.bankbii.com/AccountServices/\">",
-//                    "<cms:XLBT>");
-//
-//            xml = xml.replace(" xmlns=\"\"", "");
-//            xml = xml.replace("</wstxns1:XLBT>", "</cms:XLBT>");
 
             System.out.println(xml);
         } catch (JsonProcessingException e) {
@@ -98,7 +98,7 @@ public class ProcessFacilities {
             String _response = "";
 
             try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
-                if (response.getStatusLine().getStatusCode() == 200){
+                if (response.getStatusLine().getStatusCode() == 200) {
                     // Handle response if needed
                     var _res = response.getEntity();
                     var _resStream = _res.getContent();
@@ -114,68 +114,190 @@ public class ProcessFacilities {
                     System.out.println(asd);
                     System.out.println("============================================================\n");
 
-                    responseHeaderMq.setCorrelationID(serviceRequest.getRequestHeader().getCorrelationID());
-                    responseHeaderMq.setService("LIMIT");
-                    responseHeaderMq.setOperation("FACILITIES");
-                    responseHeaderMq.setStatus("SUCCEEDED");
+                    // Proses dan pecah key
+                    List<LoanAccounts> loanAccountsList = res.getBody().getXlbtResponse().getCmsXlbtResponse().getLoanAccounts();
+                    if (loanAccountsList != null) {
 
-                    detailsResponseMq.setInfo(String.valueOf(response.getStatusLine().getStatusCode()));
-                    responseHeaderMq.setDetails(detailsResponseMq);
+                        List<MsFacility> listFacility = new ArrayList<>();
+                        List<MsFacilityUtilize> listFacilityUtilize = new ArrayList<>();
 
-                    int total = res.getBody().getXlbtResponse().getCmsXlbtResponse()
-                            .getLoanAccounts().size();
-                    List<FacilityDetails> facilityDetailsList = new ArrayList<>(total);
-                    for (int i = 0; i < total; i++) {
-                        FacilityDetails details = new FacilityDetails();
+                        List<LoanAccounts> loanAccountsList99 = loanAccountsList.stream().filter(x->splitKey(x.getKey())[5].equals("999")).toList();
+                        //List<LoanAccounts> loanAccountsListUtilize = loanAccountsList.stream().filter(x->!splitKey(x.getKey())[5].equals("999")).toList();
+                        loanAccountsList99.forEach(s->{
+                            String[] splitKey = splitKey(s.getKey());
+                            String companyLimitValue = splitKey[3];
+                            String draw = splitKey[5];
 
-                        details.setDescription(res.getBody().getXlbtResponse().getCmsXlbtResponse().
-                                getLoanAccounts().get(i).getDescription());
-                        details.setStatus(res.getBody().getXlbtResponse().getCmsXlbtResponse().
-                                getLoanAccounts().get(i).getStatus());
-                        details.setCurrency(res.getBody().getXlbtResponse().getCmsXlbtResponse().
-                                getLoanAccounts().get(i).getLoancurrencycode());
-                        details.setExtraDataKey(res.getBody().getXlbtResponse().getCmsXlbtResponse().
-                                getLoanAccounts().get(i).getKey());
-                        details.setStartDate(res.getBody().getXlbtResponse().getCmsXlbtResponse().
-                                getLoanAccounts().get(i).getNotedate());
-                        details.setExpiryDate(res.getBody().getXlbtResponse().getCmsXlbtResponse().
-                                getLoanAccounts().get(i).getMaturitydate());
 
-                        facilityDetailsList.add(details);
+                            MsFacility facility = new MsFacility();
+
+                            //Add To database FacilityUtilize
+                            facility.setCompanyLimitId(idcompanyLimit);
+
+                            facility.setKeyDigitNote(splitKey[4]);
+                            facility.setCommitmentBalance(s.getCommitmentbalance());
+                            facility.setCommitmentBalanceSign(s.getCommitmentbalancesign());
+                            facility.setDescription(s.getDescription());
+                            facility.setKeyLoanAcc(s.getKey());
+                            facility.setLoanCurrencyCode(s.getLoancurrencycode());
+                            facility.setMaturityDate(s.getMaturitydate());
+                            facility.setNoteDate(s.getNotedate());
+                            facility.setNoteType(s.getNotetype());
+                            facility.setPrincipalBalance(s.getPrincipalbalance());
+                            facility.setPrincipalBalanceSign(s.getPrincipalbalancesign());
+                            facility.setStatus(s.getStatus());
+
+                            listFacility.add(facility);
+                        });
+                        List <MsFacility> listFacilityfinal = (List<MsFacility>) msFacilityRepository.saveAll(listFacility);
+
+                        //Add To database FacilityUtilize
+                        List<LoanAccounts> loanAccountsListUtilize = loanAccountsList.stream().filter(x->!splitKey(x.getKey())[5].equals("999")).toList();
+                        loanAccountsListUtilize.forEach(s->{
+                            String[] splitKey = splitKey(s.getKey());
+                            String companyLimitValue = splitKey[3];
+                            String noteNumber = splitKey[4];
+                            String draw = splitKey[5];
+
+                            MsFacilityUtilize utilize = new MsFacilityUtilize();
+
+
+                            // Mencari MsCompanyLimit berdasarkan cifno
+
+                            MsFacility msFacility = listFacilityfinal.stream().filter(z->z.getKeyDigitNote().equals(noteNumber)).findFirst().get();
+
+                            utilize.setFacilityId(msFacility.getId());
+                            utilize.setKeyDigitNote(splitKey[4]);
+                            utilize.setCompanyLimitId(idcompanyLimit);
+                            utilize.setCommitmentBalance(s.getCommitmentbalance());
+                            utilize.setCommitmentBalanceSign(s.getCommitmentbalancesign());
+                            utilize.setDescription(s.getDescription());
+                            utilize.setKeyLoanAcc(s.getKey());
+                            utilize.setLoanCurrencyCode(s.getLoancurrencycode());
+                            utilize.setMaturityDate(s.getMaturitydate());
+                            utilize.setNoteDate(s.getNotedate());
+                            utilize.setNoteType(s.getNotetype());
+                            utilize.setPrincipalBalance(s.getPrincipalbalance());
+                            utilize.setPrincipalBalanceSign(s.getPrincipalbalancesign());
+                            utilize.setStatus(s.getStatus());
+
+                            listFacilityUtilize.add(utilize);
+                        });
+                            msFacilityUtilizeRepository.saveAll(listFacilityUtilize);
+
+                            // Simpan draw terakhir ke MsRunningNumber
+                            saveLatestDrawNumber(listFacilityUtilize);
+
                     }
-                    FacilityDetailss facilityDetailssHead = new FacilityDetailss();
-                    facilityDetailssHead.setFacilityDetails(facilityDetailsList);
-
-                    FacilityResponseExtraDetails responseExtraDetails = new FacilityResponseExtraDetails();
-                    responseExtraDetails.setExtraDataKey("ExtraDataKey");
-                    responseExtraDetails.setFieldName("FieldName");
-                    responseExtraDetails.setFieldValue("FieldValue");
-
-                    FacilityResponseExtraDetailss responseExtraDetailssHead = new FacilityResponseExtraDetailss();
-                    responseExtraDetailssHead.setFacilityResponseExtraDetails(responseExtraDetails);
-
-                    facilitiesResponseMq.setFacilityDetailss(facilityDetailssHead);
-                    facilitiesResponseMq.setFacilityResponseExtraDetailss(responseExtraDetailssHead);
-
-                    serviceResponseMq.setResponseHeader(responseHeaderMq);
-                    serviceResponseMq.setFacilitiesResponse(facilitiesResponseMq);
                 }
-
-                XmlMapper xmlMapper = new XmlMapper();
-                String responseXml = xmlMapper.writeValueAsString(serviceResponseMq);
-                System.out.println("===========================responseXml=================================");
-                System.out.println(responseXml);
-                System.out.println("============================================================\n");
-
-            } catch (ClientProtocolException e) {
-                System.out.println(e);
-            } catch (IOException e) {
-                System.out.println(e);
             }
         } catch (IOException e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
+
         return serviceResponseMq;
     }
 
-}
+    private String[] splitKey(String key) {
+        String bank = key.substring(0, 2);
+        String currency = key.substring(2, 5);
+        String branchCode = key.substring(5, 8);
+        String cif = key.substring(8, 18);
+        String note = key.substring(18, 26);
+        String draw = key.substring(26, 29);
+        String seq = key.substring(29, 31);
+
+        return new String[]{bank, currency, branchCode, cif, note, draw, seq};
+    }
+    private void saveLatestDrawNumber(List<MsFacilityUtilize> listFacilityUtilize) {
+        Map<Long, List<MsFacilityUtilize>> facilityGroupedById = listFacilityUtilize.stream()
+                .collect(Collectors.groupingBy(MsFacilityUtilize::getFacilityId));
+
+        List<MsUtilizeRunningNumber> runningNumberList = new ArrayList<>();
+
+        facilityGroupedById.forEach((facilityId, utilizes) -> {
+            MsFacilityUtilize latestDraw = utilizes.stream()
+                    .max(Comparator.comparing(utilize -> {
+                        String draw = utilize.getKeyLoanAcc().substring(26, 29);
+                        return Integer.parseInt(draw);
+                    })).orElse(null);
+
+            if (latestDraw != null) {
+                MsUtilizeRunningNumber runningNumber = new MsUtilizeRunningNumber();
+                runningNumber.setFacilityId(facilityId);
+                runningNumber.setRunningNumber(Integer.parseInt(latestDraw.getKeyLoanAcc().substring(26, 29)));
+                runningNumber.setCompanyLimitId(latestDraw.getCompanyLimitId());
+
+                runningNumberList.add(runningNumber);
+            }
+        });
+
+        msUtilizeRunningNumberRepository.saveAll(runningNumberList);
+    }
+    }
+
+
+
+//                    responseHeaderMq.setCorrelationID("serviceRequest.getRequestHeader().getCorrelationID()");
+//                    responseHeaderMq.setService("LIMIT");
+//                    responseHeaderMq.setOperation("FACILITIES");
+//                    responseHeaderMq.setStatus("SUCCEEDED");
+//
+//                    detailsResponseMq.setInfo(String.valueOf(response.getStatusLine().getStatusCode()));
+//                    responseHeaderMq.setDetails(detailsResponseMq);
+//
+//                    int total = res.getBody().getXlbtResponse().getCmsXlbtResponse()
+//                            .getLoanAccounts().size();
+//                    List<FacilityDetails> facilityDetailsList = new ArrayList<>(total);
+//                    for (int i = 0; i < total; i++) {
+//                        FacilityDetails details = new FacilityDetails();
+//
+//                        details.setDescription(res.getBody().getXlbtResponse().getCmsXlbtResponse().
+//                                getLoanAccounts().get(i).getDescription());
+//                        details.setStatus(res.getBody().getXlbtResponse().getCmsXlbtResponse().
+//                                getLoanAccounts().get(i).getStatus());
+//                        details.setCurrency(res.getBody().getXlbtResponse().getCmsXlbtResponse().
+//                                getLoanAccounts().get(i).getLoancurrencycode());
+//                        details.setExtraDataKey(res.getBody().getXlbtResponse().getCmsXlbtResponse().
+//                                getLoanAccounts().get(i).getKey());
+//                        details.setStartDate(res.getBody().getXlbtResponse().getCmsXlbtResponse().
+//                                getLoanAccounts().get(i).getNotedate());
+//                        details.setExpiryDate(res.getBody().getXlbtResponse().getCmsXlbtResponse().
+//                                getLoanAccounts().get(i).getMaturitydate());
+//
+//                        facilityDetailsList.add(details);
+//                    }
+//                    FacilityDetailss facilityDetailssHead = new FacilityDetailss();
+//                    facilityDetailssHead.setFacilityDetails(facilityDetailsList);
+//
+//                    FacilityResponseExtraDetails responseExtraDetails = new FacilityResponseExtraDetails();
+//                    responseExtraDetails.setExtraDataKey("ExtraDataKey");
+//                    responseExtraDetails.setFieldName("FieldName");
+//                    responseExtraDetails.setFieldValue("FieldValue");
+//
+//                    FacilityResponseExtraDetailss responseExtraDetailssHead = new FacilityResponseExtraDetailss();
+//                    responseExtraDetailssHead.setFacilityResponseExtraDetails(responseExtraDetails);
+//
+//                    facilitiesResponseMq.setFacilityDetailss(facilityDetailssHead);
+//                    facilitiesResponseMq.setFacilityResponseExtraDetailss(responseExtraDetailssHead);
+//
+//                    serviceResponseMq.setResponseHeader(responseHeaderMq);
+//                    serviceResponseMq.setFacilitiesResponse(facilitiesResponseMq);
+//                }
+//
+//                XmlMapper xmlMapper = new XmlMapper();
+//                String responseXml = xmlMapper.writeValueAsString(serviceResponseMq);
+//                System.out.println(responseXml);
+//
+//
+//
+//            } catch (ClientProtocolException e) {
+//                System.out.println(e);
+//            } catch (IOException e) {
+//                System.out.println(e);
+//            }
+//        } catch (IOException e) {
+//            System.out.println(e);
+//        }
+//        return serviceResponseMq;
+
