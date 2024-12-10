@@ -11,6 +11,7 @@ import java.util.List;
 public interface MsFacilityRepository extends CrudRepository<MsFacility,Long> {
     MsFacility findByKeyDigitNote(String keyDigitNote);
     List<MsFacility> findByCompanyLimitId(Long companyLimitId);
+    MsFacility findByKeyLoanAcc(String keyLoanAcc);
 
 
 }
