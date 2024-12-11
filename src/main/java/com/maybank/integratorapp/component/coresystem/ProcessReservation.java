@@ -20,7 +20,7 @@ import java.util.List;
 import com.maybank.integratorapp.model.soap.XL01.responseComplete.additionalData;
 @Component
 public class ProcessReservation {
-        public String getReversal() {
+        public String getReversal(String keyloanAcc, String acctReqXL01) {
             String soapUrl = "http://10.230.83.57:65085/services/CMSService";
             SoapEnvelope soapReqXL01 = new SoapEnvelope();
             String correlationID = "ServiceRequest.getRequestHeader().getCorrelationID();";
@@ -39,7 +39,7 @@ public class ProcessReservation {
             soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setTransactionTime(time);
 
             soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setAccrMeth("");
-            soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setAcct("0004613980.22334401.002.99");
+            soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setAcct(acctReqXL01);
             soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setAdj1Pct("");
             soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setAdj1Type("");
             soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setAdj2Pct("");
@@ -105,96 +105,108 @@ public class ProcessReservation {
                     var _resStream = _res.getContent();
                     var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
                     _response = outputResponse;
-                    cmsResponseXL01 = mapper.readValue(_response,com.maybank.integratorapp.model.soap.XL01.responseComplete.SoapEnvelope.class);
+                    cmsResponseXL01 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.XL01.responseComplete.SoapEnvelope.class);
 
                     String xmlResponseXL01 = mapper.writeValueAsString(cmsResponseXL01);
                     System.out.println(xmlResponseXL01);
-                }
-            } catch (Exception e) {
-                System.out.println("Error: " + e.getMessage());
-            }
 
-            //Get Note Number From Response XL01
-            String noteNumber = "" ;
-            if (cmsResponseXL01 != null && cmsResponseXL01.getBody().getXl01Draw001Response()
-                    .getCmsXL01Draw001Response().getResponseDetail().getAdditionalData()!= null) {
-                List<additionalData> additionalDataList = cmsResponseXL01.getBody().getXl01Draw001Response()
-                        .getCmsXL01Draw001Response().getResponseDetail().getAdditionalData();
-                if (additionalDataList != null) {
-                    for (additionalData data : additionalDataList) {
-                        if ("noteNumber".equals(data.getParam())) {
-                            // Return nilai noteNumber
-                            noteNumber = data.getValue();
+                    // Extract  response code
+                    String responseCode = cmsResponseXL01
+                            .getBody().getXl01Draw001Response().
+                            getCmsXL01Draw001Response().getResponsecode();
+                    //    //Get Note Number From Response XL01
+//                    String noteNumber = "" ;
+//                            if (cmsResponseXL01 != null && cmsResponseXL01.getBody().getXl01Draw001Response()
+//                                    .getCmsXL01Draw001Response().getResponseDetail().getAdditionalData()!= null) {
+//                                    List<additionalData> additionalDataList = cmsResponseXL01.getBody().getXl01Draw001Response()
+//                        .getCmsXL01Draw001Response().getResponseDetail().getAdditionalData();
+//                        if (additionalDataList != null) {
+//                        for (additionalData data : additionalDataList) {
+//                        if ("noteNumber".equals(data.getParam())) {
+//                        // Return nilai noteNumber
+//                        noteNumber = data.getValue();
+//                        }
+//                        }
+
+                    if ("00".equals(responseCode)) {
+                        System.out.println("Response code is 00. Continuing to XL31...");
+
+                        // Call XL31 request
+                        com.maybank.integratorapp.model.soap.XL31.request.SoapEnvelope soapReqXL31 =
+                                new com.maybank.integratorapp.model.soap.XL31.request.SoapEnvelope();
+
+                        soapReqXL31.getBody().getXl31().getChannelHeader().setAdditionalHeader("");
+                        soapReqXL31.getBody().getXl31().getChannelHeader().setBranchCode("003");
+                        soapReqXL31.getBody().getXl31().getChannelHeader().setChannelID("BT");
+                        soapReqXL31.getBody().getXl31().getChannelHeader().setClientSupervisorID("LKE");
+                        soapReqXL31.getBody().getXl31().getChannelHeader().setClientUserID("B027950");
+                        soapReqXL31.getBody().getXl31().getChannelHeader().setReference("L902795000");
+                        soapReqXL31.getBody().getXl31().getChannelHeader().setReversalSequenceNo(correlationID);
+                        soapReqXL31.getBody().getXl31().getChannelHeader().setTransactionDate(date);
+                        soapReqXL31.getBody().getXl31().getChannelHeader().setTransactionTime(time);
+
+                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setAmount("0000100100100.00");
+                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setBatch("00301");
+                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setBd("");
+                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setCurrency("IDR");
+                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setDepartement("003");
+                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setDescription("ISS-L902795");
+                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setNotenumber(keyloanAcc);
+                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setQual("0");
+                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setTran("62");
+                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setTransactiondate("281124");
+
+                        XmlMapper mapperXL31 = new XmlMapper();
+
+                        // Avoid unnecessary wrapping
+                        mapperXL31.setDefaultUseWrapper(false);
+                        mapperXL31.configure(ToXmlGenerator.Feature.WRITE_XML_DECLARATION, true);
+
+                        String xmlXL31 = null;
+                        try {
+                            xmlXL31 = mapperXL31.writerWithDefaultPrettyPrinter().writeValueAsString(soapReqXL31);
+                            System.out.println(xmlXL31);
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException(e);
                         }
+
+                        com.maybank.integratorapp.model.soap.XL31.response.SoapEnvelope cmsResponseXL31 = null;
+                        try (CloseableHttpClient httpClientXL31 = HttpClients.createDefault()) {
+                            HttpPost httpPostXL31 = new HttpPost(soapUrl);
+                            httpPostXL31.setHeader("Content-Type", "text/xml");
+                            httpPostXL31.setEntity(new StringEntity(xmlXL31, ContentType.TEXT_XML));
+                            String _responseXL31 = "";
+
+                            try (CloseableHttpResponse responseXL31 = httpClientXL31.execute(httpPostXL31)) {
+
+                                // Handle response if needed
+                                var _resXL31 = responseXL31.getEntity();
+                                var _resStreamXL31 = _resXL31.getContent();
+                                var outputResponseXL31 = new String(_resStreamXL31.readAllBytes(), StandardCharsets.UTF_8);
+                                _responseXL31 = outputResponseXL31;
+                                cmsResponseXL31 = mapperXL31.readValue(_responseXL31, com.maybank.integratorapp.model.soap.XL31.response.SoapEnvelope.class);
+
+                                String xmlResponseXL31 = mapperXL31.writeValueAsString(cmsResponseXL31);
+                                System.out.println(xmlResponseXL31);
+                            }
+                        } catch (Exception e) {
+                            System.out.println("Error: " + e.getMessage());
+                        }
+                        return "sukses";
+
+                    } else if ("99".equals(responseCode)) {
+                        System.out.println("Response code is 99. Stopping process.");
+                        return "Process stopped due to response code 99.";
+                    } else {
+                        System.out.println("Unexpected response code: " + responseCode);
                     }
                 }
-            }
-
-            //Request To XL31
-            com.maybank.integratorapp.model.soap.XL31.request.SoapEnvelope soapReqXL31 =
-                    new com.maybank.integratorapp.model.soap.XL31.request.SoapEnvelope();
-
-            soapReqXL31.getBody().getXl31().getChannelHeader().setAdditionalHeader("");
-            soapReqXL31.getBody().getXl31().getChannelHeader().setBranchCode("003");
-            soapReqXL31.getBody().getXl31().getChannelHeader().setChannelID("BT");
-            soapReqXL31.getBody().getXl31().getChannelHeader().setClientSupervisorID("LKE");
-            soapReqXL31.getBody().getXl31().getChannelHeader().setClientUserID("B027950");
-            soapReqXL31.getBody().getXl31().getChannelHeader().setReference("L902795000");
-            soapReqXL31.getBody().getXl31().getChannelHeader().setReversalSequenceNo(correlationID);
-            soapReqXL31.getBody().getXl31().getChannelHeader().setTransactionDate(date);
-            soapReqXL31.getBody().getXl31().getChannelHeader().setTransactionTime(time);
-
-            soapReqXL31.getBody().getXl31().getCmsXl31Request().setAmount("0000100100100.00");
-            soapReqXL31.getBody().getXl31().getCmsXl31Request().setBatch("00301");
-            soapReqXL31.getBody().getXl31().getCmsXl31Request().setBd("");
-            soapReqXL31.getBody().getXl31().getCmsXl31Request().setCurrency("IDR");
-            soapReqXL31.getBody().getXl31().getCmsXl31Request().setDepartement("003");
-            soapReqXL31.getBody().getXl31().getCmsXl31Request().setDescription("ISS-L902795");
-            soapReqXL31.getBody().getXl31().getCmsXl31Request().setNotenumber(noteNumber);
-            soapReqXL31.getBody().getXl31().getCmsXl31Request().setQual("0");
-            soapReqXL31.getBody().getXl31().getCmsXl31Request().setTran("62");
-            soapReqXL31.getBody().getXl31().getCmsXl31Request().setTransactiondate("281124");
-
-            XmlMapper mapperXL31 = new XmlMapper();
-
-            // Avoid unnecessary wrapping
-            mapper.setDefaultUseWrapper(false);
-            mapper.configure(ToXmlGenerator.Feature.WRITE_XML_DECLARATION, true);
-
-            String xmlXL31 = null;
-            try {
-                xmlXL31 = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapReqXL31);
-                System.out.println(xmlXL31);
-
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-
-            com.maybank.integratorapp.model.soap.XL31.response.SoapEnvelope cmsResponseXL31 = null;
-            try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-                HttpPost httpPost = new HttpPost(soapUrl);
-                httpPost.setHeader("Content-Type", "text/xml");
-                httpPost.setEntity(new StringEntity(xmlXL31, ContentType.TEXT_XML));
-                String _responseXL31 = "";
-
-                try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
-
-                    // Handle response if needed
-                    var _resXL31 = response.getEntity();
-                    var _resStreamXL31 = _resXL31.getContent();
-                    var outputResponseXL31 = new String(_resStreamXL31.readAllBytes(), StandardCharsets.UTF_8);
-                    _responseXL31 = outputResponseXL31;
-                    cmsResponseXL31 = mapper.readValue(_responseXL31, com.maybank.integratorapp.model.soap.XL31.response.SoapEnvelope.class);
-
-                    String xmlResponseXL31 = mapper.writeValueAsString(cmsResponseXL31);
-                    System.out.println(xmlResponseXL31);
-
-                }
             } catch (Exception e) {
                 System.out.println("Error: " + e.getMessage());
-            }
-            // Return objek CMS_XL31Response
-            return "sukses";
-        }
-    }
+                e.printStackTrace();
+                throw new RuntimeException("Failed to process SOAP request", e);
 
+            }
+            return "Unknown error occurred.";
+}
+}

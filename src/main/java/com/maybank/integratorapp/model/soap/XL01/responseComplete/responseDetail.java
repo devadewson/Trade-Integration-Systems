@@ -15,6 +15,8 @@ public class responseDetail {
 
     @JacksonXmlProperty(localName = "response_data")
     private String responseData;
+    @JacksonXmlProperty(localName = "error_message")
+    private String errormessage;
     public List<additionalData> getAdditionalData() {
         return additionalData;
     }
@@ -29,5 +31,13 @@ public class responseDetail {
 
     public void setResponseData(String responseData) {
         this.responseData = responseData;
+    }
+
+    public String getErrormessage() {
+        return errormessage;
+    }
+
+    public void setErrormessage(String errormessage) {
+        this.errormessage = errormessage;
     }
 }
