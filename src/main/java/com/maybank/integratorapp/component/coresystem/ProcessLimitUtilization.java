@@ -1,0 +1,81 @@
+package com.maybank.integratorapp.component.coresystem;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
+import com.maybank.integratorapp.model.soap.XL41.request.SoapEnvelope;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+@Component
+public class ProcessLimitUtilization {
+    public String getLimitUtilization(String AccountNo) {
+
+        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
+        String correlationID = "ServiceRequest.getRequestHeader().getCorrelationID();";
+        String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+        String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
+        SoapEnvelope soapEnvelopeXL41 = new SoapEnvelope();
+
+        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setCtl2("016");
+        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setCtl3("003");
+        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setCust(AccountNo);
+        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setDraw("002");
+        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setFlag("P");
+        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setNote("22334401");
+        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setPart("99");
+
+        XmlMapper mapper = new XmlMapper();
+
+        // Avoid unnecessary wrapping
+        mapper.setDefaultUseWrapper(false);
+        mapper.configure(ToXmlGenerator.Feature.WRITE_XML_DECLARATION, true);
+
+        String xmlXl41 = null;
+        try {
+            xmlXl41 = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapEnvelopeXL41);
+
+            System.out.println(xmlXl41);
+
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        com.maybank.integratorapp.model.soap.XL41.response.SoapEnvelope cmsResponseXL41 = null;
+
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpPost httpPost = new HttpPost(soapUrl);
+            httpPost.setHeader("Content-Type", "text/xml");
+            httpPost.setEntity(new StringEntity(xmlXl41, ContentType.TEXT_XML));
+            String _response = "";
+
+            try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+
+                // Handle response if needed
+                var _res = response.getEntity();
+                var _resStream = _res.getContent();
+                var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
+                _response = outputResponse;
+                cmsResponseXL41 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.XL41.response.SoapEnvelope.class);
+
+                String xmlResponseXL41 = mapper.writeValueAsString(cmsResponseXL41);
+                System.out.println(xmlResponseXL41);
+
+            }
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+        // Return objek CMS_XL31Response
+        return "sukses";
+    }
+
+}
