@@ -11,7 +11,7 @@ public class ReservationResponseExtraDetailss {
     public ReservationResponseExtraDetailss() { this.reservationResponseExtraDetails = new ArrayList<ReservationResponseExtraDetails>();}
 
     @JacksonXmlElementWrapper(useWrapping = false)
-    @JacksonXmlProperty(localName = "ReservationResponseExtraDetails",namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
+    @JacksonXmlProperty(localName = "ReservationResponseExtraDetails")
     private List<ReservationResponseExtraDetails> reservationResponseExtraDetails;
 
     public List<ReservationResponseExtraDetails> getReservationResponseExtraDetails() {

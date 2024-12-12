@@ -3,9 +3,9 @@ package com.maybank.integratorapp.model.mq.reservation.response;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
 public class ReservationResponseExtraDetails {
-    @JacksonXmlProperty(localName = "Name", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
+    @JacksonXmlProperty(localName = "Name")
     private String name;
-    @JacksonXmlProperty(localName = "Value", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
+    @JacksonXmlProperty(localName = "Value")
     private String value;
 
     public String getName() {

@@ -3,6 +3,9 @@ package com.maybank.integratorapp.component.coresystem;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
+import com.maybank.integratorapp.model.mq.reservation.response.ReservationResponseDetails;
+import com.maybank.integratorapp.model.mq.reservation.response.ReservationResponseDetailss;
+import com.maybank.integratorapp.model.mq.reservation.response.ReservationsResponse;
 import com.maybank.integratorapp.model.soap.XL01.request.SoapEnvelope;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -20,7 +23,9 @@ import java.util.List;
 import com.maybank.integratorapp.model.soap.XL01.responseComplete.additionalData;
 @Component
 public class ProcessReservation {
-        public String getReversal(String keyloanAcc, String acctReqXL01) {
+        public String getRevervation(String newKeyloanAcc, String acctReqXL01, String keyLoanAcc, String customerRes, String startdateRes, String expireDateRes
+                , String exposureAmmount, String currency, String limitAmount, String reservedAmount) {
+
             String soapUrl = "http://10.230.83.57:65085/services/CMSService";
             SoapEnvelope soapReqXL01 = new SoapEnvelope();
             String correlationID = "ServiceRequest.getRequestHeader().getCorrelationID();";
@@ -151,7 +156,7 @@ public class ProcessReservation {
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setCurrency("IDR");
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setDepartement("003");
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setDescription("ISS-L902795");
-                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setNotenumber(keyloanAcc);
+                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setNotenumber(newKeyloanAcc);
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setQual("0");
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setTran("62");
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setTransactiondate("281124");
@@ -186,8 +191,11 @@ public class ProcessReservation {
                                 _responseXL31 = outputResponseXL31;
                                 cmsResponseXL31 = mapperXL31.readValue(_responseXL31, com.maybank.integratorapp.model.soap.XL31.response.SoapEnvelope.class);
 
+
                                 String xmlResponseXL31 = mapperXL31.writeValueAsString(cmsResponseXL31);
                                 System.out.println(xmlResponseXL31);
+
+
                             }
                         } catch (Exception e) {
                             System.out.println("Error: " + e.getMessage());

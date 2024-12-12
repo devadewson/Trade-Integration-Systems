@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.component.listener;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -14,6 +15,7 @@ import com.maybank.integratorapp.data.repository.MsFacilityRepository;
 import com.maybank.integratorapp.data.repository.MsUtilizeRunningNumberRepository;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.model.mq.reservation.request.ServiceRequest;
+import com.maybank.integratorapp.model.mq.reservation.response.*;
 import com.maybank.integratorapp.util.MQUtil;
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
@@ -23,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -60,6 +63,7 @@ public class ReservationListener implements CustomMessageListener {
                 }
             }
             private void processMessage(TextMessage message) {
+                ServiceResponse response = new ServiceResponse();
                 LogQueueData logData = new LogQueueData();
                 String newKeyLoanAcc = null;
                 String acctReqXL01 = null;
@@ -70,18 +74,28 @@ public class ReservationListener implements CustomMessageListener {
                     message.acknowledge();
 
                     ServiceRequest request = parseRequest(message);
+
+                    //From requset to maping response FTI
             String keyLoanAcc = request.getReservationsRequest().getReservationRequestDetails().getFacilityIdentifier();
+            String customerRes = request.getReservationsRequest().getReservationRequestDetails().getCustomer();
+            String startdateRes = request.getReservationsRequest().getReservationRequestDetails().getTenorStartDate();
+            String expireDateRes =  request.getReservationsRequest().getReservationRequestDetails().getTenorEndDate();
+            String exposureAmmount =  request.getReservationsRequest().getReservationRequestDetails().getPostingAmount().getAmount();
+
 
             // Ambil semua MsFacility dengan keyLoanAcc yang sesuai
             MsFacility facilities = msFacilityRepository.findByKeyLoanAcc(keyLoanAcc);
-
-            // Hentikan proses jika tidak ditemukan
             if (facilities == null) {
                 System.out.println("No Facility found for KeyLoanAcc: " + keyLoanAcc);
                 return;
             }
             // Ambil ID dari MsFacilit
             Long facilityId = facilities.getId();
+            String facilitySequence = facilities.getKeyDigitNote();
+            String currency = facilities.getLoanCurrencyCode();
+            String limitAmount = facilities.getPrincipalBalance();
+            String reservedAmount = facilities.getCommitmentBalance();
+
             System.out.println("Facility ID: " + facilityId);
 
             // Ambil MsUtilizeRunningNumber berdasarkan facilityId
@@ -105,7 +119,58 @@ public class ReservationListener implements CustomMessageListener {
 
                 }
 
-            String CMSxl01Draw001Response = cmsXl01Draw001Response(newKeyLoanAcc,acctReqXL01);
+            String CMSxl01Draw001Response = cmsXl01Draw001Response( newKeyLoanAcc, acctReqXL01,keyLoanAcc,customerRes,startdateRes,expireDateRes
+                    ,exposureAmmount,currency,limitAmount,reservedAmount);
+
+                    //set reservation response
+                    ReservationsResponse reservationsResponse =  new ReservationsResponse();
+                    reservationsResponse.setFacilityIdentifier(keyLoanAcc);
+                    reservationsResponse.setFacilitySequence(facilitySequence);
+                    reservationsResponse.setReservationIdentifier(newKeyLoanAcc);
+                    reservationsResponse.setReservationSequence(acctReqXL01);
+                    reservationsResponse.setCustomer(customerRes);
+                    reservationsResponse.setFacilityExposureIdentifier(newKeyLoanAcc);
+
+                    //set Reservation Details
+                    ReservationResponseDetails reservationResponseDetails = new ReservationResponseDetails();
+                    reservationResponseDetails.setStartDate(startdateRes);
+                    reservationResponseDetails.setExpiryDate(expireDateRes);
+                    reservationResponseDetails.setCurrency(currency);
+                    reservationResponseDetails.setLimitAmount(limitAmount);
+                    reservationResponseDetails.setExposureAmount(exposureAmmount);
+                    reservationResponseDetails.setReservedAmount(reservedAmount);
+                    double availableAmount = Double.parseDouble(limitAmount) - Double.parseDouble(reservedAmount);
+                    reservationResponseDetails.setAvailableAmount(String.valueOf(availableAmount));
+                    reservationResponseDetails.setLimitCheckStatus("S");
+
+                    // Set ReservationResponseDetailss
+                    ReservationResponseDetailss reservationResponseDetailss = new ReservationResponseDetailss();
+                    reservationResponseDetailss.setReservationResponseDetails(reservationResponseDetails);
+
+                    ReservationResponseExtraDetails reservationResponseExtraDetails = new ReservationResponseExtraDetails();
+                    ReservationResponseExtraDetailss reservationResponseExtraDetailss = new ReservationResponseExtraDetailss();
+                    reservationResponseExtraDetails.setName("Name");
+                    reservationResponseExtraDetails.setValue("value");
+
+                    reservationResponseExtraDetailss.getReservationResponseExtraDetails().add(reservationResponseExtraDetails);
+
+                    // Set ke dalam ReservationsResponse
+                    reservationsResponse.setReservationResponseDetailss(reservationResponseDetailss);
+                    reservationsResponse.setReservationResponseExtraDetailss(reservationResponseExtraDetailss);
+
+                    ResponseHeader responseHeader = new ResponseHeader();
+
+                    setInitialResponseHeader(responseHeader, request);
+
+                    response.setReservationsResponse(reservationsResponse);
+                    response.setResponseHeader(responseHeader);
+
+                    //Send Response To QUEUE Response
+                    XmlMapper xmlMapper = new XmlMapper();
+                    xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+                    String responseXml = xmlMapper.writeValueAsString(response);
+
+                    publisher.PublishMessage(responseXml, message.getJMSCorrelationID());
 
             logData.setStatus("Success");
             logData.setDelivery_date(new Date());
@@ -123,6 +188,19 @@ public class ReservationListener implements CustomMessageListener {
         logData.setReqMessage(message.getText());
         logData.setCreated_date(new Date());
         logData.setCorrelationID(message.getJMSCorrelationID());
+    }
+
+    private void setInitialResponseHeader(ResponseHeader responseHeader, ServiceRequest request) {
+        if (request != null && request.getRequestHeader() != null) {
+            responseHeader.setCorrelationID(request.getRequestHeader().getCorrelationID());
+            responseHeader.setService(request.getRequestHeader().getService());
+            responseHeader.setOperation(request.getRequestHeader().getOperation());
+            responseHeader.setSourceSystem(request.getRequestHeader().getTargetSystem());
+            responseHeader.setTargetSystem(request.getRequestHeader().getSourceSystem());
+            responseHeader.setStatus("SUCCEEDED");
+        } else {
+            responseHeader.setStatus("FAILED");
+        }
     }
 
     private ServiceRequest parseRequest(TextMessage message) throws JsonProcessingException, JMSException {
@@ -159,8 +237,9 @@ public class ReservationListener implements CustomMessageListener {
         return cif + "." + note + "." + formattedDraw + "." + seq;
     }
 
-    private String cmsXl01Draw001Response(String newKeyLoanAcc,String acctReqXL01) {
-        return processReservation.getReversal(newKeyLoanAcc,acctReqXL01);
+    private String cmsXl01Draw001Response(String newKeyloanAcc, String acctReqXL01, String keyLoanAcc, String customerRes, String startdateRes, String expireDateRes
+            , String exposureAmmount, String currency, String limitAmount, String reservedAmount) {
+        return processReservation.getRevervation(newKeyloanAcc,acctReqXL01,keyLoanAcc,customerRes,startdateRes,expireDateRes,exposureAmmount,currency,limitAmount,reservedAmount);
     }
 
     private void handleException(Exception e, LogQueueData logData) {

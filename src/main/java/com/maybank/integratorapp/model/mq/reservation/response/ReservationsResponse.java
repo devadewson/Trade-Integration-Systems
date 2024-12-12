@@ -19,6 +19,9 @@ public class ReservationsResponse {
     private ReservationResponseDetailss reservationResponseDetailss ;
     @JacksonXmlProperty(localName = "ReservationResponseExtraDetailss")
     private ReservationResponseExtraDetailss reservationResponseExtraDetailss ;
+    @JacksonXmlProperty(localName = "FacilityExposureIdentifier")
+    private String facilityExposureIdentifier ;
+
 
     public String getFacilityIdentifier() {
         return facilityIdentifier;
@@ -72,7 +75,17 @@ public class ReservationsResponse {
         return reservationResponseExtraDetailss;
     }
 
+    public String getFacilityExposureIdentifier() {
+        return facilityExposureIdentifier;
+    }
+
+    public void setFacilityExposureIdentifier(String facilityExposureIdentifier) {
+        this.facilityExposureIdentifier = facilityExposureIdentifier;
+    }
+
     public void setReservationResponseExtraDetailss(ReservationResponseExtraDetailss reservationResponseExtraDetailss) {
         this.reservationResponseExtraDetailss = reservationResponseExtraDetailss;
+
+
     }
 }
