@@ -19,7 +19,7 @@ public class ServiceRequest {
         this.requestHeader= new RequestHeader();
         this.itemRequest = new ArrayList<>();
     }
-    @JacksonXmlProperty(localName = "RequestHeader")
+    @JacksonXmlProperty(localName = "RequestHeader", namespace = "urn:control.services.tiplus2.misys.com")
     private RequestHeader requestHeader;
     //    @XmlElement(name = "AvailBalRequest", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
 //@XmlElement(name = "AvailBalRequest", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")

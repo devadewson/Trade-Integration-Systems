@@ -3,65 +3,65 @@ package com.maybank.integratorapp.model.mq.facilities.response;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
 public class FacilityDetails {
-    @JacksonXmlProperty(localName = "Identifier")
+    @JacksonXmlProperty(localName = "Identifier", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String identifier;
-    @JacksonXmlProperty(localName = "SequenceNumber")
+    @JacksonXmlProperty(localName = "SequenceNumber", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String sequenceNumber;
-    @JacksonXmlProperty(localName = "FacilityCode")
+    @JacksonXmlProperty(localName = "FacilityCode", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String facilityCode;
-    @JacksonXmlProperty(localName = "Description")
+    @JacksonXmlProperty(localName = "Description", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String description;
-    @JacksonXmlProperty(localName = "Customer")
+    @JacksonXmlProperty(localName = "Customer", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String customer;
-    @JacksonXmlProperty(localName = "StartDate")
+    @JacksonXmlProperty(localName = "StartDate", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String startDate;
-    @JacksonXmlProperty(localName = "ExpiryDate")
+    @JacksonXmlProperty(localName = "ExpiryDate", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String expiryDate;
-    @JacksonXmlProperty(localName = "Currency")
+    @JacksonXmlProperty(localName = "Currency", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String currency;
-    @JacksonXmlProperty(localName = "LimitAmount")
+    @JacksonXmlProperty(localName = "LimitAmount", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String limitAmount;
-    @JacksonXmlProperty(localName = "ExposureAmount")
+    @JacksonXmlProperty(localName = "ExposureAmount", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String exposureAmount;
-    @JacksonXmlProperty(localName = "ReservedAmount")
+    @JacksonXmlProperty(localName = "ReservedAmount", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String reservedAmount;
-    @JacksonXmlProperty(localName = "AvailableAmount")
+    @JacksonXmlProperty(localName = "AvailableAmount", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String availableAmount;
-    @JacksonXmlProperty(localName = "LiabilityCurrency")
+    @JacksonXmlProperty(localName = "LiabilityCurrency", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String liabilityCurrency;
-    @JacksonXmlProperty(localName = "AvailableAmountInLiabilityCurrency")
+    @JacksonXmlProperty(localName = "AvailableAmountInLiabilityCurrency", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String availableAmountInLiabilityCurrency;
-    @JacksonXmlProperty(localName = "Status")
+    @JacksonXmlProperty(localName = "Status", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String status;
-    @JacksonXmlProperty(localName = "MultiCurrency")
+    @JacksonXmlProperty(localName = "MultiCurrency", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String multiCurrency;
-    @JacksonXmlProperty(localName = "AllowableCurrencies")
+    @JacksonXmlProperty(localName = "AllowableCurrencies", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String AllowableCurrencies;
-    @JacksonXmlProperty(localName = "RelatedParty")
+    @JacksonXmlProperty(localName = "RelatedParty", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String relatedParty;
-    @JacksonXmlProperty(localName = "RelatedPartyIdentifier")
+    @JacksonXmlProperty(localName = "RelatedPartyIdentifier", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String relatedPartyIdentifier;
-    @JacksonXmlProperty(localName = "ExtraDataKey")
+    @JacksonXmlProperty(localName = "ExtraDataKey", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String extraDataKey;
-    @JacksonXmlProperty(localName = "DisplayField1")
+    @JacksonXmlProperty(localName = "DisplayField1", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String displayField1;
-    @JacksonXmlProperty(localName = "DisplayField2")
+    @JacksonXmlProperty(localName = "DisplayField2", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String displayField2;
-    @JacksonXmlProperty(localName = "DisplayField3")
+    @JacksonXmlProperty(localName = "DisplayField3", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String displayField3;
-    @JacksonXmlProperty(localName = "DisplayField4")
+    @JacksonXmlProperty(localName = "DisplayField4", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String displayField4;
-    @JacksonXmlProperty(localName = "DisplayField5")
+    @JacksonXmlProperty(localName = "DisplayField5", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String displayField5;
-    @JacksonXmlProperty(localName = "DisplayField6")
+    @JacksonXmlProperty(localName = "DisplayField6", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String displayField6;
-    @JacksonXmlProperty(localName = "DisplayField7")
+    @JacksonXmlProperty(localName = "DisplayField7", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String displayField7;
-    @JacksonXmlProperty(localName = "DisplayField8")
+    @JacksonXmlProperty(localName = "DisplayField8", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String displayField8;
-    @JacksonXmlProperty(localName = "DisplayField9")
+    @JacksonXmlProperty(localName = "DisplayField9", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String displayField9;
-    @JacksonXmlProperty(localName = "DisplayField10")
+    @JacksonXmlProperty(localName = "DisplayField10", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String displayField10;
 
     public String getIdentifier() {

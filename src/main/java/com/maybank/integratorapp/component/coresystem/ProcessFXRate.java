@@ -51,12 +51,12 @@ public class ProcessFXRate {
         return finalData;
     }
 
-    public List<FxRateListData> getAllFxRate(){
+    public List<FxRateListData> getAllFxRate(String ApiUrl){
         List<FxRateListData> finalData = new ArrayList<FxRateListData>();
 
         try{
 
-            String apiUrl = "http://10.230.83.121:8282/trapi/getListCcy";
+//            String apiUrl = "http://10.230.83.121:8282/trapi/getListCcy";
             FxRateListRequest req = new FxRateListRequest();
             req.setCcy1("");
             req.setCcy2("");
@@ -70,7 +70,7 @@ public class ProcessFXRate {
             HttpEntity<FxRateListRequest> request = new HttpEntity<>(req, headers);
             RestTemplate restTemplate = new RestTemplate();
 
-            ResponseEntity<FxRateListResponse> response = restTemplate.postForEntity(apiUrl,request, FxRateListResponse.class);
+            ResponseEntity<FxRateListResponse> response = restTemplate.postForEntity(ApiUrl,request, FxRateListResponse.class);
 
             if(response.hasBody()){
                 System.out.println(response.getBody().getRespCode());
@@ -80,7 +80,7 @@ public class ProcessFXRate {
                 finalData = responseList.getRespData();
 
                 finalData = responseList.getRespData().stream().filter(s->
-                        s.getTenor().equals("TODAY") && s.getCcy().startsWith("IDR")).toList();
+                        s.getTenor().equals("SPOT") && s.getCcy().endsWith("IDR")).toList();
             }
 
 

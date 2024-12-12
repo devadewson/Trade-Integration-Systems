@@ -5,7 +5,7 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import java.util.List;
 
 public class FacilityDetailss {
-    @JacksonXmlProperty(localName = "FacilityDetails")
+    @JacksonXmlProperty(localName = "FacilityDetails" , namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private List<FacilityDetails> facilityDetails;
 
     public List<FacilityDetails> getFacilityDetails() {

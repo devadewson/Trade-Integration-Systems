@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.controller;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -9,6 +10,7 @@ import com.maybank.integratorapp.component.coresystem.ProcessFXRate;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
+import com.maybank.integratorapp.data.repository.MsParameterRepository;
 import com.maybank.integratorapp.model.mq.fxrate.response.FXRate;
 import com.maybank.integratorapp.model.mq.fxrate.response.ItemRequest;
 import com.maybank.integratorapp.model.mq.fxrate.response.ServiceRequest;
@@ -34,6 +36,8 @@ public class FxRateController {
     @Autowired
     MsQueueConfigService queueConfigService;
     @Autowired
+    MsParameterRepository parameterRepository;
+    @Autowired
     private LogQueueDataRepository dataDTO;
 
     @PostMapping("/RateFCC")
@@ -43,9 +47,10 @@ public class FxRateController {
             MsQueueConfig config = queueConfigService.findByServiceName("FxRate");
             if(config != null && config.getEnableStatus() == 1){
                 LogQueueData _data = new LogQueueData();
+                String api = parameterRepository.findValueByPrmKey("FxRateRequest");
 
                 ProcessFXRate fxRate = new ProcessFXRate();
-                List<FxRateListData> data = fxRate.getAllFxRate();
+                List<FxRateListData> data = fxRate.getAllFxRate(api);
 
                 ExchangeRateRecords response = new ExchangeRateRecords();
                 List<ExchangeRateRecord> records = response.getExchangeRateRecord();
@@ -124,10 +129,13 @@ public class FxRateController {
                 String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
                 String correlationId = "FXRATEDATA_"+date;
 
+                String api = parameterRepository.findValueByPrmKey("FxRateRequest");
+
+
                 LogQueueData _data = new LogQueueData();
 
                 ProcessFXRate fxRate = new ProcessFXRate();
-                List<FxRateListData> data = fxRate.getAllFxRate();
+                List<FxRateListData> data = fxRate.getAllFxRate(api);
 
                 ServiceRequest response = new ServiceRequest();
                 response.getRequestHeader().setCorrelationID(correlationId);
@@ -154,8 +162,14 @@ public class FxRateController {
                     String _baseCcy = item.getCcy().split("\\.")[0];
                     String _againstCcy = item.getCcy().split("\\.")[1];
 
-                    dataRecord.setBaseCurrency(_baseCcy);
-                    dataRecord.setCurrency(_againstCcy);
+                    dataRecord.setMaintType("F");
+                    dataRecord.setMaintainedInBackOffice("N");
+                    dataRecord.setFxRateCode("CORP");
+                    dataRecord.setBankingEntity("MAYBANKI");
+                    dataRecord.setBuyRateSpecific("T");
+                    dataRecord.setSellRateSpecific("T");
+                    dataRecord.setBaseCurrency(_againstCcy);
+                    dataRecord.setCurrency(_baseCcy);
                     dataRecord.setBuyExchangeRate(item.getBid());
 //                    dataRecord.setMidTtRate(item.getBid());
                     dataRecord.setSellExchangeRate(item.getAsk());
@@ -170,6 +184,7 @@ public class FxRateController {
                 // Serialize the object to XML
                 String xml = null;
                 try {
+                    xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
                     xmlMapper.enable(SerializationFeature.INDENT_OUTPUT);
 //                    xmlMapper.enable(ToXmlGenerator.Feature.WRITE_XML_DECLARATION);
 

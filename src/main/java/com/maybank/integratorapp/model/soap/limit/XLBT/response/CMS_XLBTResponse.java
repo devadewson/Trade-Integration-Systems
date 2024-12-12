@@ -12,6 +12,9 @@ public class CMS_XLBTResponse {
     @JacksonXmlProperty(localName = "responsecode")
     private String responsecode;
 
+    @JacksonXmlProperty(localName = "error_message")
+    private String error_message;
+
     @JacksonXmlElementWrapper(useWrapping = false)
     @JacksonXmlProperty(localName = "loanAccounts")
     private List<LoanAccounts> loanAccounts;
@@ -38,5 +41,13 @@ public class CMS_XLBTResponse {
 
     public void setLoanAccounts(List<LoanAccounts> loanAccounts) {
         this.loanAccounts = loanAccounts;
+    }
+
+    public String getError_message() {
+        return error_message;
+    }
+
+    public void setError_message(String error_message) {
+        this.error_message = error_message;
     }
 }

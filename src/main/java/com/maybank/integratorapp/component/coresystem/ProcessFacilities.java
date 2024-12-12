@@ -109,6 +109,11 @@ public class ProcessFacilities {
                     res = mapper.readValue(_response, com.maybank.integratorapp.model.soap.
                             limit.XLBT.response.SoapEnvelope.class);
 
+                    if(!res.getBody().getXlbtResponse().getCmsXlbtResponse().getResponsecode().equals("00")){
+                        return serviceResponseMq;
+
+                    }
+
                     String asd = mapper.writeValueAsString(res);
                     System.out.println("===========================asd=================================");
                     System.out.println(asd);
@@ -135,6 +140,9 @@ public class ProcessFacilities {
                             facility.setCompanyLimitId(idcompanyLimit);
 
                             facility.setKeyDigitNote(splitKey[4]);
+                            facility.setCurrency(splitKey[1]);
+                            facility.setBranchCode(splitKey[2]);
+                            facility.setCifNo(splitKey[3]);
                             facility.setCommitmentBalance(s.getCommitmentbalance());
                             facility.setCommitmentBalanceSign(s.getCommitmentbalancesign());
                             facility.setDescription(s.getDescription());
@@ -168,6 +176,9 @@ public class ProcessFacilities {
 
                             utilize.setFacilityId(msFacility.getId());
                             utilize.setKeyDigitNote(splitKey[4]);
+                            utilize.setCurrency(splitKey[1]);
+                            utilize.setBranchCode(splitKey[2]);
+                            utilize.setCifNo(splitKey[3]);
                             utilize.setCompanyLimitId(idcompanyLimit);
                             utilize.setCommitmentBalance(s.getCommitmentbalance());
                             utilize.setCommitmentBalanceSign(s.getCommitmentbalancesign());

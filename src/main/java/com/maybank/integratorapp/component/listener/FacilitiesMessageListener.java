@@ -1,5 +1,7 @@
 package com.maybank.integratorapp.component.listener;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.maybank.integratorapp.component.CustomMessageListener;
@@ -7,10 +9,13 @@ import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.coresystem.ProcessFacilities;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsCompanyLimit;
+import com.maybank.integratorapp.data.entity.MsCurrency;
 import com.maybank.integratorapp.data.entity.MsFacility;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
+import com.maybank.integratorapp.data.repository.MsCurrencyRepository;
 import com.maybank.integratorapp.data.repository.MsFacilityRepository;
 import com.maybank.integratorapp.data.repository.MscompanylimitRepository;
+import com.maybank.integratorapp.data.service.MsCurrencyService;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.model.mq.facilities.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.facilities.response.*;
@@ -44,7 +49,8 @@ public class FacilitiesMessageListener implements CustomMessageListener {
     private MessagePublisher publisher;
     @Autowired
     ProcessFacilities processFacilities;
-
+    @Autowired
+    private MsCurrencyRepository msCurrencyRepository;
     @Override
     public void onMessage(Message message){
         if (message instanceof TextMessage){
@@ -72,25 +78,21 @@ public class FacilitiesMessageListener implements CustomMessageListener {
 
                 XmlMapper xmlMapper = new XmlMapper();
                 ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);
-                request.getRequestHeader().setCorrelationID(message.getJMSCorrelationID());
+
+                ServiceResponse response = new ServiceResponse();
+                response.setFacilitiesResponse(new FacilitiesResponse());
+
+                ResponseHeader responseHeader = new ResponseHeader();
+                responseHeader.setCorrelationID(request.getRequestHeader().getCorrelationID());
+                responseHeader.setService(request.getRequestHeader().getService());
+                responseHeader.setOperation(request.getRequestHeader().getOperation());
+                responseHeader.setSourceSystem(request.getRequestHeader().getTargetSystem());
+                responseHeader.setTargetSystem(request.getRequestHeader().getSourceSystem());
 
                 String cifno = request.getFacilitiesRequest().getFacilityRequestDetails().getCustomer().trim();
 
                 // Cek apakah cifno ada di MsCompanyLimit
-                if (mscompanylimitRepository.existsByCifno(cifno)) {
-                    System.out.println("CIF " + cifno + " ditemukan di tabel MsCompanyLimit.");
-
-                    // Ambil data pada database MsFacility
-                    List<MsFacility> facilities = msFacilityRepository.findByCompanyLimitId(
-                            mscompanylimitRepository.findByCifno(cifno).getId()
-                    );
-                    if (!facilities.isEmpty()) {
-                        responseXml = xmlMapper.writeValueAsString(facilities);
-                    } else {
-                        responseXml = "<response>Data fasilitas tidak ditemukan</response>";
-                        System.out.println("Tidak ada data fasilitas untuk CIF " + cifno);
-                    }
-                } else {
+                if (!mscompanylimitRepository.existsByCifno(cifno)) {
                     // Jika CIF tidak ada, insert data ke tabel MsCompanyLimit
                     System.out.println("CIF " + cifno + " tidak ditemukan di tabel MsCompanyLimit. Menambahkan data baru.");
                     MsCompanyLimit newLimit = new MsCompanyLimit();
@@ -101,22 +103,61 @@ public class FacilitiesMessageListener implements CustomMessageListener {
 
                     //melakukan Process Crate data facility pada database
                     var resultSoap = processFacilities.getFacilities(cifno, savedcompanyLimit.getId());
+                }
 
-                    // Ambil data pada database MsFacility
-                    List<MsFacility> facilities = msFacilityRepository.findByCompanyLimitId(
-                            mscompanylimitRepository.findByCifno(cifno).getId());
-                    if (!facilities.isEmpty()) {
-                        responseXml = xmlMapper.writeValueAsString(facilities);
-                    } else {
-                        responseXml = "<response>Data fasilitas tidak ditemukan</response>";
-                        System.out.println("Tidak ada data fasilitas untuk CIF " + cifno);
-                    }
+                // Ambil data pada database MsFacility
+                List<MsFacility> facilities = msFacilityRepository.findByCompanyLimitId(
+                        mscompanylimitRepository.findByCifno(cifno).getId());
 
+                List<MsCurrency> currencies = (List<MsCurrency>) msCurrencyRepository.findAll();
+
+                if (!facilities.isEmpty()) {
+                    responseXml = xmlMapper.writeValueAsString(facilities);
+
+                    List<FacilityDetails> facilityDetails = new ArrayList<>();
+                    facilities.forEach(s->{
+                        FacilityDetails fac = new FacilityDetails();
+                        fac.setIdentifier(s.getKeyLoanAcc());
+                        fac.setFacilityCode(s.getKeyDigitNote());
+                        fac.setCustomer(cifno);
+                        fac.setStartDate(s.getNoteDate());
+                        fac.setExpiryDate(s.getMaturityDate());
+                        fac.setCurrency(currencies.stream().filter(x->x.getInternalCode().equals(s.getCurrency())).findFirst().get().getIsoCode());
+                        String balance = s.getCommitmentBalance().split("\\.")[0];
+                        fac.setLimitAmount(balance);
+                        fac.setAvailableAmount(balance);
+                        fac.setMultiCurrency("N");
+                        facilityDetails.add(fac);
+//                        fac.setCurrency(s.get);
+                    });
+
+                    response.getFacilitiesResponse().setFacilityDetailss(new FacilityDetailss());
+                    response.getFacilitiesResponse().getFacilityDetailss().setFacilityDetails(facilityDetails);
+
+                } else {
+//                        responseXml = "<response>Data fasilitas tidak ditemukan</response>";
+//                        System.out.println("Tidak ada data fasilitas untuk CIF " + cifno);
+                    responseHeader.setStatus("FAILED");
+                    responseHeader.setDetails(new Details());
+                    responseHeader.getDetails().setError("Facilities Not Found For CIF: "+cifno);
+                }
+
+                response.setResponseHeader(responseHeader);
+
+                xmlMapper = new XmlMapper();
+                // Serialize the object to XML
+                String xml = null;
+                try {
+
+                    xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+                    xml = xmlMapper.writeValueAsString(response);
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
                 }
                 System.out.println("===========================responseXml=================================");
-                System.out.println(responseXml);
+                System.out.println(xml);
                 System.out.println("============================================================\n");
-
+                publisher.PublishMessage(xml,message.getJMSCorrelationID());
 
             } catch (Exception e) {
                 System.out.println(e.getMessage());

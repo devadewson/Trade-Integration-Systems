@@ -25,6 +25,34 @@ public class MsFacility {
     private String principalBalanceSign;
     private String status;
 
+    private String currency;
+    private String branchCode;
+    private String cifNo;
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
+    public String getBranchCode() {
+        return branchCode;
+    }
+
+    public void setBranchCode(String branchCode) {
+        this.branchCode = branchCode;
+    }
+
+    public String getCifNo() {
+        return cifNo;
+    }
+
+    public void setCifNo(String cifNo) {
+        this.cifNo = cifNo;
+    }
+
     public Long getId() {
         return id;
     }

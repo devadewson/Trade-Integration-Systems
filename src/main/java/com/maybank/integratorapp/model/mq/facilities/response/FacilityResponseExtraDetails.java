@@ -3,11 +3,11 @@ package com.maybank.integratorapp.model.mq.facilities.response;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
 public class FacilityResponseExtraDetails {
-    @JacksonXmlProperty(localName = "ExtraDataKey")
+    @JacksonXmlProperty(localName = "ExtraDataKey", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String extraDataKey;
-    @JacksonXmlProperty(localName = "FieldName")
+    @JacksonXmlProperty(localName = "FieldName", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String fieldName;
-    @JacksonXmlProperty(localName = "FieldValue")
+    @JacksonXmlProperty(localName = "FieldValue", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String fieldValue;
 
     public String getExtraDataKey() {

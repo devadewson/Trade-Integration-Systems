@@ -3,9 +3,9 @@ package com.maybank.integratorapp.model.mq.facilities.response;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
 public class FacilitiesResponse {
-    @JacksonXmlProperty(localName = "FacilityDetailss")
+    @JacksonXmlProperty(localName = "FacilityDetailss" , namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private FacilityDetailss facilityDetailss;
-    @JacksonXmlProperty(localName = "FacilityResponseExtraDetailss")
+    @JacksonXmlProperty(localName = "FacilityResponseExtraDetailss" , namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private FacilityResponseExtraDetailss facilityResponseExtraDetailss;
 
     public FacilityDetailss getFacilityDetailss() {
