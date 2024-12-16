@@ -72,6 +72,8 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
 
                 _data = dataDTO.save(_data);
 
+                message.acknowledge();
+
                 XmlMapper xmlMapper = new XmlMapper();
                 ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);
                 String accNo = request.getAvailBALRequest().getBackOfficeAccount();
@@ -82,55 +84,56 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
 //            String currency = request.getAvailBALRequest().getPostingCurrency();
 
                 AccountInquiryResponse accountInquiryResponse = processAccountInquiry.getAccInqWithVar(accNo, branch, currency);
-
-                ServiceResponse serviceResponse = new ServiceResponse();
-                ResponseHeader responseHeader = new ResponseHeader();
-                Details detailsResponse = new Details();
-                AvailBalResponse availBalResponse = new AvailBalResponse();
-
-                detailsResponse.setInfo(accountInquiryResponse.getResponseDetail().getResponse_data());
-                responseHeader.setCorrelationID(request.getRequestHeader().getCorrelationID());
-                responseHeader.setService(request.getRequestHeader().getService());
-                responseHeader.setOperation(request.getRequestHeader().getOperation());
-                responseHeader.setSourceSystem(request.getRequestHeader().getTargetSystem());
-                responseHeader.setTargetSystem(request.getRequestHeader().getSourceSystem());
-
                 if(accountInquiryResponse.getAccountInquiryResponseData()!= null){
-                    responseHeader.setStatus("SUCCEEDED");
-                    String balance = accountInquiryResponse.getAccountInquiryResponseData().getBalance();
-                    String formattedBalance = balance.substring(1).replace(".", "");
-                    if(balance.startsWith("+"))
-                        availBalResponse.setNegative("N");
-                    else
-                        availBalResponse.setNegative("Y");
-                    availBalResponse.setBlocked("N");
-                    availBalResponse.setApplies("Y");
-                    availBalResponse.setErrorOrWarning("N");
-                    availBalResponse.setCheckedInBackOffice("Y");
-                    availBalResponse.setErrorCode("N");
-                    availBalResponse.setErrorMessage("HOLDCODE-"+accountInquiryResponse.getAccountInquiryResponseData().getAccountStatus());
-                    availBalResponse.setBalance(formattedBalance);
+                    ServiceResponse serviceResponse = new ServiceResponse();
+                    ResponseHeader responseHeader = new ResponseHeader();
+                    Details detailsResponse = new Details();
+                    AvailBalResponse availBalResponse = new AvailBalResponse();
+
+                    detailsResponse.setInfo(accountInquiryResponse.getResponseDetail().getResponse_data());
+                    responseHeader.setCorrelationID(request.getRequestHeader().getCorrelationID());
+                    responseHeader.setService(request.getRequestHeader().getService());
+                    responseHeader.setOperation(request.getRequestHeader().getOperation());
+                    responseHeader.setSourceSystem(request.getRequestHeader().getTargetSystem());
+                    responseHeader.setTargetSystem(request.getRequestHeader().getSourceSystem());
+
+                    if(accountInquiryResponse.getAccountInquiryResponseData()!= null){
+                        responseHeader.setStatus("SUCCEEDED");
+                        String balance = accountInquiryResponse.getAccountInquiryResponseData().getBalance();
+                        String formattedBalance = balance.substring(1).replace(".", "");
+                        if(balance.startsWith("+"))
+                            availBalResponse.setNegative("N");
+                        else
+                            availBalResponse.setNegative("Y");
+                        availBalResponse.setBlocked("N");
+                        availBalResponse.setApplies("Y");
+                        availBalResponse.setErrorOrWarning("N");
+                        availBalResponse.setCheckedInBackOffice("Y");
+                        availBalResponse.setErrorCode("N");
+                        availBalResponse.setErrorMessage("HOLDCODE-"+accountInquiryResponse.getAccountInquiryResponseData().getAccountStatus());
+                        availBalResponse.setBalance(formattedBalance);
+
+                    }
+                    else {
+                        responseHeader.setStatus("ERROR");
+                        responseHeader.setDetails(new Details());
+                        responseHeader.getDetails().setError(accountInquiryResponse.getResponseDetail().getResponse_data());
+                    }
+                    serviceResponse.setAvailBalResponse(availBalResponse);
+                    serviceResponse.setResponseHeader(responseHeader);
+
+                    xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+                    responseXml = xmlMapper.writeValueAsString(serviceResponse);
+                    System.out.println("===========================responseXml=================================");
+                    System.out.println(responseXml);
+                    System.out.println("============================================================\n");
+                    _data.setResMessage(responseXml);
+                    _data.setStatus("Success");
+                    _data.setDelivery_date(new Date());
+                    _data.setUpdated_date(new Date());
 
                 }
-                else {
-                    responseHeader.setStatus("ERROR");
-                    responseHeader.setDetails(new Details());
-                    responseHeader.getDetails().setError(accountInquiryResponse.getResponseDetail().getResponse_data());
-                }
-                serviceResponse.setAvailBalResponse(availBalResponse);
-                serviceResponse.setResponseHeader(responseHeader);
 
-                xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-                responseXml = xmlMapper.writeValueAsString(serviceResponse);
-                System.out.println("===========================responseXml=================================");
-                System.out.println(responseXml);
-                System.out.println("============================================================\n");
-                _data.setResMessage(responseXml);
-                _data.setStatus("Success");
-                _data.setDelivery_date(new Date());
-                _data.setUpdated_date(new Date());
-
-                message.acknowledge();
 
             } catch (JMSException | JsonProcessingException e) {
                 System.out.println(e.getMessage());

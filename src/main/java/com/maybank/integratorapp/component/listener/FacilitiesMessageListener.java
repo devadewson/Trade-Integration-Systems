@@ -27,6 +27,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -89,7 +91,8 @@ public class FacilitiesMessageListener implements CustomMessageListener {
                 responseHeader.setSourceSystem(request.getRequestHeader().getTargetSystem());
                 responseHeader.setTargetSystem(request.getRequestHeader().getSourceSystem());
 
-                String cifno = request.getFacilitiesRequest().getFacilityRequestDetails().getCustomer().trim();
+//                String cifno = request.getFacilitiesRequest().getFacilityRequestDetails().getCustomer().trim();
+                String cifno = "0002794045";
 
                 // Cek apakah cifno ada di MsCompanyLimit
                 if (!mscompanylimitRepository.existsByCifno(cifno)) {
@@ -120,17 +123,32 @@ public class FacilitiesMessageListener implements CustomMessageListener {
                         fac.setIdentifier(s.getKeyLoanAcc());
                         fac.setFacilityCode(s.getKeyDigitNote());
                         fac.setCustomer(cifno);
+
                         fac.setStartDate(s.getNoteDate());
                         fac.setExpiryDate(s.getMaturityDate());
                         fac.setCurrency(currencies.stream().filter(x->x.getInternalCode().equals(s.getCurrency())).findFirst().get().getIsoCode());
-                        String balance = s.getCommitmentBalance().split("\\.")[0];
+                        String balance = s.getPrincipalBalance().split("\\.")[0];
+                        String utilizedBalance = s.getCommitmentBalance().split("\\.")[0];
+
                         fac.setLimitAmount(balance);
                         fac.setAvailableAmount(balance);
                         fac.setMultiCurrency("N");
+
+                        fac.setDisplayField1(s.getKeyLoanAcc());
+                        fac.setDisplayField2(s.getDescription());
+                        fac.setDisplayField3("-");
+                        fac.setDisplayField4("-");
+                        fac.setDisplayField5(balance);
+                        fac.setDisplayField6(balance);
+                        fac.setDisplayField7(utilizedBalance);
+                        fac.setDisplayField8(utilizedBalance);
+                        fac.setDisplayField9(s.getMaturityDate());
+                        fac.setDisplayField10(s.getStatus());
+
                         facilityDetails.add(fac);
 //                        fac.setCurrency(s.get);
                     });
-
+                    responseHeader.setStatus("SUCCEEDED");
                     response.getFacilitiesResponse().setFacilityDetailss(new FacilityDetailss());
                     response.getFacilitiesResponse().getFacilityDetailss().setFacilityDetails(facilityDetails);
 
@@ -148,7 +166,6 @@ public class FacilitiesMessageListener implements CustomMessageListener {
                 // Serialize the object to XML
                 String xml = null;
                 try {
-
                     xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
                     xml = xmlMapper.writeValueAsString(response);
                 } catch (JsonProcessingException e) {
@@ -158,6 +175,13 @@ public class FacilitiesMessageListener implements CustomMessageListener {
                 System.out.println(xml);
                 System.out.println("============================================================\n");
                 publisher.PublishMessage(xml,message.getJMSCorrelationID());
+
+                _data.setResMessage(xml);
+                _data.setStatus("Success");
+                _data.setDelivery_date(new Date());
+                _data.setUpdated_date(new Date());
+                dataDTO.save(_data);
+
 
             } catch (Exception e) {
                 System.out.println(e.getMessage());
