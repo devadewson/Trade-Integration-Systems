@@ -41,7 +41,7 @@ public class ProcessSwiftOut {
             String sftpPath = repo.findValueByPrmKey("SwiftOutSftpPath");
             String localpath = repo.findValueByPrmKey("SwiftOutLocalPath");
             String additionalPath = "FTI_"+correlationId+"_"+ MQUtil.generateRandomString(4).toUpperCase();
-            String specificPath = localpath+"\\"+additionalPath;
+            String specificPath = localpath+File.separator+additionalPath;
 
             File folder = new File(specificPath);
 
@@ -56,7 +56,7 @@ public class ProcessSwiftOut {
 //                String formattedString = str.substring(header.length(),(str.length() - header.length() - footer.length()));
                 String endingFile =  "_"+i+".txt";
                 String fileName = additionalPath+endingFile;
-                String completePath = specificPath+"\\"+fileName;
+                String completePath = specificPath+File.separator+fileName;
                 try (PrintWriter out = new PrintWriter(completePath)) {
                     out.println(str.trim());
                     logger.Log("SwiftOut - Creating Swift File","Creating swift file from data","DATA-LOCAL",str);

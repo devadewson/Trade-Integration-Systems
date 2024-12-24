@@ -72,7 +72,7 @@ public class ProcessSwiftIn {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
             String formattedDate = today.format(formatter);
 
-            String completeBackupPath = backuppath+formattedDate+"\\";
+            String completeBackupPath = backuppath+formattedDate+File.separator;
 
             File folder = new File(completeBackupPath);
             if (!folder.exists()) {

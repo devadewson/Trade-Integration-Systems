@@ -71,6 +71,7 @@ public class ProcessFXRate {
             RestTemplate restTemplate = new RestTemplate();
 
             ResponseEntity<FxRateListResponse> response = restTemplate.postForEntity(ApiUrl,request, FxRateListResponse.class);
+            ResponseEntity<String> _response = restTemplate.postForEntity(ApiUrl,request, String.class);
 
             if(response.hasBody()){
                 System.out.println(response.getBody().getRespCode());
@@ -80,7 +81,7 @@ public class ProcessFXRate {
                 finalData = responseList.getRespData();
 
                 finalData = responseList.getRespData().stream().filter(s->
-                        s.getTenor().equals("SPOT") && s.getCcy().endsWith("IDR")).toList();
+                        s.getTenor().equals("TODAY") && s.getCcy().endsWith("IDR")).toList();
             }
 
 

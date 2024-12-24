@@ -54,6 +54,7 @@ public class FxRateController {
 
                 ExchangeRateRecords response = new ExchangeRateRecords();
                 List<ExchangeRateRecord> records = response.getExchangeRateRecord();
+                String updateDate = new SimpleDateFormat("dd-MMM-yyyy").format(new Date());
 
                 // mapping each FxRateListData into ExchangeRateRecord
                 for (FxRateListData item : data) {
@@ -62,23 +63,34 @@ public class FxRateController {
                     String _baseCcy = item.getCcy().split("\\.")[0];
                     String _againstCcy = item.getCcy().split("\\.")[1];
 
-                    dataRecord.setBaseISOCode(_baseCcy);
-                    dataRecord.setIsoCode(_againstCcy);
-                    dataRecord.setBuyTtRate(item.getBid());
-                    dataRecord.setMidTtRate(item.getBid());
-                    dataRecord.setSellTtRate(item.getAsk());
+                    dataRecord.setBaseISOCode(_againstCcy);
+                    dataRecord.setIsoCode(_baseCcy);
+                    dataRecord.setPatyVal("1");
+                    dataRecord.setBankAbbvName("MAYBANKID");
+//                    dataRecord.setBuyTtRate(item.getBid());
+//                    dataRecord.setMidTtRate(item.getBid());
+//                    dataRecord.setSellTtRate(item.getAsk());
+                    dataRecord.setBuyTtRate(item.getBidAllIn());
+                    dataRecord.setMidTtRate(item.getBidAllIn());
+                    dataRecord.setSellTtRate(item.getAskAllIn());
+                    dataRecord.setUpdateDate(updateDate);
+                    dataRecord.setStartValueDate(updateDate);
+                    dataRecord.setEndValueDate(updateDate);
 
                     records.add(dataRecord);
                 }
+
+                response.setExchangeRateRecord(records);
 
                 XmlMapper xmlMapper = new XmlMapper();
                 // Serialize the object to XML
                 String xml = null;
                 try {
+                    xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
                     xmlMapper.enable(SerializationFeature.INDENT_OUTPUT);
                     xmlMapper.enable(ToXmlGenerator.Feature.WRITE_XML_DECLARATION);
 
-                    xml = xmlMapper.writeValueAsString(response);
+                    xml = xmlMapper.writerWithDefaultPrettyPrinter().writeValueAsString(response);
                 } catch (JsonProcessingException e) {
                     throw new RuntimeException(e);
                 }
@@ -94,12 +106,12 @@ public class FxRateController {
                 _data.setDelivery_date(new Date());
                 _data.setUpdated_date(new Date());
                 _data.setResMessage(xml);
-                _data.setDestination(config.getResponse_Queue_Username());
+                _data.setDestination(config.getResponse_Queue_Name());
                 _data = dataDTO.save(_data);
 
                 MessagePublisher publisher = new MessagePublisher(
                         config.getResponse_Queue_Address(),
-                        Integer.parseInt(config.getRequest_Queue_Port()),
+                        Integer.parseInt(config.getResponse_Queue_Port()),
                         config.getResponse_Queue_Manager(),
                         config.getResponse_Queue_Channel(),
                         config.getResponse_Queue_Username(),

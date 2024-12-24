@@ -65,7 +65,7 @@ public class SwiftOutMessageListener implements CustomMessageListener {
                 XmlMapper xmlMapper = new XmlMapper();
                 ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);
 
-                process.putFileContent(request.getSwiftOut().getMessages().getMessage(), message.getJMSCorrelationID(), _data.getId());
+                process.putFileContent(request.getSwiftOut().getMessages().getMessage(), request.getRequestHeader().getCorrelationID(), _data.getId());
 
                 _data.setStatus("Success");
                 _data.setDelivery_date(new Date());
