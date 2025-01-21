@@ -20,6 +20,7 @@ import com.maybank.integratorapp.model.mq.fxratefcc.response.ExchangeRateRecords
 import com.maybank.integratorapp.model.rest.fxratelist.response.FxRateListData;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.util.MQUtil;
+import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,6 +31,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
+@Hidden // Hides the entire controller
 @RestController
 public class FxRateController {
 

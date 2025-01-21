@@ -15,11 +15,11 @@ public class ReservationsResponse {
     private String reservationSequence;
     @JacksonXmlProperty(localName = "Customer", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String customer;
-    @JacksonXmlProperty(localName = "ReservationResponseDetailss")
+    @JacksonXmlProperty(localName = "ReservationResponseDetailss", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private ReservationResponseDetailss reservationResponseDetailss ;
-    @JacksonXmlProperty(localName = "ReservationResponseExtraDetailss")
+    @JacksonXmlProperty(localName = "ReservationResponseExtraDetailss", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private ReservationResponseExtraDetailss reservationResponseExtraDetailss ;
-    @JacksonXmlProperty(localName = "FacilityExposureIdentifier")
+    @JacksonXmlProperty(localName = "FacilityExposureIdentifier", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String facilityExposureIdentifier ;
 
 

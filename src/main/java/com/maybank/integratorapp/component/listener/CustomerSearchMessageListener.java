@@ -10,6 +10,7 @@ import com.maybank.integratorapp.component.coresystem.ProcessCostumerSearch;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
+import com.maybank.integratorapp.model.mq.customersearch.response.Details;
 import com.maybank.integratorapp.model.mq.customersearch.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.customersearch.response.CustomerSearchResult;
 import com.maybank.integratorapp.model.mq.customersearch.response.ServiceResponse;
@@ -78,7 +79,13 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
 
         try {
             initializeLogData(logData, message);
+            System.out.println("Received 1 Message With CorrelationID : " + message.getJMSCorrelationID());
 
+            String correlationId = message.getJMSCorrelationID();
+            if(dataDTO.findByCorrelationId(correlationId)!= null){
+                message.acknowledge();
+                return;
+            }
             //new logic, if the Operation Tag is CustomerDetails, forward the message to another queues
             if(message.getText().contains("<Operation>CustomerDetails</Operation>")){
                 forwardMessage(message);
@@ -88,14 +95,37 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
             ServiceRequest request = parseRequest(message);
 
             String customerNumber = request.getCustomerSearchRequest().getCustomerNumber();
-//            String customerNumber = request.getCustomerSearchRequest().getCustomerMnemonic();
-            CustomerSearchResult customerSearchResultResponse = customerSearchResultResponse(customerNumber);
+            if(customerNumber == null){
+                Details detailsResponse = new Details();
+                detailsResponse.setError("GCIF Is Empty");
+                response.getResponseHeader().setDetails(detailsResponse);
+                response.getResponseHeader().setStatus("ERROR");
 
-            // Set CustomerSearchResult ke dalam CustomerSearchResults
-            List<CustomerSearchResult> results = new ArrayList<>();
-            results.add(customerSearchResultResponse);
-            response.getCustomerSearchResponse().getCustomerSearchResults().setCustomerSearchResult(results);
-            response.getResponseHeader().setStatus("SUCCEEDED");
+            }else{
+                String tagCustomer = request.getCustomerSearchRequest().getIncludeCustomers();
+                String tagBank = request.getCustomerSearchRequest().getIncludeBanks();
+
+                //check 2 tag ini, hanya 1 yang boleh Y
+//            <ns2:IncludeCustomers>Y</ns2:IncludeCustomers>
+//            <ns2:IncludeBanks>Y</ns2:IncludeBanks>
+                // save 2 tag ini ke db
+                if(!tagCustomer.equals(tagBank)){
+
+//            String customerNumber = request.getCustomerSearchRequest().getCustomerMnemonic()
+                    CustomerSearchResult customerSearchResultResponse = processCustomerSearch.getCustomerSearchResult(customerNumber,tagCustomer,tagBank);
+                    // Set CustomerSearchResult ke dalam CustomerSearchResults
+                    List<CustomerSearchResult> results = new ArrayList<>();
+                    results.add(customerSearchResultResponse);
+                    response.getCustomerSearchResponse().getCustomerSearchResults().setCustomerSearchResult(results);
+                    response.getResponseHeader().setStatus("SUCCEEDED");
+
+                }else{
+                    Details detailsResponse = new Details();
+                    detailsResponse.setError("Please Check Only One, Bank=Y or Corporate=Y");
+                    response.getResponseHeader().setDetails(detailsResponse);
+                    response.getResponseHeader().setStatus("ERROR");
+                }
+            }
 
             setInitialResponseHeader(response, request);
 
@@ -120,9 +150,6 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
 
         dataDTO.save(logData);
 
-    }
-    private CustomerSearchResult customerSearchResultResponse(String customerNumber) {
-        return processCustomerSearch.getCustomerSearchResult(customerNumber);
     }
 
     private void initializeLogData(LogQueueData logData, TextMessage message)  {

@@ -3,29 +3,29 @@ package com.maybank.integratorapp.model.mq.reservation.response;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
 public class ReservationResponseDetails {
-    @JacksonXmlProperty(localName = "Description")
+    @JacksonXmlProperty(localName = "Description", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String description;
-    @JacksonXmlProperty(localName = "StartDate")
+    @JacksonXmlProperty(localName = "StartDate", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String startDate;
-    @JacksonXmlProperty(localName = "ExpiryDate")
+    @JacksonXmlProperty(localName = "ExpiryDate", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String expiryDate;
-    @JacksonXmlProperty(localName = "Currency")
+    @JacksonXmlProperty(localName = "Currency", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String currency;
-    @JacksonXmlProperty(localName = "LimitAmount")
+    @JacksonXmlProperty(localName = "LimitAmount", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String limitAmount;
-    @JacksonXmlProperty(localName = "ExposureAmount")
+    @JacksonXmlProperty(localName = "ExposureAmount", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String exposureAmount;
-    @JacksonXmlProperty(localName = "ReservedAmount")
+    @JacksonXmlProperty(localName = "ReservedAmount", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String reservedAmount;
-    @JacksonXmlProperty(localName = "AvailableAmount")
+    @JacksonXmlProperty(localName = "AvailableAmount", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String availableAmount;
-    @JacksonXmlProperty(localName = "LiabilityCurrency")
+    @JacksonXmlProperty(localName = "LiabilityCurrency", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String liabilityCurrency;
-    @JacksonXmlProperty(localName = "AvailableAmountInLiabilityCurrency")
+    @JacksonXmlProperty(localName = "AvailableAmountInLiabilityCurrency", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String availableAmountInLiabilityCurrency;
-    @JacksonXmlProperty(localName = "LimitCheckStatus")
+    @JacksonXmlProperty(localName = "LimitCheckStatus", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String limitCheckStatus;
-    @JacksonXmlProperty(localName = "WarningErrorMessage")
+    @JacksonXmlProperty(localName = "WarningErrorMessage", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String warningErrorMessage;
 
     public String getDescription() {

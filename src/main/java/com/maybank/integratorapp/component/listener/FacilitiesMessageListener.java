@@ -7,10 +7,7 @@ import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.coresystem.ProcessFacilities;
-import com.maybank.integratorapp.data.entity.LogQueueData;
-import com.maybank.integratorapp.data.entity.MsCompanyLimit;
-import com.maybank.integratorapp.data.entity.MsCurrency;
-import com.maybank.integratorapp.data.entity.MsFacility;
+import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.data.repository.MsCurrencyRepository;
 import com.maybank.integratorapp.data.repository.MsFacilityRepository;
@@ -20,6 +17,7 @@ import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.model.mq.facilities.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.facilities.response.*;
 import com.maybank.integratorapp.util.MQUtil;
+import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.Queue;
 import jakarta.jms.TextMessage;
@@ -53,6 +51,22 @@ public class FacilitiesMessageListener implements CustomMessageListener {
     ProcessFacilities processFacilities;
     @Autowired
     private MsCurrencyRepository msCurrencyRepository;
+    private void forwardMessage(TextMessage message,String serviceName){
+        MsQueueConfig config = queueConfigService.findByServiceName(serviceName);
+        MessagePublisher publisher = new MessagePublisher(
+                config.getRequest_Queue_Address(),
+                Integer.parseInt(config.getRequest_Queue_Port()),
+                config.getRequest_Queue_Manager(),
+                config.getRequest_Queue_Channel(),
+                config.getRequest_Queue_Username(),
+                config.getRequest_Queue_Password(),
+                config.getRequest_Queue_Name());
+        try {
+            publisher.PublishMessage(message.getText(), message.getJMSCorrelationID());
+        } catch (JMSException e) {
+            throw new RuntimeException(e);
+        }
+    }
     @Override
     public void onMessage(Message message){
         if (message instanceof TextMessage){
@@ -66,7 +80,19 @@ public class FacilitiesMessageListener implements CustomMessageListener {
                 System.out.println("===========================xmlRequest=================================");
                 System.out.println(_message);
                 System.out.println("============================================================\n");
-
+                if(((TextMessage) message).getText().contains("<Operation>Reservations</Operation>")){
+                    forwardMessage((TextMessage) message,"FacilityReservation");
+                    message.acknowledge();
+                    return;
+                }else if(((TextMessage) message).getText().contains("<Operation>Exposure</Operation>")){
+                    forwardMessage((TextMessage) message,"FacilityUtilization");
+                    message.acknowledge();
+                    return;
+                }else if(((TextMessage) message).getText().contains("<Operation>ReservationsReversal</Operation>")){
+                    forwardMessage((TextMessage) message,"ReservationReversal");
+                    message.acknowledge();
+                    return;
+                }
                 correlationId = message.getJMSCorrelationID();
 
                 Queue sourceQueue = (Queue) message.getJMSDestination();
@@ -91,8 +117,8 @@ public class FacilitiesMessageListener implements CustomMessageListener {
                 responseHeader.setSourceSystem(request.getRequestHeader().getTargetSystem());
                 responseHeader.setTargetSystem(request.getRequestHeader().getSourceSystem());
 
-//                String cifno = request.getFacilitiesRequest().getFacilityRequestDetails().getCustomer().trim();
-                String cifno = "0002794045";
+                String cifno = request.getFacilitiesRequest().getFacilityRequestDetails().getCustomer().trim();
+//                String cifno = "0002794045";
 
                 // Cek apakah cifno ada di MsCompanyLimit
                 if (!mscompanylimitRepository.existsByCifno(cifno)) {
@@ -137,7 +163,7 @@ public class FacilitiesMessageListener implements CustomMessageListener {
                         fac.setDisplayField1(s.getKeyLoanAcc());
                         fac.setDisplayField2(s.getDescription());
                         fac.setDisplayField3("-");
-                        fac.setDisplayField4("-");
+                        fac.setDisplayField4(s.getNoteType());
                         fac.setDisplayField5(balance);
                         fac.setDisplayField6(balance);
                         fac.setDisplayField7(utilizedBalance);

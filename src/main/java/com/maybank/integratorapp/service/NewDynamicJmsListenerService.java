@@ -41,6 +41,12 @@ public class NewDynamicJmsListenerService {
     private FacilitiesMessageListener facilitiesMessageListener;
     @Autowired
     private FacilitiesDetailMessageListener facilitiesDetailMessageListener;
+    @Autowired
+    private ReservationListener reservationListener;
+    @Autowired
+    private ReservationReversalListener reservationReversalListener;
+    @Autowired
+    private LimitUtilizationListener utilizationListener;
 
     @Autowired
     @Qualifier("jmsListenerEndpointRegistry")
@@ -79,7 +85,12 @@ public class NewDynamicJmsListenerService {
         Session session = null;
         try {
             //Development Use Only
-//            if (!config.getServiceName().equals("SwiftOut"))
+//            if (!config.getServiceName().equals("Facilities")
+//                    && !config.getServiceName().equals("FacilityReservation")
+//                    && !config.getServiceName().equals("FacilityUtilization")
+//                    && !config.getServiceName().equals("ReservationReversal"))
+//                return;
+//            if (!config.getServiceName().equals("BatchPosting"))
 //                return;
 
             // Create a new connection
@@ -103,7 +114,7 @@ public class NewDynamicJmsListenerService {
             if (!config.getResponse_Queue_Address().isEmpty()) {
                 MessagePublisher publisher = new MessagePublisher(
                         config.getResponse_Queue_Address(),
-                        Integer.parseInt(config.getRequest_Queue_Port()),
+                        Integer.parseInt(config.getResponse_Queue_Port()),
                         config.getResponse_Queue_Manager(),
                         config.getResponse_Queue_Channel(),
                         config.getResponse_Queue_Username(),
@@ -206,6 +217,12 @@ public class NewDynamicJmsListenerService {
                 return customerDetailMessageListener;
             case "Facilities":
                 return facilitiesMessageListener;
+            case "FacilityReservation":
+                return reservationListener;
+            case "ReservationReversal":
+                return reservationReversalListener;
+            case "FacilityUtilization":
+                return utilizationListener;
             case "FacilitiesDetails":
                 return facilitiesDetailMessageListener;
             case "AccountBalance":

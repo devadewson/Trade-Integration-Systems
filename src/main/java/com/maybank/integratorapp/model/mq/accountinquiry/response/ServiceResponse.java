@@ -5,10 +5,10 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import com.maybank.integratorapp.model.mq.accountinquiry.response.AvailBalResponse;
 import com.maybank.integratorapp.model.mq.accountinquiry.response.ResponseHeader;
 
-@JacksonXmlRootElement(localName = "ServiceResponse")
+@JacksonXmlRootElement(localName = "ServiceResponse",namespace = "urn:control.services.tiplus2.misys.com")
 public class ServiceResponse {
 
-    @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "ResponseHeader")
+    @JacksonXmlProperty(namespace = "urn:control.services.tiplus2.misys.com",localName = "ResponseHeader")
     private ResponseHeader responseHeader;
 
     @JacksonXmlProperty(namespace = "urn:messages.service.ti.apps.tiplus2.misys.com",localName = "AvailBalResponse")

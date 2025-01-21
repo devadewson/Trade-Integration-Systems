@@ -23,6 +23,8 @@ public class MsCompanyData {
     @Column(columnDefinition = "TEXT")
     private String accInfoData;
 
+    private String tagCustomer;
+    private String tagBank;
     private Date created_date;
     private Date updated_date;
 
@@ -80,5 +82,21 @@ public class MsCompanyData {
 
     public void setUpdated_date(Date updated_date) {
         this.updated_date = updated_date;
+    }
+
+    public String getTagCustomer() {
+        return tagCustomer;
+    }
+
+    public void setTagCustomer(String tagCustomer) {
+        this.tagCustomer = tagCustomer;
+    }
+
+    public String getTagBank() {
+        return tagBank;
+    }
+
+    public void setTagBank(String tagBank) {
+        this.tagBank = tagBank;
     }
 }

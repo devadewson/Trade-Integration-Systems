@@ -55,9 +55,11 @@ public class LimitUtilizationListener implements CustomMessageListener {
 
             ServiceRequest request = parseRequest(message);
 
-            String accounNo = request.getExposure().getAccountNumber();
+            String accountNo = request.getExposure().getAccountNumber();
+            String utilizationID = request.getExposure().getFacilityExposureIdentifier();
+            String correlationID = request.getRequestHeader().getCorrelationID();
 
-            String responseLimit = responseLimitUtilization(accounNo);
+            String responseLimit = processLimitUtilization.getLimitUtilization(accountNo,utilizationID,correlationID);
 
             logData.setStatus("Success");
             logData.setDelivery_date(new Date());
@@ -80,10 +82,6 @@ public class LimitUtilizationListener implements CustomMessageListener {
     private ServiceRequest parseRequest(TextMessage message) throws JsonProcessingException, JMSException {
         XmlMapper xmlMapper = new XmlMapper();
         return xmlMapper.readValue(message.getText(), ServiceRequest.class);
-    }
-
-    private String responseLimitUtilization (String Accountno){
-        return processLimitUtilization.getLimitUtilization(Accountno);
     }
 
     private void handleException(Exception e, LogQueueData logData) {

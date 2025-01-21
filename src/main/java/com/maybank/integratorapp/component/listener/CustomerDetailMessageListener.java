@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
+import com.maybank.integratorapp.component.coresystem.ProcessCostumerSearch;
 import com.maybank.integratorapp.component.coresystem.ProcessCustomerDetail;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsCompanyData;
@@ -62,6 +63,11 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
             LogQueueData _data = new LogQueueData();
             String responseXml = "";
             try {
+                String correlationId = message.getJMSCorrelationID();
+                if(dataDTO.findByCorrelationId(correlationId)!= null){
+                    message.acknowledge();
+                    return;
+                }
                 System.out.println("Received 1 Message With CorrelationID : " + message.getJMSCorrelationID());
                 String _message = message.getBody(String.class);
 
@@ -79,7 +85,6 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
                 ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);
                 String cifNo = request.getCustomerDetailsRequest().getCustomerId();
                 MsCompanyData companyData = companyDataRepository.findByCif(cifNo);
-
 
                 ServiceResponse serviceResponse = new ServiceResponse();
                 ResponseHeader responseHeader = new ResponseHeader();
@@ -132,7 +137,11 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
                 detailAddress.setZipCode(accountListResponse.getAccountListResponseData().getZipcode());
                 customerDetailsResponse.setResidenceCountry(customerInformationResponseData.getNationality());
 
-                customerDetailsResponse.setCustomerType("641500");
+                if(companyData.getTagBank().equals("Y")){
+                    customerDetailsResponse.setCustomerType("01629");
+                }else{
+                    customerDetailsResponse.setCustomerType("399000");
+                }
                 addressDetails.setAddressDetail(detailAddress);
 
                 customerDetailsResponse.setAddressDetails(addressDetails);

@@ -39,7 +39,7 @@ public  class ProcessCostumerSearch {
     @Autowired
     MsCompanyDataRepository companyDataRepository;
 
-    public CustomerSearchResult getCustomerSearchResult(String gcifNo) {
+    public CustomerSearchResult getCustomerSearchResult(String gcifNo,String tagCustomer,String tagBank) {
         CustomerSearchResult customerSearchResult = new CustomerSearchResult();
 
         String api = parameterRepository.findValueByPrmKey("CustomerSearchRequest");
@@ -95,7 +95,9 @@ public  class ProcessCostumerSearch {
                         companyData.setGcifno(gcifNo);
                         companyData.setCreated_date(new Date());
                     }
-                    
+
+                    companyData.setTagBank(tagBank);
+                    companyData.setTagCustomer(tagCustomer);
                     companyData.setCustInfoData(responseString);
                     companyData.setUpdated_date(new Date());
 
@@ -120,7 +122,8 @@ public  class ProcessCostumerSearch {
                                 res.getCustomerInformationResponse().getCustomerInformationResponseData().getAddressLine6()+" " + res.getCustomerInformationResponse().getCustomerInformationResponseData().getAddressLine7()+" " +
                                 res.getCustomerInformationResponse().getCustomerInformationResponseData().getAddressLine8() +" "+ res.getCustomerInformationResponse().getCustomerInformationResponseData().getAddressLine9()+" " +
                                 res.getCustomerInformationResponse().getCustomerInformationResponseData().getAddressLine10();
-                        Address = Address.substring(0,59);
+                        if(Address.length()>59)
+                            Address = Address.substring(0,59);
                         customerSearchResult.setLocation(Address);
 
                         return customerSearchResult;

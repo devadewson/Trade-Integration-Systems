@@ -12,6 +12,7 @@ import com.maybank.integratorapp.data.entity.MsFacility;
 import com.maybank.integratorapp.data.entity.MsUtilizeRunningNumber;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.data.repository.MsFacilityRepository;
+import com.maybank.integratorapp.data.repository.MsMapClsProductTypeRepository;
 import com.maybank.integratorapp.data.repository.MsUtilizeRunningNumberRepository;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.model.mq.reservation.request.ServiceRequest;
@@ -25,9 +26,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
+import java.math.BigInteger;
+import java.text.DecimalFormat;
 import java.util.Date;
-import java.util.List;
 
 @Component
 public class ReservationListener implements CustomMessageListener {
@@ -47,6 +48,8 @@ public class ReservationListener implements CustomMessageListener {
     @Autowired
     MsFacilityRepository msFacilityRepository;
 
+
+
     @Autowired
     MsUtilizeRunningNumberRepository msUtilizeRunningNumberRepository;
 
@@ -57,124 +60,146 @@ public class ReservationListener implements CustomMessageListener {
     private MessagePublisher publisher;
 
     @Override
-            public void onMessage(Message message) {
-                if (message instanceof TextMessage) {
-                    processMessage((TextMessage) message);
-                }
-            }
-            private void processMessage(TextMessage message) {
-                ServiceResponse response = new ServiceResponse();
-                LogQueueData logData = new LogQueueData();
-                String newKeyLoanAcc = null;
-                String acctReqXL01 = null;
+    public void onMessage(Message message) {
+        if (message instanceof TextMessage) {
+            processMessage((TextMessage) message);
+        }
+    }
+    private void processMessage(TextMessage message) {
+        ServiceResponse response = new ServiceResponse();
+        LogQueueData logData = new LogQueueData();
+        String newKeyLoanAcc = null;
+        String acctReqXL01 = null;
 
-                try {
-                    initializeLogData(logData, message);
-                    dataDTO.save(logData);
-                    message.acknowledge();
+        try {
+            initializeLogData(logData, message);
+            dataDTO.save(logData);
+            message.acknowledge();
 
-                    ServiceRequest request = parseRequest(message);
+            ServiceRequest request = parseRequest(message);
 
-                    //From requset to maping response FTI
-            String keyLoanAcc = request.getReservationsRequest().getReservationRequestDetails().getFacilityIdentifier();
+            //From requset to maping response FTI
+            String facilityIdentifier = request.getReservationsRequest().getReservationRequestDetails().getFacilityIdentifier();
             String customerRes = request.getReservationsRequest().getReservationRequestDetails().getCustomer();
+//            String customerRes = "0002794045";
+            String masterReference= request.getReservationsRequest().getReservationRequestDetails().getMasterReference();
+            String lineOfBusiness = "01";
+            String eventCode = request.getReservationsRequest().getReservationRequestDetails().getEventReference().substring(0, 3);
             String startdateRes = request.getReservationsRequest().getReservationRequestDetails().getTenorStartDate();
             String expireDateRes =  request.getReservationsRequest().getReservationRequestDetails().getTenorEndDate();
+            String transDateRes = request.getReservationsRequest().getReservationRequestDetails().getValueDate();
             String exposureAmmount =  request.getReservationsRequest().getReservationRequestDetails().getPostingAmount().getAmount();
 
 
             // Ambil semua MsFacility dengan keyLoanAcc yang sesuai
-            MsFacility facilities = msFacilityRepository.findByKeyLoanAcc(keyLoanAcc);
+            MsFacility facilities = msFacilityRepository.findByKeyLoanAcc(facilityIdentifier);
             if (facilities == null) {
-                System.out.println("No Facility found for KeyLoanAcc: " + keyLoanAcc);
+                System.out.println("No Facility found for KeyLoanAcc: " + facilityIdentifier);
                 return;
             }
             // Ambil ID dari MsFacilit
             Long facilityId = facilities.getId();
             String facilitySequence = facilities.getKeyDigitNote();
             String currency = facilities.getLoanCurrencyCode();
-            String limitAmount = facilities.getPrincipalBalance();
-            String reservedAmount = facilities.getCommitmentBalance();
+
+            String limitAmount =  facilities.getPrincipalBalance().replace(".00", "");
+            String reservedAmount =  facilities.getCommitmentBalance().replace(".00", "");
+            String availableAmount =  facilities.getCommitmentBalance().replace(".00", "");
+
+//            String limitAmount = decimalFormat.format( facilities.getPrincipalBalance());
+//            String reservedAmount = decimalFormat.format( facilities.getPrincipalBalance());
+//            String availableAmount = decimalFormat.format(Double.parseDouble(limitAmount) - Double.parseDouble(reservedAmount));
+            String productType  = facilities.getNoteType();
+
 
             System.out.println("Facility ID: " + facilityId);
 
             // Ambil MsUtilizeRunningNumber berdasarkan facilityId
             MsUtilizeRunningNumber runningNumberEntry = msUtilizeRunningNumberRepository.findByFacilityId(facilityId);
 
-                if (runningNumberEntry == null) {
-                    System.out.println("No Running Number found for Facility ID: " + facilityId);
-                } else {
-                    // Ambil Running Number dan pastikan format 3 digit
-                    int runningNumber = runningNumberEntry.getRunningNumber();
-                    String formattedRunningNumber = String.format("%03d", runningNumber + 1);
-                    System.out.println("Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber);
+            if (runningNumberEntry == null) {
+                MsUtilizeRunningNumber newRunning = new MsUtilizeRunningNumber();
+                newRunning.setCompanyLimitId(facilities.getCompanyLimitId());
+                newRunning.setFacilityId(facilityId);
+                newRunning.setRunningNumber(0);
+                msUtilizeRunningNumberRepository.save(newRunning);
+                runningNumberEntry = newRunning;
+                System.out.println("No Running Number found for Facility ID: " + facilityId);
+            }
+            // Ambil Running Number dan pastikan format 3 digit
+            int runningNumber = runningNumberEntry.getRunningNumber();
+            String formattedRunningNumber = String.format("%03d", runningNumber + 1);
+            System.out.println("Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber);
 
-                    // Buat keyLoanAcc baru dengan mengganti bagian draw
-                    newKeyLoanAcc = buildNewKey(keyLoanAcc, formattedRunningNumber);
-                    System.out.println("New KeyLoanAcc: " + newKeyLoanAcc);
+            // Buat keyLoanAcc baru dengan mengganti bagian draw
+            newKeyLoanAcc = buildNewKey(facilityIdentifier, formattedRunningNumber);
+            System.out.println("New KeyLoanAcc: " + newKeyLoanAcc);
 
-                    // Buat formatted key untuk sistem proses
-                    acctReqXL01 = buildFormattedKey(keyLoanAcc, formattedRunningNumber);
-                    System.out.println("New Formatted Key: " + acctReqXL01);
+            // Buat formatted key untuk sistem proses
+            acctReqXL01 = buildFormattedKey(facilityIdentifier, formattedRunningNumber);
+            System.out.println("New Formatted Key: " + acctReqXL01);
 
-                }
 
-            String CMSxl01Draw001Response = cmsXl01Draw001Response( newKeyLoanAcc, acctReqXL01,keyLoanAcc,customerRes,startdateRes,expireDateRes
-                    ,exposureAmmount,currency,limitAmount,reservedAmount);
 
-                    //set reservation response
-                    ReservationsResponse reservationsResponse =  new ReservationsResponse();
-                    reservationsResponse.setFacilityIdentifier(keyLoanAcc);
-                    reservationsResponse.setFacilitySequence(facilitySequence);
-                    reservationsResponse.setReservationIdentifier(newKeyLoanAcc);
-                    reservationsResponse.setReservationSequence(acctReqXL01);
-                    reservationsResponse.setCustomer(customerRes);
-                    reservationsResponse.setFacilityExposureIdentifier(newKeyLoanAcc);
+            String CMSxl01Draw001Response = processReservation.getReservation(masterReference, newKeyLoanAcc, acctReqXL01, facilityIdentifier,customerRes, transDateRes,startdateRes,expireDateRes
+            ,exposureAmmount,currency,limitAmount,reservedAmount,productType,lineOfBusiness,eventCode,facilities);
 
-                    //set Reservation Details
-                    ReservationResponseDetails reservationResponseDetails = new ReservationResponseDetails();
-                    reservationResponseDetails.setStartDate(startdateRes);
-                    reservationResponseDetails.setExpiryDate(expireDateRes);
-                    reservationResponseDetails.setCurrency(currency);
-                    reservationResponseDetails.setLimitAmount(limitAmount);
-                    reservationResponseDetails.setExposureAmount(exposureAmmount);
-                    reservationResponseDetails.setReservedAmount(reservedAmount);
-                    double availableAmount = Double.parseDouble(limitAmount) - Double.parseDouble(reservedAmount);
-                    reservationResponseDetails.setAvailableAmount(String.valueOf(availableAmount));
-                    reservationResponseDetails.setLimitCheckStatus("S");
+            //set reservation response
+            ReservationsResponse reservationsResponse =  new ReservationsResponse();
+            reservationsResponse.setFacilityIdentifier(facilityIdentifier);
+            reservationsResponse.setFacilitySequence(facilitySequence);
+            reservationsResponse.setReservationIdentifier(newKeyLoanAcc);
+            reservationsResponse.setReservationSequence(formattedRunningNumber);
+            reservationsResponse.setCustomer(customerRes);
+            reservationsResponse.setFacilityExposureIdentifier(newKeyLoanAcc);
 
-                    // Set ReservationResponseDetailss
-                    ReservationResponseDetailss reservationResponseDetailss = new ReservationResponseDetailss();
-                    reservationResponseDetailss.setReservationResponseDetails(reservationResponseDetails);
+            //set Reservation Details
+            ReservationResponseDetails reservationResponseDetails = new ReservationResponseDetails();
+            reservationResponseDetails.setStartDate(startdateRes);
+            reservationResponseDetails.setExpiryDate(expireDateRes);
+            reservationResponseDetails.setCurrency(currency);
+            reservationResponseDetails.setLimitAmount(limitAmount);
+            reservationResponseDetails.setExposureAmount(exposureAmmount);
+            reservationResponseDetails.setReservedAmount(reservedAmount);
+            reservationResponseDetails.setAvailableAmount(String.valueOf(availableAmount));
+            reservationResponseDetails.setLimitCheckStatus("S");
 
-                    ReservationResponseExtraDetails reservationResponseExtraDetails = new ReservationResponseExtraDetails();
-                    ReservationResponseExtraDetailss reservationResponseExtraDetailss = new ReservationResponseExtraDetailss();
-                    reservationResponseExtraDetails.setName("Name");
-                    reservationResponseExtraDetails.setValue("value");
+            // Set ReservationResponseDetailss
+            ReservationResponseDetailss reservationResponseDetailss = new ReservationResponseDetailss();
+            reservationResponseDetailss.setReservationResponseDetails(reservationResponseDetails);
 
-                    reservationResponseExtraDetailss.getReservationResponseExtraDetails().add(reservationResponseExtraDetails);
+            ReservationResponseExtraDetails reservationResponseExtraDetails = new ReservationResponseExtraDetails();
+            ReservationResponseExtraDetailss reservationResponseExtraDetailss = new ReservationResponseExtraDetailss();
+            reservationResponseExtraDetails.setName("Name");
+            reservationResponseExtraDetails.setValue("value");
 
-                    // Set ke dalam ReservationsResponse
-                    reservationsResponse.setReservationResponseDetailss(reservationResponseDetailss);
-                    reservationsResponse.setReservationResponseExtraDetailss(reservationResponseExtraDetailss);
+            reservationResponseExtraDetailss.getReservationResponseExtraDetails().add(reservationResponseExtraDetails);
 
-                    ResponseHeader responseHeader = new ResponseHeader();
+            // Set ke dalam ReservationsResponse
+            reservationsResponse.setReservationResponseDetailss(reservationResponseDetailss);
+            reservationsResponse.setReservationResponseExtraDetailss(reservationResponseExtraDetailss);
 
-                    setInitialResponseHeader(responseHeader, request);
+            ResponseHeader responseHeader = new ResponseHeader();
 
-                    response.setReservationsResponse(reservationsResponse);
-                    response.setResponseHeader(responseHeader);
+            setInitialResponseHeader(responseHeader, request);
 
-                    //Send Response To QUEUE Response
-                    XmlMapper xmlMapper = new XmlMapper();
-                    xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-                    String responseXml = xmlMapper.writeValueAsString(response);
+            response.setReservationsResponse(reservationsResponse);
+            response.setResponseHeader(responseHeader);
 
-                    publisher.PublishMessage(responseXml, message.getJMSCorrelationID());
+            //Send Response To QUEUE Response
+            XmlMapper xmlMapper = new XmlMapper();
+            xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+            String responseXml = xmlMapper.writeValueAsString(response);
+
+            System.out.println(responseXml);
+
+            publisher.PublishMessage(responseXml, message.getJMSCorrelationID());
 
             logData.setStatus("Success");
             logData.setDelivery_date(new Date());
             logData.setUpdated_date(new Date());
+            logData.setResMessage(responseXml);
+            dataDTO.save(logData);
 
         } catch (JMSException | JsonProcessingException e) {
             handleException(e, logData);
@@ -235,11 +260,6 @@ public class ReservationListener implements CustomMessageListener {
         String formattedDraw = formattedRunningNumber;
 
         return cif + "." + note + "." + formattedDraw + "." + seq;
-    }
-
-    private String cmsXl01Draw001Response(String newKeyloanAcc, String acctReqXL01, String keyLoanAcc, String customerRes, String startdateRes, String expireDateRes
-            , String exposureAmmount, String currency, String limitAmount, String reservedAmount) {
-        return processReservation.getRevervation(newKeyloanAcc,acctReqXL01,keyLoanAcc,customerRes,startdateRes,expireDateRes,exposureAmmount,currency,limitAmount,reservedAmount);
     }
 
     private void handleException(Exception e, LogQueueData logData) {

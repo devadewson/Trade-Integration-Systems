@@ -25,6 +25,8 @@ import org.springframework.stereotype.Component;
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.TextMessage;
+
+import java.math.BigInteger;
 import java.util.Date;
 
 @Component
@@ -62,6 +64,10 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
                 System.out.println("============================================================\n");
 
                 correlationId = message.getJMSCorrelationID();
+                if(dataDTO.findByCorrelationId(correlationId)!= null){
+                    message.acknowledge();
+                    return;
+                }
 
                 Queue sourceQueue = (Queue) message.getJMSDestination();
                 _data.setOrigin("MQ_"+sourceQueue.getQueueName());
@@ -101,6 +107,8 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
                         responseHeader.setStatus("SUCCEEDED");
                         String balance = accountInquiryResponse.getAccountInquiryResponseData().getBalance();
                         String formattedBalance = balance.substring(1).replace(".", "");
+
+                        formattedBalance = String.format("%015d",new BigInteger(formattedBalance));
                         if(balance.startsWith("+"))
                             availBalResponse.setNegative("N");
                         else
@@ -110,6 +118,7 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
                         availBalResponse.setErrorOrWarning("N");
                         availBalResponse.setCheckedInBackOffice("Y");
                         availBalResponse.setErrorCode("N");
+
                         availBalResponse.setErrorMessage("HOLDCODE-"+accountInquiryResponse.getAccountInquiryResponseData().getAccountStatus());
                         availBalResponse.setBalance(formattedBalance);
 

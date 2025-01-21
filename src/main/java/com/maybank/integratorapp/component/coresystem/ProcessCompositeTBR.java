@@ -17,13 +17,10 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-
+import com.maybank.integratorapp.model.rest.compositetbr.requestv2.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.springframework.beans.BeanUtils.copyProperties;
@@ -216,23 +213,42 @@ public class ProcessCompositeTBR {
 //            String url = "http://10.235.66.95:7804/transactionservicesapi/v1/CompositeTBR";
             List<Object> tbrData = new ArrayList<>();
             tbrData.add(instance);
-            RestEnvelope envelope = new RestEnvelope();
-
-            envelope.getCompositeTBR().getChannelHeader().setChannelID(ChannelHeaderChannelId);
-            envelope.getCompositeTBR().getChannelHeader().setBranchCode(ChannelHeaderBranchCode);
-
-            envelope.getCompositeTBR().getExecuteCompositeTransactionRequest().setTransactionName("Testing New FTI TBR");
-            envelope.getCompositeTBR().getExecuteCompositeTransactionRequest().setTBRData(tbrData);
+//            RestEnvelope envelope = new RestEnvelope();
+//
+//            envelope.getCompositeTBR().getChannelHeader().setChannelID(ChannelHeaderChannelId);
+//            envelope.getCompositeTBR().getChannelHeader().setBranchCode(ChannelHeaderBranchCode);
+//
+//            envelope.getCompositeTBR().getExecuteCompositeTransactionRequest().setTransactionName("Testing New FTI TBR");
+//            envelope.getCompositeTBR().getExecuteCompositeTransactionRequest().setTBRData(tbrData);
 
             // do posting to ESB
+            Message _msgWrapper = new Message();
+            Msg _msg = new Msg();
+            MsgBody _msgBody = new MsgBody();
+            MsgHeader _msgHeader = new MsgHeader();
+            _msgHeader.setMsgID("BT1234567892");
+            _msgHeader.setVer("01");
+            _msgHeader.setSvcID("IDUPDACCTTRX001");
+            _msgHeader.setEnv("S");
+            _msgHeader.setBranchCode("003");
+            _msgHeader.setSpvOverride("true");
+            _msgHeader.setClientSpvID("0000");
+            _msg.setMsgHeader(_msgHeader);
+            _msgBody.setTbrData(tbrData);
+            _msg.setMsgBody(_msgBody);
+            _msgWrapper.setMsg(_msg);
+
+
             RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             ObjectMapper objectMapper = new ObjectMapper();
 
+//            String jsonPayload = objectMapper.writerWithDefaultPrettyPrinter() // enable pretty print
+//                                    .writeValueAsString(envelope);
             String jsonPayload = objectMapper.writerWithDefaultPrettyPrinter() // enable pretty print
-                                    .writeValueAsString(envelope);
+                    .writeValueAsString(_msgWrapper);
             logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "DATA-REQ",jsonPayload);
 
             System.out.println("Serialized JSON Payload: " + jsonPayload);
@@ -254,7 +270,7 @@ public class ProcessCompositeTBR {
 
         try{
 // for sample only
-            listPosting = populateSamplePosting2();
+//            listPosting = populateSamplePosting2();
 
             List<PostingExtender> finalListPosting = new ArrayList<>();
             for (Posting posting : listPosting) {

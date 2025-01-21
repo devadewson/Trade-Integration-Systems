@@ -58,7 +58,12 @@ public class ProcessSwiftOut {
                 String fileName = additionalPath+endingFile;
                 String completePath = specificPath+File.separator+fileName;
                 try (PrintWriter out = new PrintWriter(completePath)) {
-                    out.println(str.trim());
+                    String updatedContent = str.replace("\n", "\r\n");
+
+                    out.print(updatedContent);
+//                    if (!updatedContent.endsWith("\r\n")) {
+//                        out.print("\r\n");
+//                    }
                     logger.Log("SwiftOut - Creating Swift File","Creating swift file from data","DATA-LOCAL",str);
 
                 }

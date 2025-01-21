@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.data.service;
 
+import com.maybank.integratorapp.data.entity.FtiAccountType;
 import com.maybank.integratorapp.data.entity.MsAccountType;
 import com.maybank.integratorapp.data.entity.MsTBRField;
 import com.maybank.integratorapp.data.repository.FtiAccountTypeRepository;
@@ -16,5 +17,9 @@ public class FtiAccountTypeService {
 
     public MsAccountType findByFtiAccountType(String ftiAccountType){
         return repo.findByFtiAccountType(ftiAccountType);
+    }
+
+    public List<FtiAccountType> getAll(){
+        return (List<FtiAccountType>)repo.findAll();
     }
 }

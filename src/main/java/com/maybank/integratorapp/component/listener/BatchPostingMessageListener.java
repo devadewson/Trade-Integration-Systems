@@ -43,10 +43,14 @@ public class BatchPostingMessageListener implements CustomMessageListener {
         if (message instanceof TextMessage) {
             ServiceResponse response = new ServiceResponse();
             LogQueueData _data = new LogQueueData();
-
+            String correlationId = "";
             try {
                 System.out.println("Received 1 Message With CorrelationID : "+message.getJMSCorrelationID());
-
+                correlationId = message.getJMSCorrelationID();
+                if(dataDTO.findByCorrelationId(correlationId)!= null){
+                    message.acknowledge();
+                    return;
+                }
 //            String _message = message.getBody(String.class);
 //            String _message = message.getStringProperty("data");
                 String _message = message.getBody(String.class);
@@ -58,9 +62,10 @@ public class BatchPostingMessageListener implements CustomMessageListener {
                 _data.setReqMessage(_message);
                 _data.setCreated_date(new Date());
                 _data.setCorrelationID(message.getJMSCorrelationID());
-
+//                message.setJMSRedelivered(false);
 //                LogQueueDataDTO dataDTO = new LogQueueDataDTO();
                 _data = dataDTO.save(_data);
+                message.acknowledge();
 
                 XmlMapper xmlMapper = new XmlMapper();
                 ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);
@@ -93,7 +98,7 @@ public class BatchPostingMessageListener implements CustomMessageListener {
 //            responseModel.setData(data);
 //            responseModel.setStatus("DONE");
 
-                message.acknowledge();
+//                message.acknowledge();
 
 //            System.out.println("Account Balance : "+responseModel.getData().getBalance());
 
@@ -101,6 +106,7 @@ public class BatchPostingMessageListener implements CustomMessageListener {
 //            producer.PublishMessage(responseModel);
 
             } catch (JMSException e) {
+
                 response.getResponseHeader().setStatus("Error");
                 response.getResponseHeader().getDetails().setError("MessageQueue Error");
 
@@ -129,6 +135,12 @@ public class BatchPostingMessageListener implements CustomMessageListener {
 
 
                 throw new RuntimeException(e);
+            } finally {
+                try {
+                    message.acknowledge();
+                } catch (JMSException e) {
+                    throw new RuntimeException(e);
+                }
             }
 //            MessageProducer producer = new MessageProducer();
             dataDTO.save(_data);

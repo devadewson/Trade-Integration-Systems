@@ -18,20 +18,47 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 @Component
 public class ProcessLimitUtilization {
-    public String getLimitUtilization(String AccountNo) {
+    private String[] splitKey(String key) {
+        String bank = key.substring(0, 2);
+        String currency = key.substring(2, 5);
+        String branchCode = key.substring(5, 8);
+        String cif = key.substring(8, 18);
+        String note = key.substring(18, 26);
+        String draw = key.substring(26, 29);
+        String seq = key.substring(29, 31);
+
+        return new String[]{bank, currency, branchCode, cif, note, draw, seq};
+    }
+    public String getLimitUtilization(String AccountNo,String utilizationID, String correlationID) {
 
         String soapUrl = "http://10.230.83.57:65085/services/CMSService";
-        String correlationID = "ServiceRequest.getRequestHeader().getCorrelationID();";
+//        String correlationID = "ServiceRequest.getRequestHeader().getCorrelationID();";
         String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
         SoapEnvelope soapEnvelopeXL41 = new SoapEnvelope();
 
-        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setCtl2("016");
-        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setCtl3("003");
-        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setCust(AccountNo);
-        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setDraw("002");
+        String[] splittedKey = splitKey(utilizationID);
+        String limitCurrency = splittedKey[1];
+        String limitBranch = splittedKey[2];
+        String limitCif = splittedKey[3];
+        String limitNoteKey = splittedKey[4];
+        String limitDraw = splittedKey[5];
+        String dateNow = new SimpleDateFormat("ddMMyy").format(new Date());
+
+        soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setAdditionalHeader("");
+        soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setBranchCode("003");
+        soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setChannelID("BT");
+        soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setClientUserID("7755");
+        soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setReference(correlationID);
+        soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setTransactionDate(date);
+        soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setTransactionTime(time);
+
+        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setCtl2(limitCurrency);
+        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setCtl3(limitBranch);
+        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setCust(limitCif);
+        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setDraw(limitDraw);
         soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setFlag("P");
-        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setNote("22334401");
+        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setNote(limitNoteKey);
         soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setPart("99");
 
         XmlMapper mapper = new XmlMapper();

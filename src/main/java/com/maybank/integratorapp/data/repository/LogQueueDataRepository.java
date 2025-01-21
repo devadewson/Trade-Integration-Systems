@@ -15,4 +15,6 @@ import java.util.Date;
 public interface LogQueueDataRepository extends CrudRepository<LogQueueData, Long> {
 
     // Additional methods if needed
+    @Query("select m from LogQueueData m where m.correlationID = ?1")
+    LogQueueData findByCorrelationId(String prmKey);
 }

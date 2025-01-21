@@ -314,16 +314,17 @@ public class Posting {
     @JacksonXmlProperty(localName = "AddMntDelFlag", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String addMntDelFlag;
     @JacksonXmlProperty(localName = "ExtraData", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
-    private String extraData;
+    private ExtraData extraData;
 
-    public String getExtraData() {
+    public ExtraData getExtraData() {
         return extraData;
     }
 
-    public void setExtraData(String extraData) {
+    public void setExtraData(ExtraData extraData) {
         this.extraData = extraData;
     }
-//    private Prefix prefix;
+
+    //    private Prefix prefix;
 
     public String getTransactionID() { return transactionID; }
     public void setTransactionID(String value) { this.transactionID = value; }
