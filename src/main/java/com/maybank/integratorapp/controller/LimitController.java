@@ -68,14 +68,15 @@ public class LimitController {
     )
     @PostMapping(value = "/LimitFCC", consumes = MediaType.APPLICATION_XML_VALUE, produces = MediaType.APPLICATION_XML_VALUE)
 //    @PostMapping(value = "/LimitFCC", consumes = "application/xml", produces = "application/xml")
-    public ResponseEntity<OFAResponse> GetLimitFCC(@RequestBody OFA requestData){
+    public ResponseEntity<String> GetLimitFCC(@RequestBody OFA requestData){
         OFAResponse response = new OFAResponse();
         List<Limit> limitList = new ArrayList<>();
+        String limitResponse = "";
 
         try{
 
-//            String cifno = requestData.getRequest().getCifNo();
-            String cifno = "0002794045";
+            String cifno = requestData.getRequest().getCifNo();
+//            String cifno = "0002794045";
 
             // Cek apakah cifno ada di MsCompanyLimit
             if (!mscompanylimitRepository.existsByCifno(cifno)) {
@@ -111,8 +112,8 @@ public class LimitController {
                     Limit limit = new Limit();
                     limit.setLimitName(s.getDescription().trim());
                     limit.setLimitNo(s.getKeyLoanAcc());
-                    limit.setParentLimitNo(s.getKeyLoanAcc());
-                    limit.setProductCode("-");
+//                    limit.setParentLimitNo(s.getKeyLoanAcc());
+                    limit.setProductCode(s.getNoteType());
                     limit.setLimitCurrency(ISOcurrency);
                     limit.setLimitAmount(balance);
                     limit.setExpiryDate(maturityDate);
@@ -125,12 +126,18 @@ public class LimitController {
                     limit.setEarmarkedLimit(utilizedBalance);
                     limit.setUtilisationCurrency(ISOcurrency);
                     limit.setUtilisation(utilizedBalance);
+
+                    if(s.getNoteType().startsWith("7"))
+                        limit.setIslamicFlag("I");
+                    else
+                        limit.setIslamicFlag("C");
+                    limit.setLimitStatus("Active");
                     finalLimitList.add(limit);
 
                 });
 
-                limitList = finalLimitList.subList(0,1);
-                response.setLimit(limitList);
+//                limitList = finalLimitList.subList(0,2);
+                response.setLimit(finalLimitList);
 
 
             }
@@ -142,19 +149,19 @@ public class LimitController {
                 xmlMapper.enable(SerializationFeature.INDENT_OUTPUT);
                 xmlMapper.enable(ToXmlGenerator.Feature.WRITE_XML_DECLARATION);
 
-                xml = xmlMapper.writeValueAsString(response);
+                limitResponse = xmlMapper.writeValueAsString(response);
+                System.out.println(limitResponse);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
 
-
-            return new ResponseEntity<OFAResponse>(response, HttpStatus.OK);
-
+            // return new ResponseEntity<OFAResponse>(response, HttpStatus.OK);
+            return new ResponseEntity<String>(limitResponse, HttpStatus.OK);
 
 
         }
         catch (Exception e){
-            return new ResponseEntity<OFAResponse>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<String>(limitResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

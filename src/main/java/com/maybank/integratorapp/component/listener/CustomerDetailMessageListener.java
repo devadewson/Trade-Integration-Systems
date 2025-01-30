@@ -117,7 +117,10 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
 
                 AddressDetails addressDetails = new AddressDetails();
                 AddressDetail detailAddress = new AddressDetail();
-                String fullAddress = customerInformationResponseData.getAddressLine1() + " " +
+                String fullAddress =
+                        customerInformationResponseData.getFullName() +" "+
+                        System.lineSeparator()+
+                        customerInformationResponseData.getAddressLine1() + " " +
                         customerInformationResponseData.getAddressLine2() + " " +
                         customerInformationResponseData.getAddressLine3();
 

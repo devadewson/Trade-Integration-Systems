@@ -132,6 +132,9 @@ public class ProcessCompositeTBR {
     public void doPosting(List<Posting> data, Long idLogParent){
 
         this.logger.SetLogParent(idLogParent);
+
+        String referenceID = data.stream().findFirst().get().getMasterReference();
+
         // group the posting
         logger.Log("Posting - Group Posting Data","Group posting into pair of debit credit","START");
         List<PostingGroup> finalData = groupPosting(data);
@@ -147,7 +150,7 @@ public class ProcessCompositeTBR {
             {
                 logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "START");
 
-                postTbr(postingGroup);
+                postTbr(referenceID,postingGroup);
                 logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "END");
 
             }
@@ -175,7 +178,7 @@ public class ProcessCompositeTBR {
 
     }
 
-    public void postTbr(PostingGroup data){
+    public void postTbr(String referenceID, PostingGroup data){
         try{
 
             String tbrNumber = data.TbrCode;
@@ -226,13 +229,13 @@ public class ProcessCompositeTBR {
             Msg _msg = new Msg();
             MsgBody _msgBody = new MsgBody();
             MsgHeader _msgHeader = new MsgHeader();
-            _msgHeader.setMsgID("BT1234567892");
+            _msgHeader.setMsgID(referenceID);
             _msgHeader.setVer("01");
             _msgHeader.setSvcID("IDUPDACCTTRX001");
             _msgHeader.setEnv("S");
             _msgHeader.setBranchCode("003");
-            _msgHeader.setSpvOverride("true");
-            _msgHeader.setClientSpvID("0000");
+//            _msgHeader.setSpvOverride("true");
+//            _msgHeader.setClientSpvID("0000");
             _msg.setMsgHeader(_msgHeader);
             _msgBody.setTbrData(tbrData);
             _msg.setMsgBody(_msgBody);

@@ -51,6 +51,39 @@ public class Limit {
     @JacksonXmlProperty(localName = "Utilisation")
     private String utilisation;
 
+    @JacksonXmlProperty(localName = "LimitStatus")
+    private String limitStatus;
+
+    @JacksonXmlProperty(localName = "IslamicFlag")
+    private String islamicFlag;
+
+    @JacksonXmlProperty(localName = "OmnibusName")
+    private String omnibusName;
+
+    public String getLimitStatus() {
+        return limitStatus;
+    }
+
+    public void setLimitStatus(String limitStatus) {
+        this.limitStatus = limitStatus;
+    }
+
+    public String getIslamicFlag() {
+        return islamicFlag;
+    }
+
+    public void setIslamicFlag(String islamicFlag) {
+        this.islamicFlag = islamicFlag;
+    }
+
+    public String getOmnibusName() {
+        return omnibusName;
+    }
+
+    public void setOmnibusName(String omnibusName) {
+        this.omnibusName = omnibusName;
+    }
+
     public String getLimitName() {
         return limitName;
     }
