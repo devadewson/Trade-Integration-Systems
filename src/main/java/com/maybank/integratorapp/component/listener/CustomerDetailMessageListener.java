@@ -141,9 +141,9 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
                 customerDetailsResponse.setResidenceCountry(customerInformationResponseData.getNationality());
 
                 if(companyData.getTagBank().equals("Y")){
-                    customerDetailsResponse.setCustomerType("01629");
+                    customerDetailsResponse.setCustomerType("77777");
                 }else{
-                    customerDetailsResponse.setCustomerType("399000");
+                    customerDetailsResponse.setCustomerType("88888");
                 }
                 addressDetails.setAddressDetail(detailAddress);
 

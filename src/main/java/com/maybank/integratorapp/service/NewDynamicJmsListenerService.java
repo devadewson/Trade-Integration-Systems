@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.jms.config.*;
+import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.listener.MessageListenerContainer;
 import org.springframework.stereotype.Service;
 import java.util.HashMap;
@@ -79,38 +80,38 @@ public class NewDynamicJmsListenerService {
             System.out.println("Stopped listener for queue " + config.getRequest_Queue_Name());
         }
     }
-
     private void createAndRegisterNewListener(MsQueueConfig config) {
-        Connection connection = null;
-        Session session = null;
+
         try {
-            //Development Use Only
-//            if (!config.getServiceName().equals("Facilities")
-//                    && !config.getServiceName().equals("FacilityReservation")
-//                    && !config.getServiceName().equals("FacilityUtilization")
-//                    && !config.getServiceName().equals("ReservationReversal"))
-//                return;
-//            if (!config.getServiceName().equals("BatchPosting"))
-//                return;
+            Connection connection = connections.get(config.getServiceName());
+            if (connection == null) {
+                // Create a new connection only if not already present
+                ConnectionFactory connectionFactory = createIBMConnectionFactory(
+                        config.getRequest_Queue_Address(),
+                        Integer.parseInt(config.getRequest_Queue_Port()),
+                        config.getRequest_Queue_Manager(),
+                        config.getRequest_Queue_Channel(),
+                        config.getRequest_Queue_Username(),
+                        config.getRequest_Queue_Password()
+                );
+                connection = connectionFactory.createConnection();
+                connection.start();
+                connections.put(config.getServiceName(), connection);
+            }
 
-            // Create a new connection
-            ConnectionFactory connectionFactory = createIBMConnectionFactory(
-                    config.getRequest_Queue_Address(),
-                    Integer.parseInt(config.getRequest_Queue_Port()),
-                    config.getRequest_Queue_Manager(),
-                    config.getRequest_Queue_Channel(),
-                    config.getRequest_Queue_Username(),
-                    config.getRequest_Queue_Password()
-            );
-            connection = connectionFactory.createConnection();
-            connection.start();
+            // Create a new session (reuse the connection)
+            Session session = sessions.get(config.getServiceName());
+            if (session == null) {
+                session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
+                sessions.put(config.getServiceName(), session);
+            }
 
-            // Create a new session
-            session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
             // Create a queue and a message consumer
             Destination destination = session.createQueue(config.getRequest_Queue_Name());
             CustomMessageListener listener = (CustomMessageListener) chooseListener(config.getServiceName());
             MessageConsumer consumer = session.createConsumer(destination);
+
+            // Attach response publisher if needed
             if (!config.getResponse_Queue_Address().isEmpty()) {
                 MessagePublisher publisher = new MessagePublisher(
                         config.getResponse_Queue_Address(),
@@ -122,19 +123,72 @@ public class NewDynamicJmsListenerService {
                         config.getResponse_Queue_Name());
                 listener.setPublisher(publisher);
             }
+
             // Set the message listener
             consumer.setMessageListener(listener);
-
-            // Store the new connection and session for later use
-            connections.put(config.getServiceName(), connection);
-            sessions.put(config.getServiceName(), session);
-
             System.out.println("Reconfigured and started listener for queue " + config.getRequest_Queue_Name());
 
         } catch (JMSException e) {
-            e.printStackTrace(); // Handle exception
+            e.printStackTrace();
         }
     }
+
+//    private void createAndRegisterNewListener(MsQueueConfig config) {
+//        Connection connection = null;
+//        Session session = null;
+//        try {
+//            //Development Use Only
+////            if (!config.getServiceName().equals("Facilities")
+////                    && !config.getServiceName().equals("FacilityReservation")
+////                    && !config.getServiceName().equals("FacilityUtilization")
+////                    && !config.getServiceName().equals("ReservationReversal"))
+////                return;
+////            if (!config.getServiceName().equals("BatchPosting"))
+////                return;
+//
+//            // Create a new connection
+//            ConnectionFactory connectionFactory = createIBMConnectionFactory(
+//                    config.getRequest_Queue_Address(),
+//                    Integer.parseInt(config.getRequest_Queue_Port()),
+//                    config.getRequest_Queue_Manager(),
+//                    config.getRequest_Queue_Channel(),
+//                    config.getRequest_Queue_Username(),
+//                    config.getRequest_Queue_Password()
+//            );
+//            connection = connectionFactory.createConnection();
+//            connection.start();
+//
+//            // Create a new session
+//            session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
+//
+//            // Create a queue and a message consumer
+//            Destination destination = session.createQueue(config.getRequest_Queue_Name());
+//            CustomMessageListener listener = (CustomMessageListener) chooseListener(config.getServiceName());
+//            MessageConsumer consumer = session.createConsumer(destination);
+//            if (!config.getResponse_Queue_Address().isEmpty()) {
+//                MessagePublisher publisher = new MessagePublisher(
+//                        config.getResponse_Queue_Address(),
+//                        Integer.parseInt(config.getResponse_Queue_Port()),
+//                        config.getResponse_Queue_Manager(),
+//                        config.getResponse_Queue_Channel(),
+//                        config.getResponse_Queue_Username(),
+//                        config.getResponse_Queue_Password(),
+//                        config.getResponse_Queue_Name());
+//                listener.setPublisher(publisher);
+//            }
+//            // Set the message listener
+//            consumer.setMessageListener(listener);
+//
+//            // Store the new connection and session for later use
+//            connections.put(config.getServiceName(), connection);
+//            sessions.put(config.getServiceName(), session);
+//
+//            System.out.println("Reconfigured and started listener for queue " + config.getRequest_Queue_Name());
+//
+//        } catch (JMSException e) {
+//            e.printStackTrace(); // Handle exception
+//        }
+//    }
 
     private void stopExistingListener(MsQueueConfig config) {
         // Assuming you maintain a map or list of connections/sessions
@@ -187,7 +241,12 @@ public class NewDynamicJmsListenerService {
             connectionFactory.setChannel(channel); // Replace with your channel name
 //            connectionFactory.setStringProperty(WMQConstants.WMQ_CCSID, "1208"); // Set CCSID if necessary
 
-            Connection connection = connectionFactory.createConnection(username, password);
+//            Connection connection = connectionFactory.createConnection(username, password);
+            // Wrap MQConnectionFactory with CachingConnectionFactory
+            CachingConnectionFactory cachingConnectionFactory = new CachingConnectionFactory(connectionFactory);
+            cachingConnectionFactory.setSessionCacheSize(5); // Adjust session pool size as needed
+            cachingConnectionFactory.setReconnectOnException(true); // Reuse connection on failures
+
 
             return connectionFactory;
         } catch (JMSException e) {

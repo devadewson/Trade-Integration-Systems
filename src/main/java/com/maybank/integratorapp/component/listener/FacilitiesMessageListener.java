@@ -53,14 +53,16 @@ public class FacilitiesMessageListener implements CustomMessageListener {
     private MsCurrencyRepository msCurrencyRepository;
     private void forwardMessage(TextMessage message,String serviceName){
         MsQueueConfig config = queueConfigService.findByServiceName(serviceName);
-        MessagePublisher publisher = new MessagePublisher(
-                config.getRequest_Queue_Address(),
-                Integer.parseInt(config.getRequest_Queue_Port()),
-                config.getRequest_Queue_Manager(),
-                config.getRequest_Queue_Channel(),
-                config.getRequest_Queue_Username(),
-                config.getRequest_Queue_Password(),
-                config.getRequest_Queue_Name());
+        //reuse existing connection instead of creating new one
+        MessagePublisher publisher = new MessagePublisher(this.publisher.getConnection(),this.publisher.getSession(), config.getRequest_Queue_Name());
+//        MessagePublisher publisher = new MessagePublisher(
+//                config.getRequest_Queue_Address(),
+//                Integer.parseInt(config.getRequest_Queue_Port()),
+//                config.getRequest_Queue_Manager(),
+//                config.getRequest_Queue_Channel(),
+//                config.getRequest_Queue_Username(),
+//                config.getRequest_Queue_Password(),
+//                config.getRequest_Queue_Name());
         try {
             publisher.PublishMessage(message.getText(), message.getJMSCorrelationID());
         } catch (JMSException e) {

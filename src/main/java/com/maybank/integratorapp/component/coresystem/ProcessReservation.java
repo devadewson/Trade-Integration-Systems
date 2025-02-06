@@ -29,7 +29,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
 
-import com.maybank.integratorapp.model.soap.XL01.responseComplete.additionalData;
 @Component
 public class ProcessReservation {
     @Autowired
@@ -72,8 +71,8 @@ public class ProcessReservation {
             String startDate = "291024";
 
             LocalDate _expiryDate = LocalDate.parse(expireDateRes, inputFormatter);
-//            String expiryDate = _expiryDate.format(outputFormatter);
-            String expiryDate = "291224";
+            String expiryDate = _expiryDate.format(outputFormatter);
+//            String expiryDate = "291224";
 
             LocalDate _transDate = LocalDate.parse(transDate, inputFormatter);
 //            String transactionDate = _transDate.format(outputFormatter);
@@ -201,7 +200,7 @@ public class ProcessReservation {
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setBd("");
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setCurrency(ISOcurrency);
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setDepartement(limitBranch);
-                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setDescription("FTI-"+referenceId);
+                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setDescription("FTI");
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setNotenumber(newKeyloanAcc);
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setQual("0");
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setTran("62");
@@ -239,6 +238,7 @@ public class ProcessReservation {
                                 String finalstatusCode = cmsResponseXL31.getBody().getXl31Response().getCmsXl31Response().getResponsecode();
                                 if("00".equals(finalstatusCode)){
                                     //refresh facility so it get new running number
+                                    System.out.println("Refreshing Limit : "+limitCif);
                                     processFacilities.refreshFacilities(limitCif,facility.getCompanyLimitId());
 
                                 }

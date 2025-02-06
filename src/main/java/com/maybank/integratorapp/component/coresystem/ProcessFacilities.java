@@ -365,6 +365,9 @@ public class ProcessFacilities {
                         // Simpan draw terakhir ke MsRunningNumber
                         updateLatestDrawNumber(existingUtilized);
 
+                        System.out.println("Successfully Refreshing Limit : "+cifno);
+
+
                     }
                 }
             }
@@ -416,6 +419,20 @@ public class ProcessFacilities {
                 .collect(Collectors.groupingBy(MsFacilityUtilize::getFacilityId));
 
 //        List<MsUtilizeRunningNumber> runningNumberList = new ArrayList<>();
+// Group by facilityId and get the highest substring value in each group
+        Map<Long, MsFacilityUtilize> highestByGroup = listFacilityUtilize.stream()
+                .collect(Collectors.groupingBy(
+                        MsFacilityUtilize::getFacilityId,
+                        Collectors.collectingAndThen(
+                                Collectors.maxBy(Comparator.comparingInt(m ->
+                                        Integer.parseInt(m.getKeyLoanAcc().substring(26, 29)))),
+                                Optional::get
+                        )
+                ));
+
+        // Print result
+        highestByGroup.forEach((id, facility) ->
+                System.out.println("Facility ID: " + id + ", Highest KeyLoanAcc: " + facility.getKeyLoanAcc()));
 
         facilityGroupedById.forEach((facilityId, utilizes) -> {
             MsFacilityUtilize latestDraw = utilizes.stream()

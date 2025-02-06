@@ -120,6 +120,7 @@ public class FxRateController {
                         config.getResponse_Queue_Password(),
                         config.getResponse_Queue_Name());
                 publisher.PublishMessage(xml, correlationId);
+                publisher.close();
 
                 return new ResponseEntity<>(xml, HttpStatus.OK);
             }else{

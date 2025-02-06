@@ -83,6 +83,8 @@ public class BatchPostingMessageListener implements CustomMessageListener {
                         _postings.add(s.getPosting())
                         );
 
+
+
                 processCompositeTBR.doPosting(_postings,_data.getId());
 
                 response.getResponseHeader().setStatus("Success");
