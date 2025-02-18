@@ -67,6 +67,7 @@ public class MQController {
                 MQQueueName);
 
         publisher.PublishMessage(message, correlationId);
+        publisher.close();
         List<MsQueueConfig> listQueue = (List<MsQueueConfig>) queueConfigRepository.findAll();
 //        model.addAttribute("queueConfigs", objectMapper.writeValueAsString(listQueue));
         model.addAttribute("queueConfigs", listQueue);

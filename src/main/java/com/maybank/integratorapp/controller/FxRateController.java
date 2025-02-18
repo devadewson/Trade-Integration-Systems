@@ -185,9 +185,9 @@ public class FxRateController {
                     dataRecord.setSellRateSpecific("T");
                     dataRecord.setBaseCurrency(_againstCcy);
                     dataRecord.setCurrency(_baseCcy);
-                    dataRecord.setBuyExchangeRate(item.getBid());
+                    dataRecord.setBuyExchangeRate(item.getAskAllIn());
 //                    dataRecord.setMidTtRate(item.getBid());
-                    dataRecord.setSellExchangeRate(item.getAsk());
+                    dataRecord.setSellExchangeRate(item.getBidAllIn());
 
                     child.setFxRate(dataRecord);
                     itemRequest.setServiceRequestChild(child);

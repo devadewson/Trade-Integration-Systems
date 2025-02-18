@@ -3,14 +3,14 @@ package com.maybank.integratorapp.model.restv2.AccountInquiry.response;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class AccountData {
-    @JsonProperty("SADataRecord")
-    private SADataRecord sADataRecord;
+    @JsonProperty("CADataRecord")
+    private CADataRecord cADataRecord;
 
-    public SADataRecord getsADataRecord() {
-        return sADataRecord;
+    public CADataRecord getcADataRecord() {
+        return cADataRecord;
     }
 
-    public void setsADataRecord(SADataRecord sADataRecord) {
-        this.sADataRecord = sADataRecord;
+    public void setcADataRecord(CADataRecord cADataRecord) {
+        this.cADataRecord = cADataRecord;
     }
 }

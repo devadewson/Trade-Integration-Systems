@@ -90,6 +90,9 @@ public  class ProcessCostumerSearch {
                     MsCompanyData companyData = companyDataRepository.findByGcif(gcifNo);
 
                     String responseString = EntityUtils.toString(response.getEntity());
+                    System.out.println("===========================ESB-RES=================================");
+                    System.out.println(responseString);
+                    System.out.println("============================================================\n");
                     if(companyData == null){
                         companyData = new MsCompanyData();
                         companyData.setGcifno(gcifNo);
@@ -180,6 +183,9 @@ public  class ProcessCostumerSearch {
                     accountListWrapper, headers);
             RestTemplate restTemplate = new RestTemplate();
             String response = restTemplate.postForObject(apiUrl, reqWrapper, String.class);
+            System.out.println("===========================ESB-RES=================================");
+            System.out.println(response);
+            System.out.println("============================================================\n");
 
             AccountListResponseWrapper accountListResponseWrapper = new ObjectMapper().readValue(response,
                     AccountListResponseWrapper.class);

@@ -25,6 +25,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -141,40 +143,51 @@ public class FacilitiesMessageListener implements CustomMessageListener {
                         mscompanylimitRepository.findByCifno(cifno).getId());
 
                 List<MsCurrency> currencies = (List<MsCurrency>) msCurrencyRepository.findAll();
+                SimpleDateFormat inputFormat = new SimpleDateFormat("yyyyMMdd");
+                SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy-MM-dd");
 
                 if (!facilities.isEmpty()) {
                     responseXml = xmlMapper.writeValueAsString(facilities);
 
                     List<FacilityDetails> facilityDetails = new ArrayList<>();
                     facilities.forEach(s->{
-                        FacilityDetails fac = new FacilityDetails();
-                        fac.setIdentifier(s.getKeyLoanAcc());
-                        fac.setFacilityCode(s.getKeyDigitNote());
-                        fac.setCustomer(cifno);
+                        try {
+                            FacilityDetails fac = new FacilityDetails();
+                            fac.setIdentifier(s.getKeyLoanAcc());
+                            fac.setFacilityCode(s.getKeyDigitNote());
+                            fac.setCustomer(cifno);
 
-                        fac.setStartDate(s.getNoteDate());
-                        fac.setExpiryDate(s.getMaturityDate());
-                        fac.setCurrency(currencies.stream().filter(x->x.getInternalCode().equals(s.getCurrency())).findFirst().get().getIsoCode());
-                        String balance = s.getPrincipalBalance().split("\\.")[0];
-                        String utilizedBalance = s.getCommitmentBalance().split("\\.")[0];
+                            Date NoteDate = inputFormat.parse(s.getNoteDate());
+                            Date ExpiryDate = inputFormat.parse(s.getMaturityDate());
+                            String FormattedNoteDate = outputFormat.format(NoteDate);
+                            String FormattedExpiryDate = outputFormat.format(ExpiryDate);
 
-                        fac.setLimitAmount(balance);
-                        fac.setAvailableAmount(balance);
-                        fac.setMultiCurrency("N");
+                            fac.setStartDate(FormattedNoteDate);
+                            fac.setExpiryDate(FormattedExpiryDate);
+                            fac.setCurrency(currencies.stream().filter(x->x.getInternalCode().equals(s.getCurrency())).findFirst().get().getIsoCode());
+                            String balance = s.getPrincipalBalance().split("\\.")[0];
+                            String utilizedBalance = s.getCommitmentBalance().split("\\.")[0];
 
-                        fac.setDisplayField1(s.getKeyLoanAcc());
-                        fac.setDisplayField2(s.getDescription());
-                        fac.setDisplayField3("-");
-                        fac.setDisplayField4(s.getNoteType());
-                        fac.setDisplayField5(balance);
-                        fac.setDisplayField6(balance);
-                        fac.setDisplayField7(utilizedBalance);
-                        fac.setDisplayField8(utilizedBalance);
-                        fac.setDisplayField9(s.getMaturityDate());
-                        fac.setDisplayField10(s.getStatus());
+                            fac.setLimitAmount(balance);
+                            fac.setAvailableAmount(balance);
+                            fac.setMultiCurrency("N");
 
-                        facilityDetails.add(fac);
+                            fac.setDisplayField1(s.getKeyLoanAcc());
+                            fac.setDisplayField2(s.getDescription());
+                            fac.setDisplayField3("-");
+                            fac.setDisplayField4(s.getNoteType());
+                            fac.setDisplayField5(balance);
+                            fac.setDisplayField6(balance);
+                            fac.setDisplayField7(utilizedBalance);
+                            fac.setDisplayField8(utilizedBalance);
+                            fac.setDisplayField9(FormattedExpiryDate);
+                            fac.setDisplayField10(s.getStatus());
+
+                            facilityDetails.add(fac);
 //                        fac.setCurrency(s.get);
+                        } catch (ParseException e) {
+                            throw new RuntimeException(e);
+                        }
                     });
                     responseHeader.setStatus("SUCCEEDED");
                     response.getFacilitiesResponse().setFacilityDetailss(new FacilityDetailss());

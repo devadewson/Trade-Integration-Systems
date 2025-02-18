@@ -15,6 +15,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication(scanBasePackages = "com.maybank.integratorapp")
 @EnableJpaRepositories(basePackages = "com.maybank.integratorapp.data.repository")
 @EnableScheduling
+//@ComponentScan(basePackages = {
+//        "com.maybank.integratorapp.config"
+//        ,"com.maybank.integratorapp.data"
+//        ,"com.maybank.integratorapp.component.coresystem"
+//        ,"com.maybank.integratorapp.component.listener"
+//        ,"com.maybank.integratorapp.service"
+//        ,"com.maybank.integratorapp.controller"})
 @ComponentScan
 public class IntegratorAppMain  extends SpringBootServletInitializer {
 

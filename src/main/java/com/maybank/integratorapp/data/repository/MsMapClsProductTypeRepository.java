@@ -13,4 +13,7 @@ import java.util.List;
 public interface MsMapClsProductTypeRepository extends CrudRepository<MsMapClsProductType,Long> {
     @Query("SELECT f.ProductType001 FROM MsMapClsProductType f where f.ProductType999=?1 and f.LineOfBusiness=?2 and f.EventCode=?3")
     String findDraw001Product(String draw999Product,@Nullable String lineofBusiness,@Nullable String eventCode);
+
+    @Query("SELECT f FROM MsMapClsProductType f where f.ProductType999=?1")
+    List<MsMapClsProductType> findDraw001Products(String draw999Product);
 }

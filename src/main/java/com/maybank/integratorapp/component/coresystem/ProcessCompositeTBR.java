@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.component.coresystem;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.FtiAccountTypeRepository;
@@ -11,10 +12,7 @@ import com.maybank.integratorapp.util.DynamicClassGenerator;
 import com.maybank.integratorapp.util.DynamicClassPropertyMap;
 import com.maybank.integratorapp.util.ReflectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import com.maybank.integratorapp.model.rest.compositetbr.requestv2.*;
@@ -247,7 +245,12 @@ public class ProcessCompositeTBR {
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             ObjectMapper objectMapper = new ObjectMapper();
-
+            objectMapper.setVisibilityChecker(objectMapper.getSerializationConfig().getDefaultVisibilityChecker()
+                    .withFieldVisibility(JsonAutoDetect.Visibility.ANY)
+                    .withGetterVisibility(JsonAutoDetect.Visibility.NONE)
+                    .withSetterVisibility(JsonAutoDetect.Visibility.NONE)
+                    .withCreatorVisibility(JsonAutoDetect.Visibility.NONE)
+            );
 //            String jsonPayload = objectMapper.writerWithDefaultPrettyPrinter() // enable pretty print
 //                                    .writeValueAsString(envelope);
             String jsonPayload = objectMapper.writerWithDefaultPrettyPrinter() // enable pretty print
@@ -257,8 +260,17 @@ public class ProcessCompositeTBR {
             System.out.println("Serialized JSON Payload: " + jsonPayload);
 
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
-            String response = restTemplate.exchange(url, HttpMethod.POST, request, String.class).getBody();
+            String response = "";
+            response = restTemplate.exchange(url, HttpMethod.POST, request, String.class).getBody();
             logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "DATA-RES",response);
+
+//            ResponseEntity<String> _response = restTemplate.postForEntity(url,_msgWrapper,String.class);
+
+//            if(_response.hasBody()){
+//                response = _response.getBody();
+//                logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "DATA-RES",response);
+//
+//            }
 
             System.out.println("Response from API: " + response);
         }catch (Exception e){
@@ -419,19 +431,19 @@ public class ProcessCompositeTBR {
 
             // printline
 
-//            for (PostingGroup group : groupedPostings) {
-//                System.out.println("TbrCode: " + group.getTbrCode());
-//                System.out.println("MappingType: " + group.getMappingType());
-//
-//                System.out.println("Postings:");
-//                for (Posting posting : group.getPostings()) {
-//                    System.out.println(" - Sequence: " + posting.getPostingSeqNo() +
-//                            ", AccountType: " + posting.getAccountType() +
-//                            ", Currency: " + posting.getPostingCcy() +
-//                            ", DebitCredit: " + posting.getDebitCreditFlag());
-//                }
-//
-//            }
+            for (PostingGroup group : groupedPostings) {
+                System.out.println("TbrCode: " + group.getTbrCode());
+                System.out.println("MappingType: " + group.getMappingType());
+
+                System.out.println("Postings:");
+                for (PostingExtender posting : group.getPostings()) {
+                    System.out.println(" - Sequence: " + posting.getPostingSeqNo() +
+                            ", AccountType: " + posting.getAccountTypeAlias() +
+                            ", Currency: " + posting.getPostingCcy() +
+                            ", DebitCredit: " + posting.getDebitCreditFlag());
+                }
+
+            }
         } catch (Exception e){
             logger.Log("Posting - Group Posting Data","Grouped posting into pair of debit credit","ERROR",e.getMessage());
         }

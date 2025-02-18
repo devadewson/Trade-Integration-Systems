@@ -61,6 +61,17 @@ public class AccountListResponseData {
     @JsonProperty("WealthAccountData")
     private List<WealthAccountData> wealthAccountData;
 
+    @JsonProperty("BancAssuranceAccountData")
+    private BancAssuranceAccountData bancAssuranceAccountData;
+
+    public BancAssuranceAccountData getBancAssuranceAccountData() {
+        return bancAssuranceAccountData;
+    }
+
+    public void setBancAssuranceAccountData(BancAssuranceAccountData bancAssuranceAccountData) {
+        this.bancAssuranceAccountData = bancAssuranceAccountData;
+    }
+
     public String getGcifNo() {
         return gcifNo;
     }

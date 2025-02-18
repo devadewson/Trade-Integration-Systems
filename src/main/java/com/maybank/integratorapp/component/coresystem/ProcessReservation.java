@@ -7,6 +7,7 @@ import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.maybank.integratorapp.data.entity.MsCurrency;
 import com.maybank.integratorapp.data.entity.MsFacility;
 import com.maybank.integratorapp.data.entity.MsFacilityUtilize;
+import com.maybank.integratorapp.data.entity.MsMapClsProductType;
 import com.maybank.integratorapp.data.repository.MsCurrencyRepository;
 import com.maybank.integratorapp.data.repository.MsMapClsProductTypeRepository;
 import com.maybank.integratorapp.model.mq.reservation.response.ReservationResponseDetails;
@@ -49,7 +50,7 @@ public class ProcessReservation {
         return new String[]{bank, currency, branchCode, cif, note, draw, seq};
     }
     public String getReservation(String referenceId, String newKeyloanAcc, String acctReqXL01, String keyLoanAcc, String customerRes, String transDate, String startdateRes, String expireDateRes
-            , String exposureAmmount, String currency, String limitAmount, String reservedAmount, String productType, String lineOfBusiness, String eventCode, MsFacility facility) {
+            , String exposureAmmount, String currency, String limitAmount, String reservedAmount, String productType, String lineOfBusiness, String eventCode, MsFacility facility,String FTIProductCode) {
 
         try{
             String soapUrl = "http://10.230.83.57:65085/services/CMSService";
@@ -80,9 +81,33 @@ public class ProcessReservation {
 
             String dateNow = new SimpleDateFormat("ddMMyy").format(new Date());
 
+            // treat amend as issue for mapping purpose
+            if(eventCode.equals("AMD"))
+                eventCode = eventCode.replace("AMD","ISS");
+            
             if(!lineOfBusiness.equals("01"))
                 lineOfBusiness= "00";
-            String cls001ProductType = msMapClsProductTypeRepository.findDraw001Product(productType, lineOfBusiness,eventCode);
+            if(productType.equals("515")) // bank limits
+                lineOfBusiness= "07";
+
+            String cls001ProductType= "";
+            if(productType.startsWith("7")) // islamic limits
+            {
+                List<MsMapClsProductType> productTypeList = msMapClsProductTypeRepository.findDraw001Products(productType);
+
+                //special case 710
+                if(productType.equals("710")){
+                    if(eventCode.equals("ISS"))
+                        cls001ProductType= productTypeList.stream().filter(x->
+                                x.getEventCode().equals("ISS") &&
+                                x.getLiabilityCode().equals("IGT"))
+                            .findFirst().get().getProductType001();
+                }
+
+            }else{
+                cls001ProductType = msMapClsProductTypeRepository.findDraw001Product(productType, lineOfBusiness,eventCode);
+
+            }
 
             List<MsCurrency> currencies = (List<MsCurrency>) msCurrencyRepository.findAll();
             String ISOcurrency = currencies.stream().filter(x->x.getInternalCode().equals(limitCurrency)).findFirst().get().getIsoCode();

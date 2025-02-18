@@ -2,12 +2,12 @@ package com.maybank.integratorapp.model.restv2.AccountInquiry.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class SADataRecord {
+public class CADataRecord {
     @JsonProperty("TransId")
     private String transId;
 
-    @JsonProperty("TransCd")
-    private String transCd;
+    @JsonProperty("TransCode")
+    private String transCode;
 
     @JsonProperty("AcctCcy")
     private String acctCcy;
@@ -27,14 +27,11 @@ public class SADataRecord {
     @JsonProperty("ResponseCode")
     private String responseCode;
 
-    @JsonProperty("BeginningBalance")
-    private String beginningBalance;
+    @JsonProperty("BalanceSign")
+    private String balanceSign;
 
-    @JsonProperty("TodayClearing")
-    private String todayClearing;
-
-    @JsonProperty("YesterdayClearing")
-    private String yesterdayClearing;
+    @JsonProperty("DdaBalanceAmount")
+    private String ddaBalanceAmount;
 
     @JsonProperty("AvailableBalance")
     private String availableBalance;
@@ -42,62 +39,32 @@ public class SADataRecord {
     @JsonProperty("HoldAmount")
     private String holdAmount;
 
-    @JsonProperty("PsbkBalance")
-    private String psbkBalance;
+    @JsonProperty("TodayClearing")
+    private String todayClearing;
+
+    @JsonProperty("YesterdayClearing")
+    private String yesterdayClearing;
+
+    @JsonProperty("OverDraftLimit")
+    private String overDraftLimit;
+
+    @JsonProperty("OverDraftInterest")
+    private String overDraftInterest;
+
+    @JsonProperty("OverDraftExpiryDate")
+    private String overDraftExpiryDate;
 
     @JsonProperty("AccruedInterest")
     private String accruedInterest;
 
-    @JsonProperty("OpenBalance")
-    private String openBalance;
+    @JsonProperty("BeginningBalance")
+    private String beginningBalance;
 
-    @JsonProperty("CloseBalance")
-    private String closeBalance;
+    @JsonProperty("EndingBalance")
+    private String endingBalance;
 
-    @JsonProperty("OpenDate")
-    private String openDate;
-
-    @JsonProperty("MntPeriod")
-    private String mntPeriod;
-
-    @JsonProperty("MntIncr")
-    private String mntIncr;
-
-    @JsonProperty("MatDateNextMat")
-    private String matDateNextMat;
-
-    @JsonProperty("LastRenewDate")
-    private String lastRenewDate;
-
-    @JsonProperty("IpCurAnnlRate2")
-    private String ipCurAnnlRate2;
-
-    @JsonProperty("IntDistCode")
-    private String intDistCode;
-
-    @JsonProperty("IntDistDesc")
-    private String intDistDesc;
-
-    @JsonProperty("IntDistAct01")
-    private String intDistAct01;
-
-    @JsonProperty("IntDistAct02")
-    private String intDistAct02;
-
-    @JsonProperty("MatPrincipalDist")
-    private String matPrincipalDist;
-
-    @JsonProperty("MatPrincipalDesc")
-    private String matPrincipalDesc;
-
-    @JsonProperty("MatPrincipalAct")
-    private String matPrincipalAct;
-
-    @JsonProperty("IntDistDateNextPay")
-    private String intDistDateNextPay;
-
-    @JsonProperty("CustName")
-    private String custName;
+    @JsonProperty("CustomerName")
+    private String customerName;
 
     @JsonProperty("MailAddrLine1")
     private String mailAddrLine1;
@@ -117,8 +84,8 @@ public class SADataRecord {
     @JsonProperty("ZipCode")
     private String zipCode;
 
-    @JsonProperty("ProdCode")
-    private String prodCode;
+    @JsonProperty("ProductCode")
+    private String productCode;
 
     @JsonProperty("Status")
     private String status;
@@ -126,17 +93,20 @@ public class SADataRecord {
     @JsonProperty("StatusDescription")
     private String statusDescription;
 
-    @JsonProperty("LastMainDate")
-    private String lastMainDate;
+    @JsonProperty("OpenDate")
+    private String openDate;
 
-    @JsonProperty("IntPayable")
-    private String intPayable;
+    @JsonProperty("LastMaintenanceDate")
+    private String lastMaintenanceDate;
 
-    @JsonProperty("ResPhNo")
-    private String resPhNo;
+    @JsonProperty("HomePhone")
+    private String homePhone;
 
     @JsonProperty("BusinessPhone")
     private String businessPhone;
+
+    @JsonProperty("ODLimit2")
+    private String odLimit2;
 
     @JsonProperty("ATMFlag")
     private String atmFlag;
@@ -144,11 +114,17 @@ public class SADataRecord {
     @JsonProperty("ResidentFlag")
     private String residentFlag;
 
+    @JsonProperty("CleanupStatus")
+    private String cleanupStatus;
+
     @JsonProperty("YesterdayClrStatus")
     private String yesterdayClrStatus;
 
     @JsonProperty("CIFNo")
     private String cifNo;
+
+    @JsonProperty("MinimumBalance")
+    private String minimumBalance;
 
     @JsonProperty("ProductName")
     private String productName;
@@ -183,9 +159,6 @@ public class SADataRecord {
     @JsonProperty("BusinessReg")
     private String businessReg;
 
-    @JsonProperty("MinimumBalance")
-    private String minimumBalance;
-
     @JsonProperty("ForexAcumAmt")
     private String forexAcumAmt;
 
@@ -200,6 +173,7 @@ public class SADataRecord {
 
     @JsonProperty("CardNumber")
     private String cardNumber;
+
     @JsonProperty("TranInAmount")
     private String tranInAmount;
 
@@ -218,21 +192,6 @@ public class SADataRecord {
     @JsonProperty("PurposeOfFund")
     private String purposeOfFund;
 
-    @JsonProperty("RelDesc")
-    private String relDesc;
-
-    @JsonProperty("RelAct")
-    private String relAct;
-
-    @JsonProperty("BranchNm")
-    private String branchNm;
-
-    @JsonProperty("TimesRenew")
-    private String timesRenew;
-
-    @JsonProperty("CurrCd")
-    private String currCd;
-
     public String getTransId() {
         return transId;
     }
@@ -241,12 +200,12 @@ public class SADataRecord {
         this.transId = transId;
     }
 
-    public String getTransCd() {
-        return transCd;
+    public String getTransCode() {
+        return transCode;
     }
 
-    public void setTransCd(String transCd) {
-        this.transCd = transCd;
+    public void setTransCode(String transCode) {
+        this.transCode = transCode;
     }
 
     public String getAcctCcy() {
@@ -297,28 +256,20 @@ public class SADataRecord {
         this.responseCode = responseCode;
     }
 
-    public String getBeginningBalance() {
-        return beginningBalance;
+    public String getBalanceSign() {
+        return balanceSign;
     }
 
-    public void setBeginningBalance(String beginningBalance) {
-        this.beginningBalance = beginningBalance;
+    public void setBalanceSign(String balanceSign) {
+        this.balanceSign = balanceSign;
     }
 
-    public String getTodayClearing() {
-        return todayClearing;
+    public String getDdaBalanceAmount() {
+        return ddaBalanceAmount;
     }
 
-    public void setTodayClearing(String todayClearing) {
-        this.todayClearing = todayClearing;
-    }
-
-    public String getYesterdayClearing() {
-        return yesterdayClearing;
-    }
-
-    public void setYesterdayClearing(String yesterdayClearing) {
-        this.yesterdayClearing = yesterdayClearing;
+    public void setDdaBalanceAmount(String ddaBalanceAmount) {
+        this.ddaBalanceAmount = ddaBalanceAmount;
     }
 
     public String getAvailableBalance() {
@@ -337,12 +288,44 @@ public class SADataRecord {
         this.holdAmount = holdAmount;
     }
 
-    public String getPsbkBalance() {
-        return psbkBalance;
+    public String getTodayClearing() {
+        return todayClearing;
     }
 
-    public void setPsbkBalance(String psbkBalance) {
-        this.psbkBalance = psbkBalance;
+    public void setTodayClearing(String todayClearing) {
+        this.todayClearing = todayClearing;
+    }
+
+    public String getYesterdayClearing() {
+        return yesterdayClearing;
+    }
+
+    public void setYesterdayClearing(String yesterdayClearing) {
+        this.yesterdayClearing = yesterdayClearing;
+    }
+
+    public String getOverDraftLimit() {
+        return overDraftLimit;
+    }
+
+    public void setOverDraftLimit(String overDraftLimit) {
+        this.overDraftLimit = overDraftLimit;
+    }
+
+    public String getOverDraftInterest() {
+        return overDraftInterest;
+    }
+
+    public void setOverDraftInterest(String overDraftInterest) {
+        this.overDraftInterest = overDraftInterest;
+    }
+
+    public String getOverDraftExpiryDate() {
+        return overDraftExpiryDate;
+    }
+
+    public void setOverDraftExpiryDate(String overDraftExpiryDate) {
+        this.overDraftExpiryDate = overDraftExpiryDate;
     }
 
     public String getAccruedInterest() {
@@ -353,140 +336,28 @@ public class SADataRecord {
         this.accruedInterest = accruedInterest;
     }
 
-    public String getOpenBalance() {
-        return openBalance;
+    public String getBeginningBalance() {
+        return beginningBalance;
     }
 
-    public void setOpenBalance(String openBalance) {
-        this.openBalance = openBalance;
+    public void setBeginningBalance(String beginningBalance) {
+        this.beginningBalance = beginningBalance;
     }
 
-    public String getCloseBalance() {
-        return closeBalance;
+    public String getEndingBalance() {
+        return endingBalance;
     }
 
-    public void setCloseBalance(String closeBalance) {
-        this.closeBalance = closeBalance;
+    public void setEndingBalance(String endingBalance) {
+        this.endingBalance = endingBalance;
     }
 
-    public String getOpenDate() {
-        return openDate;
+    public String getCustomerName() {
+        return customerName;
     }
 
-    public void setOpenDate(String openDate) {
-        this.openDate = openDate;
-    }
-
-    public String getMntPeriod() {
-        return mntPeriod;
-    }
-
-    public void setMntPeriod(String mntPeriod) {
-        this.mntPeriod = mntPeriod;
-    }
-
-    public String getMntIncr() {
-        return mntIncr;
-    }
-
-    public void setMntIncr(String mntIncr) {
-        this.mntIncr = mntIncr;
-    }
-
-    public String getMatDateNextMat() {
-        return matDateNextMat;
-    }
-
-    public void setMatDateNextMat(String matDateNextMat) {
-        this.matDateNextMat = matDateNextMat;
-    }
-
-    public String getLastRenewDate() {
-        return lastRenewDate;
-    }
-
-    public void setLastRenewDate(String lastRenewDate) {
-        this.lastRenewDate = lastRenewDate;
-    }
-
-    public String getIpCurAnnlRate2() {
-        return ipCurAnnlRate2;
-    }
-
-    public void setIpCurAnnlRate2(String ipCurAnnlRate2) {
-        this.ipCurAnnlRate2 = ipCurAnnlRate2;
-    }
-
-    public String getIntDistCode() {
-        return intDistCode;
-    }
-
-    public void setIntDistCode(String intDistCode) {
-        this.intDistCode = intDistCode;
-    }
-
-    public String getIntDistDesc() {
-        return intDistDesc;
-    }
-
-    public void setIntDistDesc(String intDistDesc) {
-        this.intDistDesc = intDistDesc;
-    }
-
-    public String getIntDistAct01() {
-        return intDistAct01;
-    }
-
-    public void setIntDistAct01(String intDistAct01) {
-        this.intDistAct01 = intDistAct01;
-    }
-
-    public String getIntDistAct02() {
-        return intDistAct02;
-    }
-
-    public void setIntDistAct02(String intDistAct02) {
-        this.intDistAct02 = intDistAct02;
-    }
-
-    public String getMatPrincipalDist() {
-        return matPrincipalDist;
-    }
-
-    public void setMatPrincipalDist(String matPrincipalDist) {
-        this.matPrincipalDist = matPrincipalDist;
-    }
-
-    public String getMatPrincipalDesc() {
-        return matPrincipalDesc;
-    }
-
-    public void setMatPrincipalDesc(String matPrincipalDesc) {
-        this.matPrincipalDesc = matPrincipalDesc;
-    }
-
-    public String getMatPrincipalAct() {
-        return matPrincipalAct;
-    }
-
-    public void setMatPrincipalAct(String matPrincipalAct) {
-        this.matPrincipalAct = matPrincipalAct;
-    }
-
-    public String getIntDistDateNextPay() {
-        return intDistDateNextPay;
-    }
-
-    public void setIntDistDateNextPay(String intDistDateNextPay) {
-        this.intDistDateNextPay = intDistDateNextPay;
-    }
-
-    public String getCustName() {
-        return custName;
-    }
-
-    public void setCustName(String custName) {
-        this.custName = custName;
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
     }
 
     public String getMailAddrLine1() {
@@ -537,12 +408,12 @@ public class SADataRecord {
         this.zipCode = zipCode;
     }
 
-    public String getProdCode() {
-        return prodCode;
+    public String getProductCode() {
+        return productCode;
     }
 
-    public void setProdCode(String prodCode) {
-        this.prodCode = prodCode;
+    public void setProductCode(String productCode) {
+        this.productCode = productCode;
     }
 
     public String getStatus() {
@@ -561,28 +432,28 @@ public class SADataRecord {
         this.statusDescription = statusDescription;
     }
 
-    public String getLastMainDate() {
-        return lastMainDate;
+    public String getOpenDate() {
+        return openDate;
     }
 
-    public void setLastMainDate(String lastMainDate) {
-        this.lastMainDate = lastMainDate;
+    public void setOpenDate(String openDate) {
+        this.openDate = openDate;
     }
 
-    public String getIntPayable() {
-        return intPayable;
+    public String getLastMaintenanceDate() {
+        return lastMaintenanceDate;
     }
 
-    public void setIntPayable(String intPayable) {
-        this.intPayable = intPayable;
+    public void setLastMaintenanceDate(String lastMaintenanceDate) {
+        this.lastMaintenanceDate = lastMaintenanceDate;
     }
 
-    public String getResPhNo() {
-        return resPhNo;
+    public String getHomePhone() {
+        return homePhone;
     }
 
-    public void setResPhNo(String resPhNo) {
-        this.resPhNo = resPhNo;
+    public void setHomePhone(String homePhone) {
+        this.homePhone = homePhone;
     }
 
     public String getBusinessPhone() {
@@ -591,6 +462,14 @@ public class SADataRecord {
 
     public void setBusinessPhone(String businessPhone) {
         this.businessPhone = businessPhone;
+    }
+
+    public String getOdLimit2() {
+        return odLimit2;
+    }
+
+    public void setOdLimit2(String odLimit2) {
+        this.odLimit2 = odLimit2;
     }
 
     public String getAtmFlag() {
@@ -609,6 +488,14 @@ public class SADataRecord {
         this.residentFlag = residentFlag;
     }
 
+    public String getCleanupStatus() {
+        return cleanupStatus;
+    }
+
+    public void setCleanupStatus(String cleanupStatus) {
+        this.cleanupStatus = cleanupStatus;
+    }
+
     public String getYesterdayClrStatus() {
         return yesterdayClrStatus;
     }
@@ -623,6 +510,14 @@ public class SADataRecord {
 
     public void setCifNo(String cifNo) {
         this.cifNo = cifNo;
+    }
+
+    public String getMinimumBalance() {
+        return minimumBalance;
+    }
+
+    public void setMinimumBalance(String minimumBalance) {
+        this.minimumBalance = minimumBalance;
     }
 
     public String getProductName() {
@@ -713,14 +608,6 @@ public class SADataRecord {
         this.businessReg = businessReg;
     }
 
-    public String getMinimumBalance() {
-        return minimumBalance;
-    }
-
-    public void setMinimumBalance(String minimumBalance) {
-        this.minimumBalance = minimumBalance;
-    }
-
     public String getForexAcumAmt() {
         return forexAcumAmt;
     }
@@ -807,45 +694,5 @@ public class SADataRecord {
 
     public void setPurposeOfFund(String purposeOfFund) {
         this.purposeOfFund = purposeOfFund;
-    }
-
-    public String getRelDesc() {
-        return relDesc;
-    }
-
-    public void setRelDesc(String relDesc) {
-        this.relDesc = relDesc;
-    }
-
-    public String getRelAct() {
-        return relAct;
-    }
-
-    public void setRelAct(String relAct) {
-        this.relAct = relAct;
-    }
-
-    public String getBranchNm() {
-        return branchNm;
-    }
-
-    public void setBranchNm(String branchNm) {
-        this.branchNm = branchNm;
-    }
-
-    public String getTimesRenew() {
-        return timesRenew;
-    }
-
-    public void setTimesRenew(String timesRenew) {
-        this.timesRenew = timesRenew;
-    }
-
-    public String getCurrCd() {
-        return currCd;
-    }
-
-    public void setCurrCd(String currCd) {
-        this.currCd = currCd;
     }
 }

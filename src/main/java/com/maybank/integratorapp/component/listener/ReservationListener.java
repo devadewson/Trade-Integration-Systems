@@ -84,6 +84,7 @@ public class ReservationListener implements CustomMessageListener {
 //            String customerRes = "0002794045";
             String masterReference= request.getReservationsRequest().getReservationRequestDetails().getMasterReference();
             String lineOfBusiness = "01";
+            String FtiProductCode = request.getReservationsRequest().getReservationRequestDetails().getProduct();
             String eventCode = request.getReservationsRequest().getReservationRequestDetails().getEventReference().substring(0, 3);
             String startdateRes = request.getReservationsRequest().getReservationRequestDetails().getTenorStartDate();
             String expireDateRes =  request.getReservationsRequest().getReservationRequestDetails().getTenorEndDate();
@@ -142,7 +143,7 @@ public class ReservationListener implements CustomMessageListener {
 
 
             String CMSxl01Draw001Response = processReservation.getReservation(masterReference, newKeyLoanAcc, acctReqXL01, facilityIdentifier,customerRes, transDateRes,startdateRes,expireDateRes
-            ,exposureAmmount,currency,limitAmount,reservedAmount,productType,lineOfBusiness,eventCode,facilities);
+            ,exposureAmmount,currency,limitAmount,reservedAmount,productType,lineOfBusiness,eventCode,facilities,FtiProductCode);
 
             //set reservation response
             ReservationsResponse reservationsResponse =  new ReservationsResponse();

@@ -104,7 +104,9 @@ public class LimitController {
                 List<Limit> finalLimitList = limitList;
                 facilities.forEach(s->{
                     String balance = s.getPrincipalBalance().split("\\.")[0];
-                    String utilizedBalance = s.getCommitmentBalance().split("\\.")[0];
+//                    String balance = s.getPrincipalBalance().split("\\.")[0];
+                    String remainingBalance = s.getCommitmentBalance().split("\\.")[0];
+                    String utilizedBalance = String.valueOf((Long.parseLong(balance) - Long.parseLong(remainingBalance)));
                     LocalDate _maturitydate = LocalDate.parse(s.getMaturityDate(), DateTimeFormatter.BASIC_ISO_DATE);
                     String maturityDate = _maturitydate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                     String ISOcurrency = currencies.stream().filter(x->x.getInternalCode().equals(s.getCurrency())).findFirst().get().getIsoCode();
@@ -120,8 +122,8 @@ public class LimitController {
                     limit.setTenorPeriod("180");
                     limit.setTenorFrequency("1");
                     limit.setAvailableLimitCurrency(ISOcurrency);
-                    limit.setAvailableLimit(balance);
-                    limit.setAvailableLimitTransactionCurrency(balance);
+                    limit.setAvailableLimit(remainingBalance);
+                    limit.setAvailableLimitTransactionCurrency(remainingBalance);
                     limit.setEarmarkedLimitCurrency(ISOcurrency);
                     limit.setEarmarkedLimit(utilizedBalance);
                     limit.setUtilisationCurrency(ISOcurrency);

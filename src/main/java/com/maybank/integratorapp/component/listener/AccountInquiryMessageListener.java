@@ -6,6 +6,7 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.coresystem.ProcessAccountInquiry;
+import com.maybank.integratorapp.component.system.messageprocessor.AccountInquiryMessageProcessor;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
@@ -41,6 +42,9 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
     ProcessAccountInquiry processAccountInquiry;
 
     @Autowired
+    AccountInquiryMessageProcessor accountInquiryMessageProcessor;
+
+    @Autowired
     MsCurrencyService msCurrencyService;
 
     @Autowired
@@ -52,6 +56,55 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
     private MessagePublisher publisher;
     @Override
     public void onMessage(Message message) {
+        if (message instanceof TextMessage) {
+            String responseXml = "";
+            String correlationId = "";
+            LogQueueData _data = new LogQueueData();
+            try {
+                System.out.println("Received 1 Message With CorrelationID : "+ message.getJMSCorrelationID());
+                String _message = message.getBody(String.class);
+                System.out.println("===========================xmlRequest=================================");
+                System.out.println(_message);
+                System.out.println("============================================================\n");
+
+                correlationId = message.getJMSCorrelationID();
+                if(dataDTO.findByCorrelationId(correlationId)!= null){
+                    message.acknowledge();
+                    return;
+                }
+
+                Queue sourceQueue = (Queue) message.getJMSDestination();
+                _data.setOrigin("MQ_"+sourceQueue.getQueueName());
+                _data.setMessageUID(new MQUtil().getMessageUID());
+                _data.setReqMessage(_message);
+                _data.setCreated_date(new Date());
+                _data.setCorrelationID(correlationId);
+
+                _data = dataDTO.save(_data);
+
+                message.acknowledge();
+                responseXml = accountInquiryMessageProcessor.processMessage(_message, Math.toIntExact(_data.getId()));
+                System.out.println("===========================xmlResponse=================================");
+                System.out.println(responseXml);
+                System.out.println("============================================================\n");
+                _data.setResMessage(responseXml);
+                _data.setStatus("Success");
+                _data.setDelivery_date(new Date());
+                _data.setUpdated_date(new Date());
+
+            } catch (JMSException e) {
+                System.out.println(e.getMessage());
+            }
+
+            dataDTO.save(_data);
+
+            publisher.PublishMessage(responseXml, correlationId);
+
+        }
+
+    }
+
+    public void oldonMessage(Message message) {
         if (message instanceof TextMessage) {
             String responseXml = "";
             String correlationId = "";

@@ -3,10 +3,11 @@ package com.maybank.integratorapp.model.rest.compositetbr.requestv2;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.maybank.integratorapp.util.DynamicTBRJsonSerializer;
+import com.maybank.integratorapp.util.NewArchTBRJsonSerializer;
 
 import java.util.List;
 
-@JsonSerialize(using = DynamicTBRJsonSerializer.class)
+@JsonSerialize(using = NewArchTBRJsonSerializer.class)
 public class MsgBody {
     @JsonProperty("TBRData")
     private List<Object> tbrData;

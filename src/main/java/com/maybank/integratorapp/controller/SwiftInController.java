@@ -106,6 +106,7 @@ public class SwiftInController {
                             config.getResponse_Queue_Password(),
                             config.getResponse_Queue_Name());
                     publisher.PublishMessage(xml, correlationId);
+                    publisher.close();
                     logger.Log("SwiftIn - Sending Swift Messages","Sending to FTI Queues","END");
 
 
