@@ -154,6 +154,9 @@ public class ProcessCompositeTBR {
             }
             else{
                 // do cross valas logic here
+                logger.Log("Posting - Posting Data to ESB", "Map and Posting Cross Valas Data the data into ESB", "START");
+                logger.Log("Posting - Posting Data to ESB", "Map and Posting Cross Valas Data the data into ESB", "END");
+
             }
 
             // check & post to RTGS
@@ -309,12 +312,13 @@ public class ProcessCompositeTBR {
 
             // check cross valas
             if(finalListPosting.stream().allMatch(x->!x.getPostingCcy().equals("IDR"))){
-                boolean allDifferentCurrencies = finalListPosting.stream()
-                        .map(Posting::getPostingCcy) // Extract currencies
-                        .distinct() // Remove duplicates
-                        .count() == finalListPosting.size(); // Compare with original list size
+                String firstPostingCcy = finalListPosting.get(0).getPostingCcy();
 
-                if (allDifferentCurrencies) {
+                boolean allSameCurrencies = finalListPosting.stream()
+                        .map(PostingExtender::getPostingCcy) // Extract PostingCcy from each object
+                        .allMatch(ccy -> Objects.equals(ccy, firstPostingCcy)) ;// Compare with original list size
+
+                if (!allSameCurrencies) {
                     // Logic for when all postings have different currencies
 
                     Map<String, Integer> currencyCountMap = new HashMap<>();
@@ -327,6 +331,10 @@ public class ProcessCompositeTBR {
 
                         // Set PostingCcyAlias based on the count
                         posting.setPostingCcyAlias("FCY" + count);
+                    });
+                }else{
+                    finalListPosting.forEach(posting -> {
+                        posting.setPostingCcyAlias("FCY");
                     });
                 }
             }else{
@@ -432,15 +440,15 @@ public class ProcessCompositeTBR {
             // printline
 
             for (PostingGroup group : groupedPostings) {
-                System.out.println("TbrCode: " + group.getTbrCode());
-                System.out.println("MappingType: " + group.getMappingType());
+                logger.Log("Posting - Group Posting Data", "TbrCode: " + group.getTbrCode(), "PROCESS");
+                logger.Log("Posting - Group Posting Data", "MappingType: " + group.getMappingType(), "PROCESS");
 
-                System.out.println("Postings:");
                 for (PostingExtender posting : group.getPostings()) {
-                    System.out.println(" - Sequence: " + posting.getPostingSeqNo() +
+                    logger.Log("Posting - Group Posting Data", " - Sequence: " + posting.getPostingSeqNo() +
                             ", AccountType: " + posting.getAccountTypeAlias() +
                             ", Currency: " + posting.getPostingCcy() +
-                            ", DebitCredit: " + posting.getDebitCreditFlag());
+                            ", DebitCredit: " + posting.getDebitCreditFlag(), "PROCESS");
+
                 }
 
             }
@@ -463,6 +471,7 @@ public class ProcessCompositeTBR {
                 // Get source property name and destination property name from mapping
                 if(mapping.getSourceField() != null && !mapping.getSourceField().isEmpty()){
                     String sourcePropertyName = mapping.getSourceField();
+                    logger.Log("Posting - Map Data to ESB", "Map "+sourcePropertyName+" data into "+destinationPropertyName+" ESB", "PROCESS");
 
                     // Generate method names for the source's getter and the destination's setter
                     String sourceGetterName = "get" + capitalize(sourcePropertyName);
@@ -471,35 +480,48 @@ public class ProcessCompositeTBR {
                     PostingExtender _postingData = new PostingExtender();
                     List<PostingExtender> posting = postings.stream().filter(p ->
                             p.getAccountTypeAlias().equals(mapping.getMappingAccountType())
-                            && p.getPostingCcy().equals(mapping.getMappingCurrency())
+//                            && p.getPostingCcy().equals(mapping.getMappingCurrency())
                             && p.getDebitCreditFlag().equals(mapping.getMappingDebitCredit())
                             ).toList();
+                    logger.Log("Posting - Map Data to ESB", "Map Posting data count : "+posting.stream().count(), "PROCESS");
 
                     // jika multiple debit/credit found
-                    if(posting.stream().count() > 1){
-
-                    }else{
-                        _postingData = posting.get(0);
-                    }
-
-                    Class<?> sourceClass = _postingData.getClass();
-                    Class<?> destinationClass = dynamicClass;
-
-                    Method sourceGetter = sourceClass.getMethod(sourceGetterName);
-//                    Method destinationSetter = destinationClass.getMethod(destinationSetterName, mapping.getDestinationFieldDataType().equals("Integer")?Integer.class:String.class);
-
-                    // Invoke the source getter method to get the value
-                    Object value = sourceGetter.invoke(_postingData);
-
-                    if((mapping.getDestinationFieldDataType() != null && !mapping.getDestinationFieldDataType().isEmpty())){
-                        if(mapping.getDestinationFieldDataType().equals("Integer")){
-                            dynamicClass.getMethod(destinationSetterName, mapping.getDestinationFieldDataType().equals("Integer")?Integer.class:String.class).invoke(instance, Integer.parseInt(value.toString()));
+                    if(posting.stream().count() > 0){
+                        if(posting.stream().count() == 1){
+                            _postingData = posting.get(0);
+                        }else{
+                            _postingData = posting.get(Integer.parseInt( mapping.getMappingPosition())-1);
 
                         }
                     }else{
-                        dynamicClass.getMethod(destinationSetterName, String.class).invoke(instance, value);
+                        _postingData = null;
+                    }
+
+                    if(_postingData!= null){
+                        Class<?> sourceClass = _postingData.getClass();
+                        Class<?> destinationClass = dynamicClass;
+
+                        Method sourceGetter = sourceClass.getMethod(sourceGetterName);
+//                    Method destinationSetter = destinationClass.getMethod(destinationSetterName, mapping.getDestinationFieldDataType().equals("Integer")?Integer.class:String.class);
+
+                        // Invoke the source getter method to get the value
+                        Object value = sourceGetter.invoke(_postingData);
+
+                        if((mapping.getDestinationFieldDataType() != null && !mapping.getDestinationFieldDataType().isEmpty())){
+                            if(mapping.getDestinationFieldDataType().equals("Integer")){
+                                dynamicClass.getMethod(destinationSetterName, mapping.getDestinationFieldDataType().equals("Integer")?Integer.class:String.class).invoke(instance, Integer.parseInt(value.toString()));
+
+                            }
+                        }else{
+                            dynamicClass.getMethod(destinationSetterName, String.class).invoke(instance, value);
+
+                        }
+                    }else{
+                        logger.Log("Posting - Map Data to ESB", "Posting data not found for "+destinationPropertyName, "PROCESS");
+                        dynamicClass.getMethod(destinationSetterName, String.class).invoke(instance, "");
 
                     }
+
 
 
                     // Invoke the destination setter method to set the value
@@ -539,7 +561,7 @@ public class ProcessCompositeTBR {
             PostingExtender posting = group.getPostings().get(i);
 
             if (!posting.getAccountTypeAlias().equals(condition.getAccount_type()) ||
-                    !posting.getPostingCcy().equals(condition.getCurrency_code()) ||
+                    !posting.getPostingCcyAlias().equals(condition.getCurrency_code()) ||
                     !posting.getDebitCreditFlag().equals(condition.getDebit_credit())) {
                 return false;
             }

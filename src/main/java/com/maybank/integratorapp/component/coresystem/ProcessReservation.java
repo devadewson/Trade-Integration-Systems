@@ -108,7 +108,7 @@ public class ProcessReservation {
                 cls001ProductType = msMapClsProductTypeRepository.findDraw001Product(productType, lineOfBusiness,eventCode);
 
             }
-
+            System.out.println("CLS Product Type : " + cls001ProductType);
             List<MsCurrency> currencies = (List<MsCurrency>) msCurrencyRepository.findAll();
             String ISOcurrency = currencies.stream().filter(x->x.getInternalCode().equals(limitCurrency)).findFirst().get().getIsoCode();
 
