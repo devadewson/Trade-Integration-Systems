@@ -164,7 +164,8 @@ public class FacilitiesMessageListener implements CustomMessageListener {
 
                             fac.setStartDate(FormattedNoteDate);
                             fac.setExpiryDate(FormattedExpiryDate);
-                            fac.setCurrency(currencies.stream().filter(x->x.getInternalCode().equals(s.getCurrency())).findFirst().get().getIsoCode());
+                            fac.setCurrency(s.getLoanCurrencyCode());
+//                            fac.setCurrency(currencies.stream().filter(x->x.getInternalCode().equals(s.getCurrency())).findFirst().get().getIsoCode());
                             String balance = s.getPrincipalBalance().split("\\.")[0];
                             String utilizedBalance = s.getCommitmentBalance().split("\\.")[0];
 

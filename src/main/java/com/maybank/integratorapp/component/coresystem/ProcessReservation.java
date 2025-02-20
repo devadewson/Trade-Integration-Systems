@@ -66,6 +66,7 @@ public class ProcessReservation {
             String limitDraw = splittedKey[5];
             DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("ddMMyy");
+            String currencyNumber = msCurrencyRepository.findByIsoCode(currency).getInternalCode();
 
             LocalDate _startDate = LocalDate.parse(startdateRes, inputFormatter);
 //            String startDate = _startDate.format(outputFormatter);
@@ -109,8 +110,8 @@ public class ProcessReservation {
 
             }
             System.out.println("CLS Product Type : " + cls001ProductType);
-            List<MsCurrency> currencies = (List<MsCurrency>) msCurrencyRepository.findAll();
-            String ISOcurrency = currencies.stream().filter(x->x.getInternalCode().equals(limitCurrency)).findFirst().get().getIsoCode();
+//            List<MsCurrency> currencies = (List<MsCurrency>) msCurrencyRepository.findAll();
+//            String ISOcurrency = currencies.stream().filter(x->x.getInternalCode().equals(limitCurrency)).findFirst().get().getIsoCode();
 
             // Request To CLS XL01DRAW001
             soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setAdditionalHeader("");
@@ -134,7 +135,7 @@ public class ProcessReservation {
             soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setCtl2(limitCurrency);
             soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setCtl3(limitBranch);
             soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setCtl4("0000");
-            soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setCurrency("IDR");
+            soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setCurrency(currency);
             soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setDepartement(limitBranch);
             soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setIntstart(startDate);
             soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setMatdate(expiryDate);
@@ -223,7 +224,7 @@ public class ProcessReservation {
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setAmount(exposureAmmount);
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setBatch(limitBranch+"01");
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setBd("");
-                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setCurrency(ISOcurrency);
+                        soapReqXL31.getBody().getXl31().getCmsXl31Request().setCurrency(currency);
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setDepartement(limitBranch);
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setDescription("FTI");
                         soapReqXL31.getBody().getXl31().getCmsXl31Request().setNotenumber(newKeyloanAcc);

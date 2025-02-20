@@ -478,26 +478,54 @@ public class ProcessCompositeTBR {
 
                     // Get Posting Object for mapping
                     PostingExtender _postingData = new PostingExtender();
+
+                    long legCount = postings.stream().filter(p ->
+                            p.getDebitCreditFlag().equals(mapping.getMappingDebitCredit())
+                    ).count();
                     List<PostingExtender> posting = postings.stream().filter(p ->
-                            p.getAccountTypeAlias().equals(mapping.getMappingAccountType())
-//                            && p.getPostingCcy().equals(mapping.getMappingCurrency())
-                            && p.getDebitCreditFlag().equals(mapping.getMappingDebitCredit())
+                            p.getDebitCreditFlag().equals(mapping.getMappingDebitCredit())
                             ).toList();
-                    logger.Log("Posting - Map Data to ESB", "Map Posting data count : "+posting.stream().count(), "PROCESS");
 
-                    // jika multiple debit/credit found
-                    if(posting.stream().count() > 0){
-                        if(posting.stream().count() == 1){
-                            _postingData = posting.get(0);
-                        }else{
-                            _postingData = posting.get(Integer.parseInt( mapping.getMappingPosition())-1);
+                    if(legCount>=Long.parseLong(mapping.getMappingPosition())){
+                        _postingData = posting.get(Integer.parseInt( mapping.getMappingPosition())-1);
 
-                        }
                     }else{
                         _postingData = null;
                     }
 
+
+//                    List<PostingExtender> posting = postings.stream().filter(p ->
+//                            p.getAccountTypeAlias().equals(mapping.getMappingAccountType())
+////                            && p.getPostingCcy().equals(mapping.getMappingCurrency())
+//                            && p.getDebitCreditFlag().equals(mapping.getMappingDebitCredit())
+//                            ).toList();
+//                    logger.Log("Posting - Map Data to ESB", "Map Posting data count : "+posting.stream().count(), "PROCESS");
+//
+//                    // jika multiple debit/credit found
+//                    if(posting.stream().count() > 0){
+//                        if(posting.stream().count() == 1
+//                                && posting.stream().count() > (Integer.parseInt( mapping.getMappingPosition())-1)){
+//                            _postingData = posting.get(0);
+//                        }else if(posting.stream().count() > 1
+//                                && posting.stream().count() > (Integer.parseInt( mapping.getMappingPosition())-1)){
+//                            _postingData = posting.get(Integer.parseInt( mapping.getMappingPosition())-1);
+//
+//                        }else{
+//                            _postingData = null;
+//                        }
+//                    }else{
+//                        _postingData = null;
+//                    }
+
+
                     if(_postingData!= null){
+                        logger.Log("Posting - Map Data to ESB", destinationPropertyName +" mapped to Posting Data :"
+                                +_postingData.getPostingSeqNo()+"|"
+                                +_postingData.getPostingCcyAlias()+"|"
+                                +_postingData.getDebitCreditFlag()+"|"
+                                +_postingData.getAccountTypeAlias()+"|"
+                                , "PROCESS");
+
                         Class<?> sourceClass = _postingData.getClass();
                         Class<?> destinationClass = dynamicClass;
 

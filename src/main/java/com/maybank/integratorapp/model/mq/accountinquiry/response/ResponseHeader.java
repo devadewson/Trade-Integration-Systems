@@ -11,7 +11,7 @@ public class ResponseHeader {
     private String status;
     @JacksonXmlProperty(namespace = "urn:control.services.tiplus2.misys.com",localName = "Details")
     private Details details;
-    @JacksonXmlProperty(namespace = "urn:control.services.tiplus2.misys.com",localName = "CorrelationID")
+    @JacksonXmlProperty(namespace = "urn:control.services.tiplus2.misys.com",localName = "CorrelationId")
     private String correlationID;
     @JacksonXmlProperty(namespace = "urn:control.services.tiplus2.misys.com",localName = "TargetSystem")
     private String targetSystem;

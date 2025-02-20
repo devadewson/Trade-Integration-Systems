@@ -142,7 +142,7 @@ public class FxRateController {
             MsQueueConfig config = queueConfigService.findByServiceName("FxRateFTI");
             if(config != null && config.getEnableStatus() == 1){
                 String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
-                String correlationId = "FXRATEDATA_"+date;
+                String correlationId = "FXRATEDATA_"+date+"_"+MQUtil.generateRandomString(4);
 
                 String api = parameterRepository.findValueByPrmKey("FxRateRequest");
 
@@ -184,10 +184,11 @@ public class FxRateController {
                     dataRecord.setBuyRateSpecific("T");
                     dataRecord.setSellRateSpecific("T");
                     dataRecord.setBaseCurrency(_againstCcy);
+//                    dataRecord.setReciprocal("Y");
                     dataRecord.setCurrency(_baseCcy);
-                    dataRecord.setBuyExchangeRate(item.getAskAllIn());
+                    dataRecord.setBuyExchangeRate(item.getBidAllIn());
 //                    dataRecord.setMidTtRate(item.getBid());
-                    dataRecord.setSellExchangeRate(item.getBidAllIn());
+                    dataRecord.setSellExchangeRate(item.getAskAllIn());
 
                     child.setFxRate(dataRecord);
                     itemRequest.setServiceRequestChild(child);
