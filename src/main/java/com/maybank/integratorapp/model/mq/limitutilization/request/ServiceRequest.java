@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.model.mq.limitutilization.request;
 
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import com.maybank.integratorapp.model.mq.reservationsreversal.request.RequestHeader;
@@ -9,22 +10,13 @@ import com.maybank.integratorapp.model.mq.reservationsreversal.request.Reservati
 public class ServiceRequest {
     @JacksonXmlProperty(localName = "RequestHeader")
     private RequestHeader  requestHeader ;
-    @JacksonXmlProperty(localName = "Exposure")
-    private Exposure exposure ;
 
-    public RequestHeader getRequestHeader() {
-        return requestHeader;
-    }
+    @JacksonXmlElementWrapper(useWrapping = false)
+    @JacksonXmlProperty(localName = "BatchRequest", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
+    private BatchRequest batchRequest;
 
-    public void setRequestHeader(RequestHeader requestHeader) {
-        this.requestHeader = requestHeader;
-    }
-
-    public Exposure getExposure() {
-        return exposure;
-    }
-
-    public void setExposure(Exposure exposure) {
-        this.exposure = exposure;
-    }
+    public RequestHeader getRequestHeader() { return requestHeader; }
+    public void setRequestHeader(RequestHeader value) { this.requestHeader = value; }
+    public BatchRequest getBatchRequest() { return batchRequest; }
+    public void setBatchRequest(BatchRequest value) { this.batchRequest = value; }
 }

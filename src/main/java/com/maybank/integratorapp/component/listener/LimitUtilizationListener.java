@@ -55,8 +55,8 @@ public class LimitUtilizationListener implements CustomMessageListener {
 
             ServiceRequest request = parseRequest(message);
 
-            String accountNo = request.getExposure().getAccountNumber();
-            String utilizationID = request.getExposure().getFacilityExposureIdentifier();
+            String accountNo = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getAccountNumber();
+            String utilizationID = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getFacilityExposureIdentifier();
             String correlationID = request.getRequestHeader().getCorrelationID();
 
             String responseLimit = processLimitUtilization.getLimitUtilization(accountNo,utilizationID,correlationID);

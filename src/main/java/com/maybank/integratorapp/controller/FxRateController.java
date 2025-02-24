@@ -17,6 +17,7 @@ import com.maybank.integratorapp.model.mq.fxrate.response.ServiceRequest;
 import com.maybank.integratorapp.model.mq.fxrate.response.ServiceRequestChild;
 import com.maybank.integratorapp.model.mq.fxratefcc.response.ExchangeRateRecord;
 import com.maybank.integratorapp.model.mq.fxratefcc.response.ExchangeRateRecords;
+import com.maybank.integratorapp.model.mq.fxratespot.response.CurrencySpotRate;
 import com.maybank.integratorapp.model.rest.fxratelist.response.FxRateListData;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.util.MQUtil;
@@ -191,6 +192,113 @@ public class FxRateController {
                     dataRecord.setSellExchangeRate(item.getAskAllIn());
 
                     child.setFxRate(dataRecord);
+                    itemRequest.setServiceRequestChild(child);
+
+                    records.add(itemRequest);
+                }
+
+                XmlMapper xmlMapper = new XmlMapper();
+                // Serialize the object to XML
+                String xml = null;
+                try {
+                    xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+                    xmlMapper.enable(SerializationFeature.INDENT_OUTPUT);
+//                    xmlMapper.enable(ToXmlGenerator.Feature.WRITE_XML_DECLARATION);
+
+                    xml = xmlMapper.writeValueAsString(response);
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+
+
+                // logging
+                _data.setMessageUID(new MQUtil().getMessageUID());
+                _data.setCreated_date(new Date());
+                _data.setCorrelationID(correlationId);
+                _data.setStatus("Success");
+                _data.setDelivery_date(new Date());
+                _data.setUpdated_date(new Date());
+                _data.setResMessage(xml);
+                _data.setDestination(config.getResponse_Queue_Name());
+                _data = dataDTO.save(_data);
+
+                MessagePublisher publisher = new MessagePublisher(
+                        config.getResponse_Queue_Address(),
+                        Integer.parseInt(config.getRequest_Queue_Port()),
+                        config.getResponse_Queue_Manager(),
+                        config.getResponse_Queue_Channel(),
+                        config.getResponse_Queue_Username(),
+                        config.getResponse_Queue_Password(),
+                        config.getResponse_Queue_Name());
+                publisher.PublishMessage(xml, correlationId);
+
+                return new ResponseEntity<>(xml, HttpStatus.OK);
+            }else{
+                return new ResponseEntity<>("Success", HttpStatus.ACCEPTED);
+            }
+
+
+
+        }
+        catch (Exception e){
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping("/SpotRateFTI")
+    public ResponseEntity<String> GetSpotRateFTI(){
+        try{
+
+            MsQueueConfig config = queueConfigService.findByServiceName("FxRateFTI");
+            if(config != null && config.getEnableStatus() == 1){
+                String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+                String correlationId = "SPOTFXRATEDATA_"+date+"_"+MQUtil.generateRandomString(4);
+
+                String api = parameterRepository.findValueByPrmKey("FxRateRequest");
+
+
+                LogQueueData _data = new LogQueueData();
+
+                ProcessFXRate fxRate = new ProcessFXRate();
+                List<FxRateListData> data = fxRate.getAllFxRate(api);
+
+                com.maybank.integratorapp.model.mq.fxratespot.response.ServiceRequest response = new com.maybank.integratorapp.model.mq.fxratespot.response.ServiceRequest();
+                response.getRequestHeader().setCorrelationID(correlationId);
+                response.getRequestHeader().setService("TIBulk");
+                response.getRequestHeader().setOperation("Item");
+                response.getRequestHeader().setTargetSystem("ZONE1");
+                response.getRequestHeader().getCredentials().setName("SUPERVISOR");
+                response.getRequestHeader().setReplyFormat("FULL");
+
+                List<com.maybank.integratorapp.model.mq.fxratespot.response.ItemRequest> records = response.getItemRequest();
+
+                // mapping each FxRateListData into ExchangeRateRecord
+                for (FxRateListData item : data) {
+                    com.maybank.integratorapp.model.mq.fxratespot.response.ItemRequest itemRequest = new com.maybank.integratorapp.model.mq.fxratespot.response.ItemRequest();
+                    com.maybank.integratorapp.model.mq.fxratespot.response.ServiceRequestChild child = new com.maybank.integratorapp.model.mq.fxratespot.response.ServiceRequestChild();
+                    child.getRequestHeader().setCorrelationID(correlationId);
+                    child.getRequestHeader().setService("TI");
+                    child.getRequestHeader().setOperation("CurrencySpotRate");
+                    child.getRequestHeader().setTargetSystem("ZONE1");
+                    child.getRequestHeader().getCredentials().setName("SUPERVISOR");
+                    child.getRequestHeader().setReplyFormat("STATUS");
+                    child.getRequestHeader().setNoOverride("Y");
+
+                    CurrencySpotRate dataRecord = new CurrencySpotRate();
+
+                    String _baseCcy = item.getCcy().split("\\.")[0];
+                    String _againstCcy = item.getCcy().split("\\.")[1];
+
+                    dataRecord.setMaintType("F");
+                    dataRecord.setMaintainedInBackOffice("N");
+                    dataRecord.setBankingEntity("MAYBANKI");
+                    dataRecord.setCurrency(_baseCcy);
+                    dataRecord.setSpotRate(Double.valueOf(item.getBidAllIn()));
+                    dataRecord.setReciprocal("Y");
+                    dataRecord.setInvalidTradingCurrency("N");
+                    dataRecord.setQuotationUnit("2");
+
+                    child.setCurrencySpotRate(dataRecord);
                     itemRequest.setServiceRequestChild(child);
 
                     records.add(itemRequest);
