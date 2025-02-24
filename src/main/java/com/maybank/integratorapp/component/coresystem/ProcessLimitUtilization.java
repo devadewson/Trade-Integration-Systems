@@ -3,6 +3,7 @@ package com.maybank.integratorapp.component.coresystem;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
+import com.maybank.integratorapp.data.service.MsParameterService;
 import com.maybank.integratorapp.model.soap.XL41.request.SoapEnvelope;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -10,6 +11,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -18,6 +20,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 @Component
 public class ProcessLimitUtilization {
+    @Autowired
+    private MsParameterService parameterService;
     private String[] splitKey(String key) {
         String bank = key.substring(0, 2);
         String currency = key.substring(2, 5);
@@ -31,7 +35,8 @@ public class ProcessLimitUtilization {
     }
     public String getLimitUtilization(String AccountNo,String utilizationID, String correlationID) {
 
-        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
+        String soapUrl = parameterService.findValueByPrmKey("XL41Request");
+//        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
 //        String correlationID = "ServiceRequest.getRequestHeader().getCorrelationID();";
         String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
@@ -92,6 +97,10 @@ public class ProcessLimitUtilization {
                 var _resStream = _res.getContent();
                 var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
                 _response = outputResponse;
+                if(_response.contains("Fault")){
+                    System.out.println(_response);
+                    return "failed";
+                }
                 cmsResponseXL41 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.XL41.response.SoapEnvelope.class);
 
                 String xmlResponseXL41 = mapper.writeValueAsString(cmsResponseXL41);

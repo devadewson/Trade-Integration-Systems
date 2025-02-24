@@ -12,6 +12,7 @@ import com.maybank.integratorapp.data.repository.MsFacilityRepository;
 import com.maybank.integratorapp.data.repository.MsFacilityUtilizeRepository;
 import com.maybank.integratorapp.data.repository.MsUtilizeRunningNumberRepository;
 import com.maybank.integratorapp.data.repository.MscompanylimitRepository;
+import com.maybank.integratorapp.data.service.MsParameterService;
 import com.maybank.integratorapp.model.mq.facilities.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.facilities.response.*;
 import com.maybank.integratorapp.model.soap.limit.XLBT.request.AdditionalHeader;
@@ -46,10 +47,12 @@ public class ProcessFacilities {
 
     @Autowired
     ProcessCustomerDetail customerDetail;
-
+    @Autowired
+    private MsParameterService parameterService;
     public ServiceResponse getFacilities(String cifno, Long idcompanyLimit) {
 
-        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
+        String soapUrl = parameterService.findValueByPrmKey("XLBTRequest");
+//        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
         String correlationID = "serviceRequest.getRequestHeader().getCorrelationID();";
         String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());

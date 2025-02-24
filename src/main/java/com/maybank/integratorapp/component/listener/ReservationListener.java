@@ -115,6 +115,8 @@ public class ReservationListener implements CustomMessageListener {
 
             System.out.println("Facility ID: " + facilityId);
 
+            // cek dulu di table referensi transaksinya
+
             // Ambil MsUtilizeRunningNumber berdasarkan facilityId
             MsUtilizeRunningNumber runningNumberEntry = msUtilizeRunningNumberRepository.findByFacilityId(facilityId);
 
@@ -145,6 +147,9 @@ public class ReservationListener implements CustomMessageListener {
             String CMSxl01Draw001Response = processReservation.getReservation(masterReference, newKeyLoanAcc, acctReqXL01, facilityIdentifier,customerRes, transDateRes,startdateRes,expireDateRes
             ,exposureAmmount,currency,limitAmount,reservedAmount,productType,lineOfBusiness,eventCode,facilities,FtiProductCode);
 
+            if(!CMSxl01Draw001Response.equals("sukses")){
+                formattedRunningNumber="-";
+            }
             //set reservation response
             ReservationsResponse reservationsResponse =  new ReservationsResponse();
             reservationsResponse.setFacilityIdentifier(facilityIdentifier);

@@ -10,6 +10,7 @@ import com.maybank.integratorapp.data.entity.MsFacilityUtilize;
 import com.maybank.integratorapp.data.entity.MsMapClsProductType;
 import com.maybank.integratorapp.data.repository.MsCurrencyRepository;
 import com.maybank.integratorapp.data.repository.MsMapClsProductTypeRepository;
+import com.maybank.integratorapp.data.service.MsParameterService;
 import com.maybank.integratorapp.model.mq.reservation.response.ReservationResponseDetails;
 import com.maybank.integratorapp.model.mq.reservation.response.ReservationResponseDetailss;
 import com.maybank.integratorapp.model.mq.reservation.response.ReservationsResponse;
@@ -38,6 +39,8 @@ public class ProcessReservation {
     private MsCurrencyRepository msCurrencyRepository;
     @Autowired
     MsMapClsProductTypeRepository msMapClsProductTypeRepository;
+    @Autowired
+    private MsParameterService parameterService;
     private String[] splitKey(String key) {
         String bank = key.substring(0, 2);
         String currency = key.substring(2, 5);
@@ -53,7 +56,8 @@ public class ProcessReservation {
             , String exposureAmmount, String currency, String limitAmount, String reservedAmount, String productType, String lineOfBusiness, String eventCode, MsFacility facility,String FTIProductCode) {
 
         try{
-            String soapUrl = "http://10.230.83.57:65085/services/CMSService";
+//            String soapUrl = "http://10.230.83.57:65085/services/CMSService";
+            String soapUrl = parameterService.findValueByPrmKey("XL01Request");
             SoapEnvelope soapReqXL01 = new SoapEnvelope();
             String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
             String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
@@ -181,7 +185,13 @@ public class ProcessReservation {
                     var _resStream = _res.getContent();
                     var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
                     _response = outputResponse;
+                    if(_response.contains("Fault")){
+                        System.out.println(_response);
+                        return "failed";
+                    }
                     cmsResponseXL01 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.XL01.responseComplete.SoapEnvelope.class);
+
+
 
                     String xmlResponseXL01 = mapper.writeValueAsString(cmsResponseXL01);
                     System.out.println(xmlResponseXL01);
@@ -245,7 +255,7 @@ public class ProcessReservation {
                         } catch (JsonProcessingException e) {
                             throw new RuntimeException(e);
                         }
-
+                        soapUrl = parameterService.findValueByPrmKey("XL31Request");
                         com.maybank.integratorapp.model.soap.XL31.response.SoapEnvelope cmsResponseXL31 = null;
                         try (CloseableHttpClient httpClientXL31 = HttpClients.createDefault()) {
                             HttpPost httpPostXL31 = new HttpPost(soapUrl);
@@ -260,6 +270,10 @@ public class ProcessReservation {
                                 var _resStreamXL31 = _resXL31.getContent();
                                 var outputResponseXL31 = new String(_resStreamXL31.readAllBytes(), StandardCharsets.UTF_8);
                                 _responseXL31 = outputResponseXL31;
+                                if(_responseXL31.contains("Fault")){
+                                    System.out.println(_responseXL31);
+                                    return "failed";
+                                }
                                 cmsResponseXL31 = mapperXL31.readValue(_responseXL31, com.maybank.integratorapp.model.soap.XL31.response.SoapEnvelope.class);
                                 String finalstatusCode = cmsResponseXL31.getBody().getXl31Response().getCmsXl31Response().getResponsecode();
                                 if("00".equals(finalstatusCode)){
