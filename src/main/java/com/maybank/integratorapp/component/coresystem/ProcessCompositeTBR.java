@@ -478,19 +478,22 @@ public class ProcessCompositeTBR {
 
                     // Get Posting Object for mapping
                     PostingExtender _postingData = new PostingExtender();
+                    _postingData = null;
 
-                    long legCount = postings.stream().filter(p ->
-                            p.getDebitCreditFlag().equals(mapping.getMappingDebitCredit())
-                    ).count();
                     List<PostingExtender> posting = postings.stream().filter(p ->
                             p.getDebitCreditFlag().equals(mapping.getMappingDebitCredit())
                             ).toList();
+                    long legCount = postings.stream().count();
 
                     if(legCount>=Long.parseLong(mapping.getMappingPosition())){
-                        _postingData = posting.get(Integer.parseInt( mapping.getMappingPosition())-1);
+                        posting = postings.stream().filter(p ->
+                                p.getAccountTypeAlias().equals(mapping.getMappingAccountType())
+                        ).toList();
+                        if(posting.stream().count()>=Long.parseLong(mapping.getMappingPosition())){
+                            _postingData = posting.get(Integer.parseInt( mapping.getMappingPosition())-1);
 
-                    }else{
-                        _postingData = null;
+                        }
+
                     }
 
 

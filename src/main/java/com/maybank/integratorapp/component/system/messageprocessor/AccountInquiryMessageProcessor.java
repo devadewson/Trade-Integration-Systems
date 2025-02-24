@@ -208,6 +208,13 @@ public class AccountInquiryMessageProcessor {
         String balance = res.getMsg().getMsgBody().getAccountInformationResponseData().getAccountData().getcADataRecord().getAvailableBalance();
 //        String formattedBalance = balance.substring(1).replace(".", "");
         String formattedBalance = balance.substring(1);
+        String holdCode = res.getMsg().getMsgBody().getAccountInformationResponseData().getAccountStatus();
+        String cifNo = res.getMsg().getMsgBody().getAccountInformationResponseData().getCifNo();
+        String accountName = res.getMsg().getMsgBody().getAccountInformationResponseData().getAccountName();
+        if(accountName.length()>75){
+            accountName= accountName.substring(0,75);
+        }
+        String infoMessage = "#CIF:"+cifNo+" NAME:"+accountName;
 
         formattedBalance = String.format("%015.2f",Double.parseDouble(formattedBalance));
 
@@ -220,7 +227,7 @@ public class AccountInquiryMessageProcessor {
         availBalResponse.setErrorOrWarning("N");
         availBalResponse.setCheckedInBackOffice("Y");
         availBalResponse.setErrorCode("N");
-        availBalResponse.setErrorMessage("HOLDCODE-" + res.getMsg().getMsgBody().getAccountInformationResponseData().getAccountStatus());
+        availBalResponse.setErrorMessage("HOLDCODE-" + holdCode+infoMessage);
         availBalResponse.setBalance(formattedBalance);
 
         response.setAvailBalResponse(availBalResponse);
