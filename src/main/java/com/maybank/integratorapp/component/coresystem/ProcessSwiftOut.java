@@ -37,7 +37,6 @@ public class ProcessSwiftOut {
             String sftpHost = repo.findValueByPrmKey("SwiftOutSftpAddress");
             String sftpUsername = repo.findValueByPrmKey("SwiftOutSftpUsername");
             String sftpPassword = repo.findValueByPrmKey("SwiftOutSftpPassword");
-            String sftpKey = repo.findValueByPrmKey("SwiftOutSftpKey");
             String sftpPath = repo.findValueByPrmKey("SwiftOutSftpPath");
             String localpath = repo.findValueByPrmKey("SwiftOutLocalPath");
             String additionalPath = "FTI_"+correlationId+"_"+ MQUtil.generateRandomString(4).toUpperCase();
@@ -71,7 +70,7 @@ public class ProcessSwiftOut {
             }
 
             // Transfer all file
-            SftpFileTransfer sftp = new SftpFileTransfer(sftpHost,sftpUsername,sftpPassword,sftpKey,sftpPath);
+            SftpFileTransfer sftp = new SftpFileTransfer(sftpHost,sftpUsername,sftpPassword,sftpPath);
             sftp.putSwiftFile(specificPath,logger);
 
 

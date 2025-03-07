@@ -31,11 +31,10 @@ public class ProcessSwiftIn {
             String sftpHost = repo.findValueByPrmKey("SwiftInSftpAddress");
             String sftpUsername = repo.findValueByPrmKey("SwiftInSftpUsername");
             String sftpPassword = repo.findValueByPrmKey("SwiftInSftpPassword");
-            String sftpKey = repo.findValueByPrmKey("SwiftInSftpKey");
             String sftpPath = repo.findValueByPrmKey("SwiftInSftpPath");
             String localpath = repo.findValueByPrmKey("SwiftInLocalPath");
 
-            SftpFileTransfer sftp = new SftpFileTransfer(sftpHost,sftpUsername,sftpPassword,sftpKey,sftpPath);
+            SftpFileTransfer sftp = new SftpFileTransfer(sftpHost,sftpUsername,sftpPassword,sftpPath);
             List<String> listFileProcessed = sftp.getSwiftFile(localpath,logger);
             Path folderPath = Paths.get(localpath);
 
@@ -103,6 +102,44 @@ public class ProcessSwiftIn {
         catch (Exception e){
 //            e.printStackTrace();
             logger.Log("SwiftIn - Backup Files","File Moved to backup folder","ERROR",e.getMessage());
+        }
+    }
+
+    public void duplicateSwift(LogInterfaceProcessService logger){
+        try {
+
+            // Sftp Config
+            String sftpHost = repo.findValueByPrmKey("TempSwiftInSftpAddress");
+            String sftpUsername = repo.findValueByPrmKey("TempSwiftInSftpUsername");
+            String sftpPassword = repo.findValueByPrmKey("TempSwiftInSftpPassword");
+            String sftpPath = repo.findValueByPrmKey("TempSwiftInSftpPath");
+
+            String BTsftpHost = repo.findValueByPrmKey("BTSwiftInSftpAddress");
+            String BTsftpUsername = repo.findValueByPrmKey("BTSwiftInSftpUsername");
+            String BTsftpPassword = repo.findValueByPrmKey("BTSwiftInSftpPassword");
+            String BTsftpPath = repo.findValueByPrmKey("BTSwiftInSftpPath");
+
+            String FTIsftpHost = repo.findValueByPrmKey("FTISwiftInSftpAddress");
+            String FTIsftpUsername = repo.findValueByPrmKey("FTISwiftInSftpUsername");
+            String FTIsftpPassword = repo.findValueByPrmKey("FTISwiftInSftpPassword");
+            String FTIsftpPath = repo.findValueByPrmKey("FTISwiftInSftpPath");
+
+            SftpFileTransfer sftp = new SftpFileTransfer(sftpHost,sftpUsername,sftpPassword,sftpPath);
+            sftp.forwardSwiftFile(
+                    BTsftpHost,
+                    BTsftpUsername,
+                    BTsftpPassword,
+                    BTsftpPath,
+                    FTIsftpHost,
+                    FTIsftpUsername,
+                    FTIsftpPassword,
+                    FTIsftpPath,
+                    logger
+                    );
+
+        } catch (Exception e) {
+//            e.printStackTrace();
+            logger.Log("SwiftIn - Reading Swift File","Reading swift file from local","ERROR",e.getMessage());
         }
     }
 }

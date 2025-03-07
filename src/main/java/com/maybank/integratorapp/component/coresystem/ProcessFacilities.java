@@ -52,6 +52,7 @@ public class ProcessFacilities {
     public ServiceResponse getFacilities(String cifno, Long idcompanyLimit) {
 
         String soapUrl = parameterService.findValueByPrmKey("XLBTRequest");
+        String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
 //        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
         String correlationID = "serviceRequest.getRequestHeader().getCorrelationID();";
         String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
@@ -59,7 +60,7 @@ public class ProcessFacilities {
 
         SoapEnvelope soapReq = new SoapEnvelope();
         soapReq.getBody().getxLBT().getChannelHeader().setBranchCode("003");
-        soapReq.getBody().getxLBT().getChannelHeader().setChannelID("BT");
+        soapReq.getBody().getxLBT().getChannelHeader().setChannelID(clsChannelId);
         soapReq.getBody().getxLBT().getChannelHeader().setClientSupervisorID("LKE");
         soapReq.getBody().getxLBT().getChannelHeader().setClientUserID("B027950");
         soapReq.getBody().getxLBT().getChannelHeader().setReference("FTI");

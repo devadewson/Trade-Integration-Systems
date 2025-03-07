@@ -59,6 +59,20 @@ public class FxRateController {
                 List<ExchangeRateRecord> records = response.getExchangeRateRecord();
                 String updateDate = new SimpleDateFormat("dd-MMM-yyyy").format(new Date());
 
+                // add idr to idr 1-1
+                ExchangeRateRecord dataRecordIDR = new ExchangeRateRecord();
+                dataRecordIDR.setBaseISOCode("IDR");
+                dataRecordIDR.setIsoCode("IDR");
+                dataRecordIDR.setPatyVal("1");
+                dataRecordIDR.setBankAbbvName("MAYBANKID");
+                dataRecordIDR.setBuyTtRate("1");
+                dataRecordIDR.setMidTtRate("1");
+                dataRecordIDR.setSellTtRate("1");
+                dataRecordIDR.setUpdateDate(updateDate);
+                dataRecordIDR.setStartValueDate(updateDate);
+                dataRecordIDR.setEndValueDate(updateDate);
+                records.add(dataRecordIDR);
+
                 // mapping each FxRateListData into ExchangeRateRecord
                 for (FxRateListData item : data) {
                     ExchangeRateRecord dataRecord = new ExchangeRateRecord();
@@ -99,7 +113,7 @@ public class FxRateController {
                 }
 
                 String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
-                String correlationId = "FXRATEDATA_"+date;
+                String correlationId = "FCC_FXRATEDATA_"+date+"_"+MQUtil.generateRandomString(4);
 
                 // logging
                 _data.setMessageUID(new MQUtil().getMessageUID());
@@ -110,7 +124,7 @@ public class FxRateController {
                 _data.setUpdated_date(new Date());
                 _data.setResMessage(xml);
                 _data.setDestination(config.getResponse_Queue_Name());
-                _data = dataDTO.save(_data);
+//                _data = dataDTO.save(_data);
 
                 MessagePublisher publisher = new MessagePublisher(
                         config.getResponse_Queue_Address(),
@@ -123,7 +137,7 @@ public class FxRateController {
                 publisher.PublishMessage(xml, correlationId);
                 publisher.close();
 
-                return new ResponseEntity<>(xml, HttpStatus.OK);
+                return new ResponseEntity<>(correlationId, HttpStatus.OK);
             }else{
                 return new ResponseEntity<>("Success", HttpStatus.ACCEPTED);
             }
@@ -143,7 +157,7 @@ public class FxRateController {
             MsQueueConfig config = queueConfigService.findByServiceName("FxRateFTI");
             if(config != null && config.getEnableStatus() == 1){
                 String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
-                String correlationId = "FXRATEDATA_"+date+"_"+MQUtil.generateRandomString(4);
+                String correlationId = "FTI_FXRATEDATA_"+date+"_"+MQUtil.generateRandomString(4);
 
                 String api = parameterRepository.findValueByPrmKey("FxRateRequest");
 
@@ -220,7 +234,7 @@ public class FxRateController {
                 _data.setUpdated_date(new Date());
                 _data.setResMessage(xml);
                 _data.setDestination(config.getResponse_Queue_Name());
-                _data = dataDTO.save(_data);
+//                _data = dataDTO.save(_data);
 
                 MessagePublisher publisher = new MessagePublisher(
                         config.getResponse_Queue_Address(),
@@ -231,8 +245,9 @@ public class FxRateController {
                         config.getResponse_Queue_Password(),
                         config.getResponse_Queue_Name());
                 publisher.PublishMessage(xml, correlationId);
+                publisher.close();
 
-                return new ResponseEntity<>(xml, HttpStatus.OK);
+                return new ResponseEntity<>(correlationId, HttpStatus.OK);
             }else{
                 return new ResponseEntity<>("Success", HttpStatus.ACCEPTED);
             }
@@ -252,7 +267,7 @@ public class FxRateController {
             MsQueueConfig config = queueConfigService.findByServiceName("FxRateFTI");
             if(config != null && config.getEnableStatus() == 1){
                 String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
-                String correlationId = "SPOTFXRATEDATA_"+date+"_"+MQUtil.generateRandomString(4);
+                String correlationId = "FTI_SPOTFXRATEDATA_"+date+"_"+MQUtil.generateRandomString(4);
 
                 String api = parameterRepository.findValueByPrmKey("FxRateRequest");
 
@@ -327,7 +342,7 @@ public class FxRateController {
                 _data.setUpdated_date(new Date());
                 _data.setResMessage(xml);
                 _data.setDestination(config.getResponse_Queue_Name());
-                _data = dataDTO.save(_data);
+//                _data = dataDTO.save(_data);
 
                 MessagePublisher publisher = new MessagePublisher(
                         config.getResponse_Queue_Address(),
@@ -338,8 +353,9 @@ public class FxRateController {
                         config.getResponse_Queue_Password(),
                         config.getResponse_Queue_Name());
                 publisher.PublishMessage(xml, correlationId);
+                publisher.close();
 
-                return new ResponseEntity<>(xml, HttpStatus.OK);
+                return new ResponseEntity<>(correlationId, HttpStatus.OK);
             }else{
                 return new ResponseEntity<>("Success", HttpStatus.ACCEPTED);
             }

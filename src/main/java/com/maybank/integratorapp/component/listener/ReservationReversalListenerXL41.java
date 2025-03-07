@@ -75,7 +75,6 @@ public class ReservationReversalListenerXL41 implements CustomMessageListener {
 
             XmlMapper xmlMapper = new XmlMapper();
             xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-            String responseXml = xmlMapper.writeValueAsString(response);
 
             response.getResponseHeader().setCorrelationID(request.getRequestHeader().getCorrelationID());
             response.getResponseHeader().setService(request.getRequestHeader().getService());
@@ -84,14 +83,19 @@ public class ReservationReversalListenerXL41 implements CustomMessageListener {
             response.getResponseHeader().setTargetSystem(request.getRequestHeader().getSourceSystem());
             response.getResponseHeader().setStatus("SUCCEEDED");
 
+            String responseXml = xmlMapper.writeValueAsString(response);
+
             System.out.println(responseXml);
-            publisher.PublishMessage(responseXml, message.getJMSCorrelationID());
 
             logData.setStatus("Success");
             logData.setDelivery_date(new Date());
             logData.setUpdated_date(new Date());
             logData.setResMessage(responseXml);
             dataDTO.save(logData);
+
+            publisher.PublishMessage(responseXml, message.getJMSCorrelationID());
+
+
 
         } catch (JMSException | JsonProcessingException e) {
             handleException(e, logData);

@@ -215,6 +215,7 @@ public class AccountInquiryMessageProcessor {
             accountName= accountName.substring(0,75);
         }
         String infoMessage = "#CIF:"+cifNo+" NAME:"+accountName;
+//        String infoMessage = "";
 
         formattedBalance = String.format("%015.2f",Double.parseDouble(formattedBalance));
 

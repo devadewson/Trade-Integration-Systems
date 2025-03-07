@@ -102,7 +102,7 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
                 Details detailsResponse = new Details();
                 detailsResponse.setError("GCIF Is Empty");
                 response.getResponseHeader().setDetails(detailsResponse);
-                response.getResponseHeader().setStatus("ERROR");
+                response.getResponseHeader().setStatus("FAILED");
 
             }else{
                 String tagCustomer = request.getCustomerSearchRequest().getIncludeCustomers();
@@ -126,7 +126,7 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
                     Details detailsResponse = new Details();
                     detailsResponse.setError("Please Check Only One, Bank=Y or Corporate=Y");
                     response.getResponseHeader().setDetails(detailsResponse);
-                    response.getResponseHeader().setStatus("ERROR");
+                    response.getResponseHeader().setStatus("FAILED");
                 }
             }
 

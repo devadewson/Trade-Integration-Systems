@@ -36,6 +36,7 @@ public class ProcessLimitUtilization {
     public String getLimitUtilization(String AccountNo,String utilizationID, String correlationID) {
 
         String soapUrl = parameterService.findValueByPrmKey("XL41Request");
+        String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
 //        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
 //        String correlationID = "ServiceRequest.getRequestHeader().getCorrelationID();";
         String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
@@ -52,7 +53,7 @@ public class ProcessLimitUtilization {
 
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setAdditionalHeader("");
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setBranchCode("003");
-        soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setChannelID("BT");
+        soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setChannelID(clsChannelId);
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setClientUserID("7755");
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setReference(correlationID);
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setTransactionDate(date);

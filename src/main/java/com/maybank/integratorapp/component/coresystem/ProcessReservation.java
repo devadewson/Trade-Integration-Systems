@@ -58,6 +58,7 @@ public class ProcessReservation {
         try{
 //            String soapUrl = "http://10.230.83.57:65085/services/CMSService";
             String soapUrl = parameterService.findValueByPrmKey("XL01Request");
+            String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
             SoapEnvelope soapReqXL01 = new SoapEnvelope();
             String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
             String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
@@ -120,7 +121,7 @@ public class ProcessReservation {
             // Request To CLS XL01DRAW001
             soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setAdditionalHeader("");
             soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setBranchCode("003");
-            soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setChannelID("BT");
+            soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setChannelID(clsChannelId);
             soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setClientSupervisorID("7766");
             soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setClientUserID("7755");
             soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setReference(referenceId);
@@ -223,7 +224,7 @@ public class ProcessReservation {
 
                         soapReqXL31.getBody().getXl31().getChannelHeader().setAdditionalHeader("");
                         soapReqXL31.getBody().getXl31().getChannelHeader().setBranchCode("003");
-                        soapReqXL31.getBody().getXl31().getChannelHeader().setChannelID("BT");
+                        soapReqXL31.getBody().getXl31().getChannelHeader().setChannelID(clsChannelId);
                         soapReqXL31.getBody().getXl31().getChannelHeader().setClientSupervisorID("7766");
                         soapReqXL31.getBody().getXl31().getChannelHeader().setClientUserID("7755");
                         soapReqXL31.getBody().getXl31().getChannelHeader().setReference(referenceId);

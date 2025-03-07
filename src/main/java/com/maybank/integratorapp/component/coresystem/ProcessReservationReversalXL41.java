@@ -37,7 +37,7 @@ public class ProcessReservationReversalXL41 {
         SoapEnvelope soapReqXL41 = new SoapEnvelope();
         soapReqXL41.getBody().getXl41().getChannelHeader().setAdditionalHeader("");
         soapReqXL41.getBody().getXl41().getChannelHeader().setBranchCode("003");
-        soapReqXL41.getBody().getXl41().getChannelHeader().setChannelID("BT");
+        soapReqXL41.getBody().getXl41().getChannelHeader().setChannelID("FTI");
         soapReqXL41.getBody().getXl41().getChannelHeader().setClientSupervisorID("LKE");
         soapReqXL41.getBody().getXl41().getChannelHeader().setClientUserID("B027950");
         soapReqXL41.getBody().getXl41().getChannelHeader().setReference("L902795000");
@@ -125,15 +125,16 @@ public class ProcessReservationReversalXL41 {
         List<MsCurrency> currencies = (List<MsCurrency>) msCurrencyRepository.findAll();
         String ISOcurrency = currencies.stream().filter(x->x.getInternalCode().equals(limitCurrency)).findFirst().get().getIsoCode();
 
-
-        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
+        String soapUrl = parameterService.findValueByPrmKey("XL41Request");
+        String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
+//        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
         String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
 
         SoapEnvelope soapReqXL41 = new SoapEnvelope();
         soapReqXL41.getBody().getXl41().getChannelHeader().setAdditionalHeader("");
         soapReqXL41.getBody().getXl41().getChannelHeader().setBranchCode("003");
-        soapReqXL41.getBody().getXl41().getChannelHeader().setChannelID("BT");
+        soapReqXL41.getBody().getXl41().getChannelHeader().setChannelID(clsChannelId);
         soapReqXL41.getBody().getXl41().getChannelHeader().setClientSupervisorID("7766");
         soapReqXL41.getBody().getXl41().getChannelHeader().setClientUserID("7755");
         soapReqXL41.getBody().getXl41().getChannelHeader().setReference(referenceId);

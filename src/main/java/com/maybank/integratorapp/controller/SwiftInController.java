@@ -130,4 +130,28 @@ public class SwiftInController {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    @PostMapping("/DuplicateSwiftIn")
+    public ResponseEntity<String> DuplicateSwiftIn(){
+        try{
+            LogQueueData _data = new LogQueueData();
+            _data.setMessageUID(new MQUtil().getMessageUID());
+            _data.setOrigin("Integrator Scheduler");
+            _data.setCreated_date(new Date());
+            dataDTO.save(_data);
+            logger.SetLogParent(_data.getId());
+            logger.Log("Duplicator - SwiftIn Duplicator Scheduler","Start","START");
+
+            swiftIn.duplicateSwift(logger);
+            logger.Log("Duplicator - SwiftIn Duplicator Scheduler","End","END");
+
+
+        return new ResponseEntity<>("Duplicate SwiftIn Success", HttpStatus.OK);
+
+
+        }
+        catch (Exception e){
+            logger.Log("SwiftIn - SwiftIn Scheduler","Error","ERROR",e.getMessage());
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

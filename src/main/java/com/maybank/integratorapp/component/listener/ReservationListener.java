@@ -149,6 +149,7 @@ public class ReservationListener implements CustomMessageListener {
 
             if(!CMSxl01Draw001Response.equals("sukses")){
                 formattedRunningNumber="-";
+                newKeyLoanAcc="-";
             }
             //set reservation response
             ReservationsResponse reservationsResponse =  new ReservationsResponse();
@@ -188,6 +189,12 @@ public class ReservationListener implements CustomMessageListener {
             ResponseHeader responseHeader = new ResponseHeader();
 
             setInitialResponseHeader(responseHeader, request);
+            if(formattedRunningNumber.equals("-")){
+                responseHeader.setStatus("FAILED");
+                Details _details = new Details();
+                _details.setError("CLS - Failed to get Reservation Sequence");
+                responseHeader.setDetails(_details);
+            }
 
             response.setReservationsResponse(reservationsResponse);
             response.setResponseHeader(responseHeader);

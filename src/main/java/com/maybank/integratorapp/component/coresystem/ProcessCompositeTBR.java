@@ -139,6 +139,8 @@ public class ProcessCompositeTBR {
         logger.Log("Posting - Group Posting Data","Group posting into pair of debit credit","END");
         // condition check if there is cross valas
 
+        // remove the 999 vs 07 posting
+
 
         // post to TBR
         for (PostingGroup postingGroup:finalData) {
@@ -206,7 +208,8 @@ public class ProcessCompositeTBR {
 
 
             // do the field-value mapping
-            instance = mapFieldTBR(instance,dynamicClass,postings,fieldsList);
+//            instance = mapFieldTBR(instance,dynamicClass,postings,fieldsList);
+            instance = mapFieldTBRNew(instance,dynamicClass,postings,fieldsList);
 
 //            dynamicClass.getMethod("setSourceAccountNo", String.class).invoke(instance, "1002031");
 //            String sourceAccountNo = (String) dynamicClass.getMethod("getSourceAccountNo").invoke(instance);
@@ -436,16 +439,40 @@ public class ProcessCompositeTBR {
                 }
             }
 
+            //check mdmc flag
+            for (PostingGroup group : groupedPostings) {
+                long debitCount = group.getPostings().stream().filter(x->x.getDebitCreditFlag().equals("D")).count();
+                long creditCount = group.getPostings().stream().filter(x->x.getDebitCreditFlag().equals("C")).count();
+
+                if(debitCount> 1 || creditCount>1)
+                    group.setFlagMdmc("Y");
+                else
+                    group.setFlagMdmc("N");
+            }
 
             // printline
+//            List<PostingGroup> filteredList = groupedPostings;
+//            for (PostingGroup group : groupedPostings) {
+//
+//                for (PostingExtender posting : group.getPostings()) {
+//                    if(posting.getBackOfficeAccountNo().startsWith("999")){
+//                        groupedPostings.remove(group);
+//                        break;
+//                    }
+//
+//                }
+//
+//            }
 
             for (PostingGroup group : groupedPostings) {
                 logger.Log("Posting - Group Posting Data", "TbrCode: " + group.getTbrCode(), "PROCESS");
                 logger.Log("Posting - Group Posting Data", "MappingType: " + group.getMappingType(), "PROCESS");
+                logger.Log("Posting - Group Posting Data", "MDMC: " + group.getFlagMdmc(), "PROCESS");
 
                 for (PostingExtender posting : group.getPostings()) {
                     logger.Log("Posting - Group Posting Data", " - Sequence: " + posting.getPostingSeqNo() +
-                            ", AccountType: " + posting.getAccountTypeAlias() +
+                            ", Account: " + posting.getBackOfficeAccountNo() +
+                            ", Type: " + posting.getAccountTypeAlias() +
                             ", Currency: " + posting.getPostingCcy() +
                             ", DebitCredit: " + posting.getDebitCreditFlag(), "PROCESS");
 
@@ -459,6 +486,176 @@ public class ProcessCompositeTBR {
 
         return groupedPostings;
 
+    }
+    public Object mapFieldTBRNew(Object instance, Class<?> dynamicClass,List<PostingExtender> postings, List<MsTBRField> listMapping){
+
+        // Get the source's getter method and the destination's setter method
+        try {
+            List<String> mappedFields = new ArrayList<String>();
+            // debit legs
+            int seq = 1;
+
+            List<PostingExtender> filteredPostings = postings.stream()
+                    .filter(x -> x.getDebitCreditFlag().equals("D"))
+                    .toList();
+
+            for (int i = 0; i < filteredPostings.size(); i++) {
+                PostingExtender post = filteredPostings.get(i);
+                // find all fields for this posting
+                int finalSeq = seq;
+                logger.Log("Posting - Map Data to ESB", "Map seq "+String.valueOf(finalSeq), "PROCESS");
+
+                List<MsTBRField> listField = listMapping.stream().filter(x->
+                        x.getMappingDebitCredit().equals(post.getDebitCreditFlag())
+                        && x.getMappingAccountType().equals(post.getAccountTypeAlias())
+                        && x.getMappingPosition().equals(String.valueOf(finalSeq))
+                ).toList();
+                for (MsTBRField field :listField){
+                    String destinationPropertyName = field.getDestinationField();
+                    String destinationSetterName = "set" + capitalize(destinationPropertyName);
+                    String sourcePropertyName = field.getSourceField();
+                    String sourceGetterName = "get" + capitalize(sourcePropertyName);
+                    if(!mappedFields.contains(destinationPropertyName)){
+
+                        mappedFields.add(destinationPropertyName);
+                    }
+                    if(field.getDefaultValue() != null && !field.getDefaultValue().isEmpty()){
+
+                        Object value = field.getDefaultValue();
+                        logger.Log("Posting - Map Data to ESB", "Map default value "+String.valueOf(value)+" into "+destinationPropertyName+" ESB", "PROCESS");
+
+                        if((field.getDestinationFieldDataType() != null && !field.getDestinationFieldDataType().isEmpty())){
+                            if(field.getDestinationFieldDataType().equals("Integer")){
+                                dynamicClass.getMethod(destinationSetterName, field.getDestinationFieldDataType().equals("Integer")?Integer.class:String.class).invoke(instance, Integer.parseInt(value.toString()));
+
+                            }
+                        }else{
+                            dynamicClass.getMethod(destinationSetterName, String.class).invoke(instance, value);
+
+                        }
+                        continue;
+                    }
+                    logger.Log("Posting - Map Data to ESB", "Map "+sourcePropertyName+" data into "+destinationPropertyName+" ESB", "PROCESS");
+                    Class<?> sourceClass = post.getClass();
+                    Class<?> destinationClass = dynamicClass;
+
+                    Method sourceGetter = sourceClass.getMethod(sourceGetterName);
+//                    Method destinationSetter = destinationClass.getMethod(destinationSetterName, mapping.getDestinationFieldDataType().equals("Integer")?Integer.class:String.class);
+
+                    // Invoke the source getter method to get the value
+                    Object value = sourceGetter.invoke(post);
+
+                    if((field.getDestinationFieldDataType() != null && !field.getDestinationFieldDataType().isEmpty())){
+                        if(field.getDestinationFieldDataType().equals("Integer")){
+                            dynamicClass.getMethod(destinationSetterName, field.getDestinationFieldDataType().equals("Integer")?Integer.class:String.class).invoke(instance, Integer.parseInt(value.toString()));
+
+                        }
+                    }else{
+                        dynamicClass.getMethod(destinationSetterName, String.class).invoke(instance, value);
+
+                    }
+
+                }
+                if (i + 1 < filteredPostings.size()) {
+                    PostingExtender nextPost = filteredPostings.get(i + 1);
+                    if (post.getAccountTypeAlias().equals(nextPost.getAccountTypeAlias())) {
+                        seq++;
+                    }
+                }
+
+            }
+            // credit legs
+            seq = 1;
+            filteredPostings = postings.stream()
+                    .filter(x -> x.getDebitCreditFlag().equals("C"))
+                    .toList();
+
+            for (int i = 0; i < filteredPostings.size(); i++) {
+                PostingExtender post = filteredPostings.get(i);
+                // find all fields for this posting
+                int finalSeq = seq;
+                logger.Log("Posting - Map Data to ESB", "Map seq "+String.valueOf(finalSeq), "PROCESS");
+
+                List<MsTBRField> listField = listMapping.stream().filter(x->
+                        x.getMappingDebitCredit().equals(post.getDebitCreditFlag())
+                        && x.getMappingAccountType().equals(post.getAccountTypeAlias())
+                        && x.getMappingPosition().equals(String.valueOf(finalSeq))
+                ).toList();
+                for (MsTBRField field :listField){
+                    String destinationPropertyName = field.getDestinationField();
+                    String destinationSetterName = "set" + capitalize(destinationPropertyName);
+                    String sourcePropertyName = field.getSourceField();
+                    String sourceGetterName = "get" + capitalize(sourcePropertyName);
+                    if(!mappedFields.contains(destinationPropertyName)){
+
+                        mappedFields.add(destinationPropertyName);
+                    }
+
+                    if(field.getDefaultValue() != null && !field.getDefaultValue().isEmpty()){
+
+                        Object value = field.getDefaultValue();
+                        logger.Log("Posting - Map Data to ESB", "Map default value "+String.valueOf(value)+" into "+destinationPropertyName+" ESB", "PROCESS");
+
+                        if((field.getDestinationFieldDataType() != null && !field.getDestinationFieldDataType().isEmpty())){
+                            if(field.getDestinationFieldDataType().equals("Integer")){
+                                dynamicClass.getMethod(destinationSetterName, field.getDestinationFieldDataType().equals("Integer")?Integer.class:String.class).invoke(instance, Integer.parseInt(value.toString()));
+
+                            }
+                        }else{
+                            dynamicClass.getMethod(destinationSetterName, String.class).invoke(instance, value);
+
+                        }
+                        continue;
+                    }
+                    logger.Log("Posting - Map Data to ESB", "Map "+sourcePropertyName+" data into "+destinationPropertyName+" ESB", "PROCESS");
+                    Class<?> sourceClass = post.getClass();
+                    Class<?> destinationClass = dynamicClass;
+
+                    Method sourceGetter = sourceClass.getMethod(sourceGetterName);
+//                    Method destinationSetter = destinationClass.getMethod(destinationSetterName, mapping.getDestinationFieldDataType().equals("Integer")?Integer.class:String.class);
+
+                    // Invoke the source getter method to get the value
+                    Object value = sourceGetter.invoke(post);
+
+                    if((field.getDestinationFieldDataType() != null && !field.getDestinationFieldDataType().isEmpty())){
+                        if(field.getDestinationFieldDataType().equals("Integer")){
+                            dynamicClass.getMethod(destinationSetterName, field.getDestinationFieldDataType().equals("Integer")?Integer.class:String.class).invoke(instance, Integer.parseInt(value.toString()));
+
+                        }
+                    }else{
+                        dynamicClass.getMethod(destinationSetterName, String.class).invoke(instance, value);
+
+                    }
+
+                }
+                if ((i + 1) < filteredPostings.size()) {
+                    PostingExtender nextPost = filteredPostings.get(i + 1);
+                    if (post.getAccountTypeAlias().equals(nextPost.getAccountTypeAlias())) {
+                        seq++;
+                    }
+                }
+
+
+            }
+            // finalize object
+            for (MsTBRField field :listMapping){
+                String destinationPropertyName = field.getDestinationField();
+                String destinationSetterName = "set" + capitalize(destinationPropertyName);
+                if(!mappedFields.contains(destinationPropertyName)){
+                    logger.Log("Posting - Map Data to ESB", "Map empty data into "+destinationPropertyName+" ESB", "PROCESS");
+
+                    dynamicClass.getMethod(destinationSetterName, String.class).invoke(instance, "");
+                }
+            }
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+
+        return instance;
     }
     public Object mapFieldTBR(Object instance, Class<?> dynamicClass,List<PostingExtender> postings, List<MsTBRField> listMapping){
 
@@ -482,7 +679,7 @@ public class ProcessCompositeTBR {
 
                     List<PostingExtender> posting = postings.stream().filter(p ->
                             p.getDebitCreditFlag().equals(mapping.getMappingDebitCredit())
-                            ).toList();
+                    ).toList();
                     long legCount = postings.stream().count();
 
                     if(legCount>=Long.parseLong(mapping.getMappingPosition())){
@@ -523,10 +720,10 @@ public class ProcessCompositeTBR {
 
                     if(_postingData!= null){
                         logger.Log("Posting - Map Data to ESB", destinationPropertyName +" mapped to Posting Data :"
-                                +_postingData.getPostingSeqNo()+"|"
-                                +_postingData.getPostingCcyAlias()+"|"
-                                +_postingData.getDebitCreditFlag()+"|"
-                                +_postingData.getAccountTypeAlias()+"|"
+                                        +_postingData.getPostingSeqNo()+"|"
+                                        +_postingData.getPostingCcyAlias()+"|"
+                                        +_postingData.getDebitCreditFlag()+"|"
+                                        +_postingData.getAccountTypeAlias()+"|"
                                 , "PROCESS");
 
                         Class<?> sourceClass = _postingData.getClass();
@@ -634,6 +831,7 @@ public class ProcessCompositeTBR {
         public String TbrCode;
         public String MappingType;
         public String FlagCrossValas;
+        public String FlagMdmc;
         public List<vw_tbr_mapping> Mappings = new ArrayList<>();
         public List<PostingExtender> Postings = new ArrayList<>();
 
@@ -683,6 +881,14 @@ public class ProcessCompositeTBR {
 
         public void setFlagCrossValas(String flagCrossValas) {
             FlagCrossValas = flagCrossValas;
+        }
+
+        public String getFlagMdmc() {
+            return FlagMdmc;
+        }
+
+        public void setFlagMdmc(String flagMdmc) {
+            FlagMdmc = flagMdmc;
         }
     }
 }
