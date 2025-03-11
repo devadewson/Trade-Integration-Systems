@@ -51,7 +51,7 @@ public class ReservationReversalListenerXL41 implements CustomMessageListener {
 
         try {
             initializeLogData(logData, message);
-            dataDTO.save(logData);
+            logData = dataDTO.save(logData);
             message.acknowledge();
             String correlationId = message.getJMSCorrelationID();
             if(dataDTO.findByCorrelationId(correlationId)!= null){

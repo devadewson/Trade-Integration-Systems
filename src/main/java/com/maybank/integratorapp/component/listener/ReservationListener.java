@@ -83,7 +83,8 @@ public class ReservationListener implements CustomMessageListener {
             String customerRes = request.getReservationsRequest().getReservationRequestDetails().getCustomer();
 //            String customerRes = "0002794045";
             String masterReference= request.getReservationsRequest().getReservationRequestDetails().getMasterReference();
-            String lineOfBusiness = "01";
+//            String lineOfBusiness = "01";
+            String lineOfBusiness = request.getReservationsRequest().getReservationRequestDetails().getCustomerType();
             String FtiProductCode = request.getReservationsRequest().getReservationRequestDetails().getProduct();
             String eventCode = request.getReservationsRequest().getReservationRequestDetails().getEventReference().substring(0, 3);
             String startdateRes = request.getReservationsRequest().getReservationRequestDetails().getTenorStartDate();
@@ -114,6 +115,7 @@ public class ReservationListener implements CustomMessageListener {
 
 
             System.out.println("Facility ID: " + facilityId);
+            System.out.println("LineOfBusiness: " + lineOfBusiness);
 
             // cek dulu di table referensi transaksinya
 
@@ -192,7 +194,7 @@ public class ReservationListener implements CustomMessageListener {
             if(formattedRunningNumber.equals("-")){
                 responseHeader.setStatus("FAILED");
                 Details _details = new Details();
-                _details.setError("CLS - Failed to get Reservation Sequence");
+                _details.setError(CMSxl01Draw001Response);
                 responseHeader.setDetails(_details);
             }
 

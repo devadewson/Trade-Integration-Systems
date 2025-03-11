@@ -61,8 +61,8 @@ public class ProcessFacilities {
         SoapEnvelope soapReq = new SoapEnvelope();
         soapReq.getBody().getxLBT().getChannelHeader().setBranchCode("003");
         soapReq.getBody().getxLBT().getChannelHeader().setChannelID(clsChannelId);
-        soapReq.getBody().getxLBT().getChannelHeader().setClientSupervisorID("LKE");
-        soapReq.getBody().getxLBT().getChannelHeader().setClientUserID("B027950");
+        soapReq.getBody().getxLBT().getChannelHeader().setClientSupervisorID("7766");
+        soapReq.getBody().getxLBT().getChannelHeader().setClientUserID("7755");
         soapReq.getBody().getxLBT().getChannelHeader().setReference("FTI");
         soapReq.getBody().getxLBT().getChannelHeader().setTransactionDate(date);
         soapReq.getBody().getxLBT().getChannelHeader().setTransactionTime(time);
