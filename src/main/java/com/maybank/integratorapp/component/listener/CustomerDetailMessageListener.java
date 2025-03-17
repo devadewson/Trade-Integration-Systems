@@ -68,7 +68,8 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
                     message.acknowledge();
                     return;
                 }
-                System.out.println("Received 1 Message With CorrelationID : " + message.getJMSCorrelationID());
+                System.out.println("Customer Detail Listener Received : "+message.getJMSCorrelationID());
+                System.out.println(message.getBody(String.class));
                 String _message = message.getBody(String.class);
 
                 Queue sourceQueue = (Queue) message.getJMSDestination();

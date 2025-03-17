@@ -50,16 +50,26 @@ public class LimitUtilizationListener implements CustomMessageListener {
 
         try {
             initializeLogData(logData, message);
+            String correlationId = message.getJMSCorrelationID();
+            if(dataDTO.findByCorrelationId(correlationId)!= null){
+                message.acknowledge();
+                return;
+            }
+            System.out.println("Utilization Listener Received : "+message.getJMSCorrelationID());
+            System.out.println(message.getBody(String.class));
             dataDTO.save(logData);
             message.acknowledge();
 
             ServiceRequest request = parseRequest(message);
 
             String accountNo = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getAccountNumber();
-            String utilizationID = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getFacilityExposureIdentifier();
+            String utilizationID = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getReservationIdentifier();
             String correlationID = request.getRequestHeader().getCorrelationID();
+            String masterReference = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getMasterReference();
+            String eventCode = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getEventReference();
 
-            String responseLimit = processLimitUtilization.getLimitUtilization(accountNo,utilizationID,correlationID);
+
+            String responseLimit = processLimitUtilization.getLimitUtilization(accountNo,utilizationID,correlationID,eventCode,masterReference);
 
             logData.setStatus("Success");
             logData.setDelivery_date(new Date());

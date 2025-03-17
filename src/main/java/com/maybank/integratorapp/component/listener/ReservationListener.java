@@ -7,6 +7,7 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.coresystem.ProcessReservation;
+import com.maybank.integratorapp.component.system.messageprocessor.LimitReservationMessageProcessor;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsFacility;
 import com.maybank.integratorapp.data.entity.MsUtilizeRunningNumber;
@@ -48,7 +49,8 @@ public class ReservationListener implements CustomMessageListener {
     @Autowired
     MsFacilityRepository msFacilityRepository;
 
-
+    @Autowired
+    LimitReservationMessageProcessor messageProcessor;
 
     @Autowired
     MsUtilizeRunningNumberRepository msUtilizeRunningNumberRepository;
@@ -73,6 +75,45 @@ public class ReservationListener implements CustomMessageListener {
 
         try {
             initializeLogData(logData, message);
+            String correlationId = message.getJMSCorrelationID();
+            if(dataDTO.findByCorrelationId(correlationId)!= null){
+                message.acknowledge();
+                return;
+            }
+            String _message = message.getBody(String.class);
+            System.out.println("Reservation Listener Received : "+message.getJMSCorrelationID());
+            System.out.println(message.getBody(String.class));
+            logData = dataDTO.save(logData);
+            message.acknowledge();
+
+            String xml = messageProcessor.processMessage(_message,logData.getId());
+            publisher.PublishMessage(xml, message.getJMSCorrelationID());
+
+            logData.setStatus("Success");
+            logData.setDelivery_date(new Date());
+            logData.setUpdated_date(new Date());
+            logData.setResMessage(xml);
+            dataDTO.save(logData);
+
+        } catch (JMSException e) {
+            handleException(e, logData);
+        }
+    }
+    private void processMessageOld(TextMessage message) {
+        ServiceResponse response = new ServiceResponse();
+        LogQueueData logData = new LogQueueData();
+        String newKeyLoanAcc = null;
+        String acctReqXL01 = null;
+
+        try {
+            initializeLogData(logData, message);
+            String correlationId = message.getJMSCorrelationID();
+            if(dataDTO.findByCorrelationId(correlationId)!= null){
+                message.acknowledge();
+                return;
+            }
+            System.out.println("Reservation Listener Received : "+message.getJMSCorrelationID());
+            System.out.println(message.getBody(String.class));
             dataDTO.save(logData);
             message.acknowledge();
 

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class LogInterfaceProcessService {
@@ -20,6 +21,15 @@ public class LogInterfaceProcessService {
     public void SetLogParent(long idLogParent) {
         this.IdLogParent= idLogParent;
     }
+
+    public Long getIdLogParent() {
+        return IdLogParent;
+    }
+
+    public List<LogInterfaceProcess> getLogsByParentId(Long idLogParent) {
+        return repo.findByIdLogParent(idLogParent);
+    }
+
     public void Log(String activity, String description) {
         LogInterfaceProcess logEntry = new LogInterfaceProcess();
         logEntry.setIdLogParent(this.IdLogParent);

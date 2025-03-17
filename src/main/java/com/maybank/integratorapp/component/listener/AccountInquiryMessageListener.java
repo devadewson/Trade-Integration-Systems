@@ -61,11 +61,10 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
             String correlationId = "";
             LogQueueData _data = new LogQueueData();
             try {
-                System.out.println("Received 1 Message With CorrelationID : "+ message.getJMSCorrelationID());
+
                 String _message = message.getBody(String.class);
-                System.out.println("===========================xmlRequest=================================");
-                System.out.println(_message);
-                System.out.println("============================================================\n");
+                System.out.println("Account Inquiry Listener Received : "+message.getJMSCorrelationID());
+                System.out.println(message.getBody(String.class));
 
                 correlationId = message.getJMSCorrelationID();
                 if(dataDTO.findByCorrelationId(correlationId)!= null){

@@ -4,10 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
-import com.maybank.integratorapp.data.entity.MsCurrency;
-import com.maybank.integratorapp.data.entity.MsFacility;
-import com.maybank.integratorapp.data.entity.MsFacilityUtilize;
-import com.maybank.integratorapp.data.entity.MsMapClsProductType;
+import com.maybank.integratorapp.data.entity.*;
+import com.maybank.integratorapp.data.service.FtiTransactionDetailService;
 import com.maybank.integratorapp.data.repository.MsCurrencyRepository;
 import com.maybank.integratorapp.data.repository.MsMapClsProductTypeRepository;
 import com.maybank.integratorapp.data.service.MsParameterService;
@@ -41,6 +39,9 @@ public class ProcessReservation {
     MsMapClsProductTypeRepository msMapClsProductTypeRepository;
     @Autowired
     private MsParameterService parameterService;
+    @Autowired
+    private FtiTransactionDetailService ftiTransactionDetailService;
+
     private String[] splitKey(String key) {
         String bank = key.substring(0, 2);
         String currency = key.substring(2, 5);
@@ -55,6 +56,7 @@ public class ProcessReservation {
     public String getReservation(String referenceId, String newKeyloanAcc, String acctReqXL01, String keyLoanAcc, String customerRes, String transDate, String startdateRes, String expireDateRes
             , String exposureAmmount, String currency, String limitAmount, String reservedAmount, String productType, String lineOfBusiness, String eventCode, MsFacility facility,String FTIProductCode) {
 
+        String responseMessage = "";
         try{
 //            String soapUrl = "http://10.230.83.57:65085/services/CMSService";
             String soapUrl = parameterService.findValueByPrmKey("XL01Request");
@@ -75,7 +77,7 @@ public class ProcessReservation {
 
             LocalDate _startDate = LocalDate.parse(startdateRes, inputFormatter);
 //            String startDate = _startDate.format(outputFormatter);
-            String startDate = "291024";
+            String startDate = "301024";
 
             LocalDate _expiryDate = LocalDate.parse(expireDateRes, inputFormatter);
             String expiryDate = _expiryDate.format(outputFormatter);
@@ -83,7 +85,7 @@ public class ProcessReservation {
 
             LocalDate _transDate = LocalDate.parse(transDate, inputFormatter);
 //            String transactionDate = _transDate.format(outputFormatter);
-            String transactionDate = "291024";
+            String transactionDate = "301024";
 
             String dateNow = new SimpleDateFormat("ddMMyy").format(new Date());
 
@@ -201,6 +203,16 @@ public class ProcessReservation {
                     String responseCode = cmsResponseXL01
                             .getBody().getXl01Draw001Response().
                             getCmsXL01Draw001Response().getResponsecode();
+                    responseMessage = cmsResponseXL01
+                            .getBody().getXl01Draw001Response().
+                            getCmsXL01Draw001Response().getResponseDetail().getAdditionalData().stream().filter(x->x.getParam().equals("general_message")).findFirst().get().getValue();
+                    FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
+                    ftiTransactionDetail.setFtiEvent(eventCode);
+                    ftiTransactionDetail.setCoreSysName("CLS-XL01Draw001");
+                    ftiTransactionDetail.setTransName("Reservation");
+                    ftiTransactionDetail.setCoreSysStatus(responseCode);
+                    ftiTransactionDetail.setCoreSysMessage(responseMessage);
+                    ftiTransactionDetailService.createDetailByMasterRefNo(referenceId,ftiTransactionDetail);
                     //    //Get Note Number From Response XL01
 //                    String noteNumber = "" ;
 //                            if (cmsResponseXL01 != null && cmsResponseXL01.getBody().getXl01Draw001Response()
@@ -277,13 +289,28 @@ public class ProcessReservation {
                                 }
                                 cmsResponseXL31 = mapperXL31.readValue(_responseXL31, com.maybank.integratorapp.model.soap.XL31.response.SoapEnvelope.class);
                                 String finalstatusCode = cmsResponseXL31.getBody().getXl31Response().getCmsXl31Response().getResponsecode();
+                                String finalResponseMessage = cmsResponseXL31
+                                        .getBody().getXl31Response().
+                                        getCmsXl31Response().getResponseDetail().getAdditionalData().stream().filter(x->x.getParam().equals("general_message")).findFirst().get().getValue();
                                 if("00".equals(finalstatusCode)){
                                     //refresh facility so it get new running number
                                     System.out.println("Refreshing Limit : "+limitCif);
                                     processFacilities.refreshFacilities(limitCif,facility.getCompanyLimitId());
 
+                                }else if ("99".equals(finalstatusCode)) {
+                                    System.out.println("CLS-ERROR Response code is 99. Stopping process.");
+                                    return "CLS-ERROR "+finalResponseMessage;
+                                } else {
+                                    System.out.println("CLS-ERROR Unexpected response code: " + responseCode);
+                                    return "CLS-ERROR "+finalResponseMessage;
                                 }
-
+                                ftiTransactionDetail = new FtiTransactionDetail();
+                                ftiTransactionDetail.setFtiEvent(eventCode);
+                                ftiTransactionDetail.setCoreSysName("CLS-XL31");
+                                ftiTransactionDetail.setTransName("Reservation");
+                                ftiTransactionDetail.setCoreSysStatus(finalstatusCode);
+                                ftiTransactionDetail.setCoreSysMessage(finalResponseMessage);
+                                ftiTransactionDetailService.createDetailByMasterRefNo(referenceId,ftiTransactionDetail);
                                 String xmlResponseXL31 = mapperXL31.writeValueAsString(cmsResponseXL31);
                                 System.out.println(xmlResponseXL31);
 
@@ -295,10 +322,11 @@ public class ProcessReservation {
                         return "sukses";
 
                     } else if ("99".equals(responseCode)) {
-                        System.out.println("Response code is 99. Stopping process.");
-                        return "Process stopped due to response code 99.";
+                        System.out.println("CLS-ERROR Response code is 99. Stopping process.");
+                        return "CLS-ERROR "+responseMessage;
                     } else {
-                        System.out.println("Unexpected response code: " + responseCode);
+                        System.out.println("CLS-ERROR Unexpected response code: " + responseCode);
+                        return "CLS-ERROR "+responseMessage;
                     }
                 }
             } catch (Exception e) {
@@ -309,7 +337,8 @@ public class ProcessReservation {
             }
         }
         catch (Exception e) {
-            throw new RuntimeException(e);
+//            throw new RuntimeException(e);
+            System.out.println("Error Reservation "+e.getMessage());
         }
 
         return "Unknown error occurred.";

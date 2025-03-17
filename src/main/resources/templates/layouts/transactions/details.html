@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
+<body>
+<main>
+    <script>
+        $(document).ready(function () {
+            // Handle "View Logs" button click
+            $(".view-logs-btn").click(function () {
+                const transMessageLogId = $(this).data("trans-message-log-id");
+
+                // Fetch logs via AJAX
+                $.get(`/transaction-details/${transMessageLogId}/logs`, function (logs) {
+                    // Clear previous logs
+                    $("#logs-table tbody").empty();
+
+                    // Populate the logs table
+                    logs.forEach(log => {
+                        $("#logs-table tbody").append(`
+                            <tr>
+                                <td>${log.id}</td>
+                                <td>${log.activity}</td>
+                                <td>${log.activityDescription}</td>
+                                <td>${log.activityStatus}</td>
+                                <td>${new Date(log.logDate).toLocaleString()}</td>
+                                <td><pre>${escapeHtml(log.integrationMessage)}</pre></td>
+                            </tr>
+                        `);
+                    });
+
+                    // Show the logs section
+                    $("#logs-section").show();
+                });
+            });
+            // Function to escape HTML content
+            function escapeHtml(unsafe) {
+                if (unsafe == null) {
+                    return "N/A"; // Return a placeholder for null values
+                }
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+        });
+    </script>
+    <h1>Transaction</h1>
+
+    <div class="card mb-3">
+        <h5 class="card-header">Transaction Detail</h5>
+        <div class="card-body">
+            <div class="col-md-4">
+                <form>
+                    <div class="form-group row">
+                        <label class="col-sm-4 col-form-label" for="masterRefNo">Master Ref No</label>
+                        <div class="col-md-8">
+                            <input type="text" readonly="readonly" class="form-control" id="masterRefNo" th:value="${transaction.masterRefNo}">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-4 col-form-label" for="lastEvent">Last Event</label>
+                        <div class="col-md-8">
+                            <input type="text" readonly="readonly" class="form-control" id="lastEvent" th:value="${transaction.lastEvent}">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-4 col-form-label" for="lastStep">Last Step</label>
+                        <div class="col-md-8">
+                            <input type="text" readonly="readonly" class="form-control" id="lastStep" th:value="${transaction.lastStep}">
+
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <hr />
+            <table class="table table-bordered mt-4">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fti Event</th>
+                    <th>Trans Name</th>
+                    <th>Core Sys Name</th>
+                    <th>Core Sys Status</th>
+                    <th>Core Sys Message</th>
+                    <th>Created Date</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="detail : ${details}">
+                    <td th:text="${detail.id}"></td>
+                    <td th:text="${detail.ftiEvent}"></td>
+                    <td th:text="${detail.transName}"></td>
+                    <td th:text="${detail.coreSysName}"></td>
+                    <td th:text="${detail.coreSysStatus}"></td>
+                    <td th:text="${detail.coreSysMessage}"></td>
+                    <td th:text="${detail.createdDate}"></td>
+                    <td>
+                        <button class="btn btn-info btn-sm view-logs-btn" th:data-trans-message-log-id="${detail.transMessageLogId}">View Logs</button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <a href="/transactions" class="btn btn-secondary">Back to List</a>
+        </div>
+    </div>
+    <hr/>
+    <div class="card mb-3">
+        <h5 class="card-header">Transaction Detail Logs</h5>
+        <div class="card-body">
+            <div id="logs-section" class="mt-4" style="display: none;">
+                <h3>Logs</h3>
+                <table id="logs-table" class="table table-bordered">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Activity</th>
+                        <th>Activity Description</th>
+                        <th>Activity Status</th>
+                        <th>Log Date</th>
+                        <th>Integration Message</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <!-- Logs will be dynamically populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+</main>
+<!-- JavaScript to Handle "View Logs" Button Click -->
+
+</body>
+
+</html>

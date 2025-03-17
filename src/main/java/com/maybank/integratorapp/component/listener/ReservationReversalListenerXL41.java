@@ -51,13 +51,16 @@ public class ReservationReversalListenerXL41 implements CustomMessageListener {
 
         try {
             initializeLogData(logData, message);
-            logData = dataDTO.save(logData);
-            message.acknowledge();
+
             String correlationId = message.getJMSCorrelationID();
             if(dataDTO.findByCorrelationId(correlationId)!= null){
                 message.acknowledge();
                 return;
             }
+            System.out.println("Reversal Listener Received : "+message.getJMSCorrelationID());
+            System.out.println(message.getBody(String.class));
+            logData = dataDTO.save(logData);
+            message.acknowledge();
             ServiceRequest request = parseRequest(message);
 
             String customerRes = request.getReservationsReversalRequest().getCustomer();
@@ -66,11 +69,11 @@ public class ReservationReversalListenerXL41 implements CustomMessageListener {
             String facilityIdentifier = request.getReservationsReversalRequest().getFacilityIdentifier();
             String reservationIdentifierNumber  = request.getReservationsReversalRequest().getReservationIdentifier();
             String lineOfBusiness = "01";
-            String eventCode = request.getReservationsReversalRequest().getEventReference().substring(0, 3);
+            String eventCode = request.getReservationsReversalRequest().getEventReference();
 
-            String transDateRes = "291024";
+            String transDateRes = "301024";
 
-            processReservationReversalXL41.getReversalReservation(reservationIdentifierNumber,masterReference,facilityIdentifier,transDateRes);
+            processReservationReversalXL41.getReversalReservation(reservationIdentifierNumber,masterReference,facilityIdentifier,transDateRes,eventCode);
 //            String ReversalResponse = responseReservationReversal(noteNumber);
 
             XmlMapper xmlMapper = new XmlMapper();

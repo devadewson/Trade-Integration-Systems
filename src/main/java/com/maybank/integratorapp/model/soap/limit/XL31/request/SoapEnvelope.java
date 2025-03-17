@@ -1,4 +1,4 @@
-package com.maybank.integratorapp.model.soap.limit.XL31;
+package com.maybank.integratorapp.model.soap.limit.XL31.request;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
@@ -11,8 +11,10 @@ public class SoapEnvelope {
 
     @JacksonXmlProperty(localName = "Header",namespace = "http://schemas.xmlsoap.org/soap/envelope/")
     private String header;
+
     @JacksonXmlProperty(localName = "Body",namespace = "http://schemas.xmlsoap.org/soap/envelope/")
-    private Body body;
+    private Body body ;
+
     public String getHeader() {
         return header;
     }

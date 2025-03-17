@@ -7,6 +7,7 @@ import com.maybank.integratorapp.data.entity.MsCurrency;
 import com.maybank.integratorapp.data.entity.MsFacilityUtilize;
 import com.maybank.integratorapp.data.repository.MsCurrencyRepository;
 import com.maybank.integratorapp.data.repository.MsFacilityUtilizeRepository;
+import com.maybank.integratorapp.data.service.MsParameterService;
 import com.maybank.integratorapp.model.soap.XL31.request.SoapEnvelope;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -26,6 +27,8 @@ import java.util.List;
 public class ProcessReservationReversal {
     @Autowired
     private MsCurrencyRepository msCurrencyRepository;
+    @Autowired
+    private MsParameterService parameterService;
     @Autowired
     private MsFacilityUtilizeRepository msFacilityUtilizeRepository;
     private String[] splitKey(String key) {
@@ -55,7 +58,9 @@ public class ProcessReservationReversal {
         String ISOcurrency = currencies.stream().filter(x->x.getInternalCode().equals(limitCurrency)).findFirst().get().getIsoCode();
 
 
-        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
+//        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
+        String soapUrl = parameterService.findValueByPrmKey("XL41Request");
+        String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
         String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
 
@@ -63,7 +68,7 @@ public class ProcessReservationReversal {
 
         soapReqXL31.getBody().getXl31().getChannelHeader().setAdditionalHeader("");
         soapReqXL31.getBody().getXl31().getChannelHeader().setBranchCode("003");
-        soapReqXL31.getBody().getXl31().getChannelHeader().setChannelID("BT");
+        soapReqXL31.getBody().getXl31().getChannelHeader().setChannelID("FTI");
         soapReqXL31.getBody().getXl31().getChannelHeader().setClientSupervisorID("7766");
         soapReqXL31.getBody().getXl31().getChannelHeader().setClientUserID("7755");
         soapReqXL31.getBody().getXl31().getChannelHeader().setReference(referenceId);
@@ -76,7 +81,7 @@ public class ProcessReservationReversal {
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setBd("");
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setCurrency(ISOcurrency);
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setDepartement(limitBranch);
-        soapReqXL31.getBody().getXl31().getCmsXl31Request().setDescription("FTI-"+referenceId);
+        soapReqXL31.getBody().getXl31().getCmsXl31Request().setDescription("FTI");
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setNotenumber(reservationIdentitifer);
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setQual("0");
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setTran("67");

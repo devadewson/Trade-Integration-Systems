@@ -54,7 +54,7 @@ public class ProcessFacilities {
         String soapUrl = parameterService.findValueByPrmKey("XLBTRequest");
         String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
 //        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
-        String correlationID = "serviceRequest.getRequestHeader().getCorrelationID();";
+        String correlationID = "FTI";
         String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
 

@@ -1,4 +1,4 @@
-package com.maybank.integratorapp.model.soap.limit.XL31;
+package com.maybank.integratorapp.model.soap.limit.XL31.request;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 

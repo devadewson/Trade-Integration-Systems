@@ -133,23 +133,22 @@ public class ProcessCompositeTBR {
 
         String referenceID = data.stream().findFirst().get().getMasterReference();
 
+        // remove the 999 vs 07 posting
+        List<Posting> removed = data.stream().filter(x->x.getBackOfficeAccountNo().startsWith("07") || x.getBackOfficeAccountNo().startsWith("999")).toList();
+        data.removeAll(removed);
+
         // group the posting
         logger.Log("Posting - Group Posting Data","Group posting into pair of debit credit","START");
         List<PostingGroup> finalData = groupPosting(data);
         logger.Log("Posting - Group Posting Data","Group posting into pair of debit credit","END");
         // condition check if there is cross valas
 
-        // remove the 999 vs 07 posting
-
-
-        // post to TBR
         for (PostingGroup postingGroup:finalData) {
 
             // check if its cross valas
             if (postingGroup.getFlagCrossValas().equals("N"))
             {
                 logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "START");
-
                 postTbr(referenceID,postingGroup);
                 logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "END");
 
@@ -449,20 +448,6 @@ public class ProcessCompositeTBR {
                 else
                     group.setFlagMdmc("N");
             }
-
-            // printline
-//            List<PostingGroup> filteredList = groupedPostings;
-//            for (PostingGroup group : groupedPostings) {
-//
-//                for (PostingExtender posting : group.getPostings()) {
-//                    if(posting.getBackOfficeAccountNo().startsWith("999")){
-//                        groupedPostings.remove(group);
-//                        break;
-//                    }
-//
-//                }
-//
-//            }
 
             for (PostingGroup group : groupedPostings) {
                 logger.Log("Posting - Group Posting Data", "TbrCode: " + group.getTbrCode(), "PROCESS");

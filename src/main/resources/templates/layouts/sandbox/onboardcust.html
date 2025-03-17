@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
+<body>
+
+<main>
+    <script>
+        // Function to initialize click listeners on table rows
+        function initializeQueueSelection() {
+            const rows = document.querySelectorAll('.queueRow');
+
+            rows.forEach(row => {
+                row.querySelector('.selectButton').addEventListener('click', () => {
+                    document.getElementById('MQAddress').value = row.querySelector('.queueAddress').innerText;
+                    document.getElementById('MQPort').value = row.querySelector('.queuePort').innerText;
+                    document.getElementById('MQManager').value = row.querySelector('.queueManager').innerText;
+                    document.getElementById('MQChannel').value = row.querySelector('.queueChannel').innerText;
+                    document.getElementById('MQUsername').value = row.querySelector('.queueUsername').innerText;
+                    document.getElementById('MQPassword').value = row.querySelector('.queuePassword').innerText;
+                    document.getElementById('MQQueueName').value = row.querySelector('.queueName').innerText;
+                });
+            });
+        }
+
+        // Call the function to initialize event listeners after the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeQueueSelection();
+        });
+
+    </script>
+    <h1>IBM MQ Sandbox</h1>
+
+    <input type="hidden" id="queueConfigsData" th:value="${queueConfigs}">
+    <div class="card mb-3">
+        <h5 class="card-header">Queue Configurations</h5>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Address</th>
+                    <th>Port</th>
+                    <th>Manager</th>
+                    <th>Channel</th>
+                    <th>Username</th>
+                    <th>Password</th>
+                    <th>Queue Name</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="queue : ${queueConfigs}" class="queueRow">
+                    <td class="serviceName" th:text="${queue.ServiceName}"></td>
+                    <td class="queueAddress" th:text="${queue.Request_Queue_Address}"></td>
+                    <td class="queuePort" th:text="${queue.Request_Queue_Port}"></td>
+                    <td class="queueManager" th:text="${queue.Request_Queue_Manager}"></td>
+                    <td class="queueChannel" th:text="${queue.Request_Queue_Channel}"></td>
+                    <td class="queueUsername" th:text="${queue.Request_Queue_Username}"></td>
+                    <td class="queuePassword" th:text="${queue.Request_Queue_Password}"></td>
+                    <td class="queueName" th:text="${queue.Request_Queue_Name}"></td>
+                    <td>
+                        <button type="button" class="selectButton btn btn-primary">Select</button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <hr/>
+    <div class="card">
+        <h5 class="card-header">Send Message</h5>
+        <div class="card-body">
+
+            <form action="/sendMessage" method="post">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-4">
+                        <label for="MQAddress" class="form-label">MQAddress</label>
+                        <input id="MQAddress" class="form-control" name="MQAddress">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="MQPort" class="form-label">MQPort</label>
+                        <input id="MQPort" class="form-control" name="MQPort">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="MQManager" class="form-label">MQManager</label>
+                        <input id="MQManager" class="form-control" name="MQManager">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="MQChannel" class="form-label">MQChannel</label>
+                        <input id="MQChannel" class="form-control" name="MQChannel">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="MQUsername" class="form-label">MQUsername</label>
+                        <input id="MQUsername" class="form-control" name="MQUsername">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="MQPassword" class="form-label">MQPassword</label>
+                        <input id="MQPassword" class="form-control" name="MQPassword">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="MQQueueName" class="form-label">MQQueueName</label>
+                        <input id="MQQueueName" class="form-control" name="MQQueueName">
+                    </div>
+                </div>
+                <hr />
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-4">
+                        <label for="correlationId" class="form-label">CorrelationId</label>
+                        <input id="correlationId" class="form-control" name="correlationId" required>
+                    </div>
+                </div>
+                <div class="row g-3 mb-3 align-items-center">
+                    <div class="col-md-4">
+                        <label for="message" class="form-label">Message</label>
+                        <textarea  id="message" rows="3"  class="form-control" name="message" required></textarea>
+
+                    </div>
+                </div>
+                <!--                <button type="submit" name="submit" value="button1" class="btn btn-warning" formaction="/queuecheck">Check</button>-->
+
+                <button type="submit" class="btn btn-primary">Send</button>
+            </form>
+        </div>
+
+        <p th:text="${message}"></p>
+    </div>
+
+
+</main>
+</body>
+
+</html>

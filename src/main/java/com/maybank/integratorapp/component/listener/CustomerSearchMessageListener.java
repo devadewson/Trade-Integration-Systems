@@ -82,7 +82,8 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
 
         try {
             initializeLogData(logData, message);
-            System.out.println("Received 1 Message With CorrelationID : " + message.getJMSCorrelationID());
+            System.out.println("Customer Search Listener Received : "+message.getJMSCorrelationID());
+            System.out.println(message.getBody(String.class));
 
             String correlationId = message.getJMSCorrelationID();
             if(dataDTO.findByCorrelationId(correlationId)!= null){

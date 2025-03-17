@@ -7,6 +7,7 @@ import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.coresystem.ProcessFacilities;
+import com.maybank.integratorapp.component.system.messageprocessor.LimitFacilitiesMessageProcessor;
 import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.data.repository.MsCurrencyRepository;
@@ -51,6 +52,9 @@ public class FacilitiesMessageListener implements CustomMessageListener {
     private MessagePublisher publisher;
     @Autowired
     ProcessFacilities processFacilities;
+
+    @Autowired
+    LimitFacilitiesMessageProcessor messageProcessor;
     @Autowired
     private MsCurrencyRepository msCurrencyRepository;
     private void forwardMessage(TextMessage message,String serviceName){
@@ -78,12 +82,9 @@ public class FacilitiesMessageListener implements CustomMessageListener {
             String responseXml = "";
             String correlationId = "";
             try {
-                System.out.println("Received 1 Message With CorrelationID : " + message.getJMSCorrelationID());
+
                 String _message = message.getBody(String.class);
 
-                System.out.println("===========================xmlRequest=================================");
-                System.out.println(_message);
-                System.out.println("============================================================\n");
                 if(((TextMessage) message).getText().contains("<Operation>Reservations</Operation>")){
                     forwardMessage((TextMessage) message,"FacilityReservation");
                     message.acknowledge();
@@ -97,8 +98,66 @@ public class FacilitiesMessageListener implements CustomMessageListener {
                     message.acknowledge();
                     return;
                 }
+                System.out.println("Facility Enquiry Listener Received : "+message.getJMSCorrelationID());
+                System.out.println(_message);
                 correlationId = message.getJMSCorrelationID();
+                if(dataDTO.findByCorrelationId(correlationId)!= null){
+                    message.acknowledge();
+                    return;
+                }
+                Queue sourceQueue = (Queue) message.getJMSDestination();
+                _data.setOrigin("MQ_"+sourceQueue.getQueueName());
+                _data.setMessageUID(new MQUtil().getMessageUID());
+                _data.setReqMessage(_message);
+                _data.setCreated_date(new Date());
+                _data.setCorrelationID(correlationId);
+                _data = dataDTO.save(_data);
+                message.acknowledge();
 
+                String xml = messageProcessor.processMessage(_message,_data.getId());
+                publisher.PublishMessage(xml,message.getJMSCorrelationID());
+
+                _data.setResMessage(xml);
+                _data.setStatus("Success");
+                _data.setDelivery_date(new Date());
+                _data.setUpdated_date(new Date());
+                dataDTO.save(_data);
+
+
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+        }
+    }
+    public void onMessageOld(Message message){
+        if (message instanceof TextMessage){
+            LogQueueData _data = new LogQueueData();
+            String responseXml = "";
+            String correlationId = "";
+            try {
+
+                String _message = message.getBody(String.class);
+
+                if(((TextMessage) message).getText().contains("<Operation>Reservations</Operation>")){
+                    forwardMessage((TextMessage) message,"FacilityReservation");
+                    message.acknowledge();
+                    return;
+                }else if(((TextMessage) message).getText().contains("<Operation>Exposure</Operation>")){
+                    forwardMessage((TextMessage) message,"FacilityUtilization");
+                    message.acknowledge();
+                    return;
+                }else if(((TextMessage) message).getText().contains("<Operation>ReservationsReversal</Operation>")){
+                    forwardMessage((TextMessage) message,"ReservationReversal");
+                    message.acknowledge();
+                    return;
+                }
+                System.out.println("Facility Enquiry Listener Received : "+message.getJMSCorrelationID());
+                System.out.println(_message);
+                correlationId = message.getJMSCorrelationID();
+                if(dataDTO.findByCorrelationId(correlationId)!= null){
+                    message.acknowledge();
+                    return;
+                }
                 Queue sourceQueue = (Queue) message.getJMSDestination();
                 _data.setOrigin("MQ_"+sourceQueue.getQueueName());
                 _data.setMessageUID(new MQUtil().getMessageUID());

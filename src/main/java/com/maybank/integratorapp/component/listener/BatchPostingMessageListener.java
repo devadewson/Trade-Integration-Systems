@@ -19,6 +19,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -45,7 +46,8 @@ public class BatchPostingMessageListener implements CustomMessageListener {
             LogQueueData _data = new LogQueueData();
             String correlationId = "";
             try {
-                System.out.println("Received 1 Message With CorrelationID : "+message.getJMSCorrelationID());
+                System.out.println("Batch Posting Listener Received : "+message.getJMSCorrelationID());
+                System.out.println(message.getBody(String.class));
                 correlationId = message.getJMSCorrelationID();
                 if(dataDTO.findByCorrelationId(correlationId)!= null){
                     message.acknowledge();
@@ -82,7 +84,9 @@ public class BatchPostingMessageListener implements CustomMessageListener {
                 request.getBatchRequest().getServiceRequestChild().forEach(s->
                         _postings.add(s.getPosting())
                         );
-
+                if(_postings.get(0).getDebitCreditFlag().equals("C")){
+                    Collections.reverse(_postings);
+                }
 
 
                 processCompositeTBR.doPosting(_postings,_data.getId());

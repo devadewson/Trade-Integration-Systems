@@ -217,7 +217,7 @@ public class CustomerSearchMessageProcessor {
 
                 try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
                     String responseString = EntityUtils.toString(response.getEntity());
-
+                    logger.Log(ProcessName, "Response ESB Message", "ESB-MESSAGE", responseString);
                     res = objectMapper.readValue(responseString, com.maybank.integratorapp.model.restv2.AccountList.response.MsgWraper.class);
 
                     String gcifNo = request.getCustomerSearchRequest().getCustomerNumber();
@@ -285,6 +285,7 @@ public class CustomerSearchMessageProcessor {
 
                 try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
                     String responseString = EntityUtils.toString(response.getEntity());
+                    logger.Log(ProcessName, "Response ESB Message", "ESB-MESSAGE", responseString);
 
                     res = objectMapper.readValue(responseString, com.maybank.integratorapp.model.restv2.CustomerInformation.response.MsgWraper.class);
                     String gcifNo = request.getCustomerSearchRequest().getCustomerNumber();

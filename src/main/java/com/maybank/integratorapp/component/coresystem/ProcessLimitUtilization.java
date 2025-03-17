@@ -3,6 +3,8 @@ package com.maybank.integratorapp.component.coresystem;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
+import com.maybank.integratorapp.data.entity.FtiTransactionDetail;
+import com.maybank.integratorapp.data.service.FtiTransactionDetailService;
 import com.maybank.integratorapp.data.service.MsParameterService;
 import com.maybank.integratorapp.model.soap.XL41.request.SoapEnvelope;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -22,6 +24,9 @@ import java.util.Date;
 public class ProcessLimitUtilization {
     @Autowired
     private MsParameterService parameterService;
+    @Autowired
+    private FtiTransactionDetailService ftiTransactionDetailService;
+
     private String[] splitKey(String key) {
         String bank = key.substring(0, 2);
         String currency = key.substring(2, 5);
@@ -33,7 +38,7 @@ public class ProcessLimitUtilization {
 
         return new String[]{bank, currency, branchCode, cif, note, draw, seq};
     }
-    public String getLimitUtilization(String AccountNo,String utilizationID, String correlationID) {
+    public String getLimitUtilization(String AccountNo,String utilizationID, String correlationID,String eventCode,String referenceId) {
 
         String soapUrl = parameterService.findValueByPrmKey("XL41Request");
         String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
@@ -97,12 +102,29 @@ public class ProcessLimitUtilization {
                 var _res = response.getEntity();
                 var _resStream = _res.getContent();
                 var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
+
                 _response = outputResponse;
                 if(_response.contains("Fault")){
                     System.out.println(_response);
                     return "failed";
                 }
                 cmsResponseXL41 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.XL41.response.SoapEnvelope.class);
+                String responseCode = cmsResponseXL41
+                        .getBody().getXl41Response().
+                        getCmsXl41Response().getResponsecode();
+                String responseMessage = cmsResponseXL41
+                        .getBody().getXl41Response().
+                        getCmsXl41Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+
+
+                FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
+//                ftiTransactionDetail.setTransMessageLogId(logger.getIdLogParent());
+                ftiTransactionDetail.setFtiEvent(eventCode);
+                ftiTransactionDetail.setCoreSysName("CLS-XL41");
+                ftiTransactionDetail.setTransName("Utilization");
+                ftiTransactionDetail.setCoreSysStatus(responseCode);
+                ftiTransactionDetail.setCoreSysMessage(responseMessage);
+                ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
 
                 String xmlResponseXL41 = mapper.writeValueAsString(cmsResponseXL41);
                 System.out.println(xmlResponseXL41);
