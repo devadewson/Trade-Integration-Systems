@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
+import com.maybank.integratorapp.component.coresystem.ProcessFacilities;
 import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.*;
 import com.maybank.integratorapp.data.service.FtiTransactionDetailService;
@@ -52,6 +53,8 @@ public class LimitReservationMessageProcessor {
     FtiTransactionDetailService ftiTransactionDetailService;
     @Autowired
     FtiTransactionService ftiTransactionService;
+    @Autowired
+    private ProcessFacilities processFacilities;
 
 
     public String processMessage(String message,Long loggerId) {
@@ -204,11 +207,19 @@ public class LimitReservationMessageProcessor {
                             getCmsXL01Draw001Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
 
                     if(xl01responseCode.equals("00")){
+                        processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
+
                         FtiTransaction ftiTransaction = new FtiTransaction();
                         ftiTransaction.setMasterRefNo(masterReference);
                         ftiTransaction.setDrawNumber(formattedRunningNumber);
                         ftiTransaction.setReservationId(newKeyLoanAcc);
                         ftiTransactionService.createOrUpdateFtiTransaction(ftiTransaction);
+                    }else{
+                        formattedRunningNumber="-";
+                        newKeyLoanAcc="-";
+                        // step 5.
+                        mapExternalResponse(xl01responseCode,xl01responseMessage,facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
+
                     }
                 }else{
                     // amend/adjust
@@ -234,7 +245,9 @@ public class LimitReservationMessageProcessor {
                             getCmsXl31Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
 
                     formattedRunningNumber = splitKey(newKeyLoanAcc)[5];
-
+                    if(xl31responseCode.equals("00")) {
+                        processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
+                    }
                     // step 5.
                     mapExternalResponse(xl31responseCode,xl31responseMessage,facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
                 }
@@ -605,7 +618,7 @@ public class LimitReservationMessageProcessor {
         if(!clsResponseCode.equals("00")){
             responseHeader.setStatus("FAILED");
             Details _details = new Details();
-            _details.setError(clsResponseMessage);
+            _details.setError("[CLS ERROR] "+clsResponseMessage);
             responseHeader.setDetails(_details);
         }
 

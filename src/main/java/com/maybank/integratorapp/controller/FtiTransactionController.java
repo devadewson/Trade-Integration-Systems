@@ -1,7 +1,7 @@
 package com.maybank.integratorapp.controller;
 
-import com.maybank.integratorapp.data.entity.LogInterfaceProcess;
-import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
+import com.maybank.integratorapp.data.entity.*;
+import com.maybank.integratorapp.data.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -9,14 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import com.maybank.integratorapp.data.service.FtiTransactionDetailService;
-import com.maybank.integratorapp.data.service.FtiTransactionService;
-import com.maybank.integratorapp.data.entity.FtiTransaction;
-import com.maybank.integratorapp.data.entity.FtiTransactionDetail;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +24,11 @@ public class FtiTransactionController {
     private FtiTransactionDetailService ftiTransactionDetailService;
     @Autowired
     private LogInterfaceProcessService logInterfaceProcessService;
+    @Autowired
+    FtiTransactionPostingService ftiPostingService;
+
+    @Autowired
+    private LogQueueDataService logQueueDataService;
     // Display all FtiTransactions in a grid
     @GetMapping("/transactions")
     public String getAllFtiTransactions(
@@ -79,5 +77,26 @@ public class FtiTransactionController {
     @ResponseBody
     public List<LogInterfaceProcess> getLogsByTransMessageLogId(@PathVariable Long transMessageLogId) {
         return logInterfaceProcessService.getLogsByParentId(transMessageLogId);
+    }
+
+    @GetMapping("/transaction-details/{transMessageLogId}/log-header")
+    @ResponseBody
+    public Optional<LogQueueData> getLogQueueByTransMessageLogId(@PathVariable Long transMessageLogId) {
+        return logQueueDataService.findById(transMessageLogId);
+    }
+
+    @GetMapping("/transaction-details/{transMessageLogId}/postings")
+    public String showPostings(@PathVariable Long transMessageLogId, Model model) {
+        // Fetch the list of postings from the database
+        List<FtiTransactionPosting> postings = ftiPostingService.getAllPostingByHeaderId(transMessageLogId);
+        model.addAttribute("postings", postings);
+        return "layouts/transactions/postings";
+    }
+
+    @PostMapping("/transaction-details/{transMessageLogId}/update-posting-sequence")
+    public String updateSequence(@PathVariable Long transMessageLogId,@RequestParam("postings") List<FtiTransactionPosting> postings) {
+        // Update the sequence numbers in the database
+        ftiPostingService.updatePostingSequence(postings);
+        return "redirect:/transaction-details/" + transMessageLogId + "/postings";
     }
 }

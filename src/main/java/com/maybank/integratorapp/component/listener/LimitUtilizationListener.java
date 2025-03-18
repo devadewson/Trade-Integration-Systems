@@ -6,6 +6,7 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.coresystem.ProcessLimitUtilization;
+import com.maybank.integratorapp.component.system.messageprocessor.LimitUtilizationMessageProcessor;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
@@ -26,6 +27,8 @@ public class LimitUtilizationListener implements CustomMessageListener {
     @Autowired
     ProcessLimitUtilization processLimitUtilization;
     @Autowired
+    LimitUtilizationMessageProcessor messageProcessor;
+    @Autowired
     private LogQueueDataRepository dataDTO;
     @Autowired
     private Environment env;
@@ -44,8 +47,34 @@ public class LimitUtilizationListener implements CustomMessageListener {
             processMessage((TextMessage) message);
         }
     }
-
     private void processMessage(TextMessage message) {
+        LogQueueData logData = new LogQueueData();
+
+        try {
+            initializeLogData(logData, message);
+            String correlationId = message.getJMSCorrelationID();
+            if(dataDTO.findByCorrelationId(correlationId)!= null){
+                message.acknowledge();
+                return;
+            }
+            String _message = message.getBody(String.class);
+            System.out.println("Utilization Listener Received : "+message.getJMSCorrelationID());
+            System.out.println(message.getBody(String.class));
+            logData = dataDTO.save(logData);
+            message.acknowledge();
+
+            String responseLimit = messageProcessor.processMessage(_message,logData.getId());
+
+            logData.setStatus("Success");
+            logData.setDelivery_date(new Date());
+            logData.setUpdated_date(new Date());
+
+        } catch (JMSException e) {
+            handleException(e, logData);
+        }
+    }
+
+    private void processMessageOld(TextMessage message) {
         LogQueueData logData = new LogQueueData();
 
         try {

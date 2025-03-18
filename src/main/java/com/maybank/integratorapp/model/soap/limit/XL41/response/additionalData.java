@@ -1,4 +1,4 @@
-package com.maybank.integratorapp.model.soap.XL41.response;
+package com.maybank.integratorapp.model.soap.limit.XL41.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;

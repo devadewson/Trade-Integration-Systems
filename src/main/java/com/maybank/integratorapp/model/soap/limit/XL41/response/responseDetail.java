@@ -1,4 +1,4 @@
-package com.maybank.integratorapp.model.soap.XL41.response;
+package com.maybank.integratorapp.model.soap.limit.XL41.response;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
@@ -8,7 +8,7 @@ public class responseDetail {
 
     @JacksonXmlElementWrapper(useWrapping = false)
     @JacksonXmlProperty(localName = "additionalData")
-    private List<com.maybank.integratorapp.model.soap.XL41.response.additionalData> additionalData;
+    private List<additionalData> additionalData;
 
     @JacksonXmlProperty(localName = "response_data")
     private String responseData;
@@ -17,11 +17,11 @@ public class responseDetail {
     private String errormessage;
 
 
-    public List<com.maybank.integratorapp.model.soap.XL41.response.additionalData> getAdditionalData() {
+    public List<com.maybank.integratorapp.model.soap.limit.XL41.response.additionalData> getAdditionalData() {
         return additionalData;
     }
 
-    public void setAdditionalData(List<com.maybank.integratorapp.model.soap.XL41.response.additionalData> additionalData) {
+    public void setAdditionalData(List<com.maybank.integratorapp.model.soap.limit.XL41.response.additionalData> additionalData) {
         this.additionalData = additionalData;
     }
 

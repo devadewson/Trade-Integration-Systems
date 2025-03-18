@@ -10,7 +10,7 @@ import com.maybank.integratorapp.data.repository.MsCurrencyRepository;
 import com.maybank.integratorapp.data.repository.MsFacilityUtilizeRepository;
 import com.maybank.integratorapp.data.service.FtiTransactionDetailService;
 import com.maybank.integratorapp.data.service.MsParameterService;
-import com.maybank.integratorapp.model.soap.XL41.request.SoapEnvelope;
+import com.maybank.integratorapp.model.soap.limit.XL41.request.SoapEnvelope;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
@@ -73,7 +73,7 @@ public class ProcessReservationReversalXL41 {
             throw new RuntimeException(e);
         }
 
-        com.maybank.integratorapp.model.soap.XL41.response.SoapEnvelope cmsResponseXL41 = null;
+        com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope cmsResponseXL41 = null;
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPost httpPost = new HttpPost(soapUrl);
             httpPost.setHeader("Content-Type", "text/xml");
@@ -87,7 +87,7 @@ public class ProcessReservationReversalXL41 {
                 var _resStreamXL41 = _resXL41.getContent();
                 var outputResponseXL41 = new String(_resStreamXL41.readAllBytes(), StandardCharsets.UTF_8);
                 _responseXL41 = outputResponseXL41;
-                cmsResponseXL41 = mapperXL41.readValue(_responseXL41, com.maybank.integratorapp.model.soap.XL41.response.SoapEnvelope.class);
+                cmsResponseXL41 = mapperXL41.readValue(_responseXL41, com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope.class);
 
                 String xmlResponseXL31 = mapperXL41.writeValueAsString(cmsResponseXL41);
                 System.out.println(xmlResponseXL31);
@@ -170,7 +170,7 @@ public class ProcessReservationReversalXL41 {
             throw new RuntimeException(e);
         }
 
-        com.maybank.integratorapp.model.soap.XL41.response.SoapEnvelope cmsResponseXL41 = null;
+        com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope cmsResponseXL41 = null;
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPost httpPost = new HttpPost(soapUrl);
             httpPost.setHeader("Content-Type", "text/xml");
@@ -184,7 +184,7 @@ public class ProcessReservationReversalXL41 {
                 var _resStreamXL41 = _resXL41.getContent();
                 var outputResponseXL41 = new String(_resStreamXL41.readAllBytes(), StandardCharsets.UTF_8);
                 _responseXL41 = outputResponseXL41;
-                cmsResponseXL41 = mapperXL41.readValue(_responseXL41, com.maybank.integratorapp.model.soap.XL41.response.SoapEnvelope.class);
+                cmsResponseXL41 = mapperXL41.readValue(_responseXL41, com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope.class);
 //                String finalResponseCode = cmsResponseXL41.getBody().getXl41Response().getCmsXl41Response().getResponsecode();
                 String responseCode = cmsResponseXL41
                         .getBody().getXl41Response().

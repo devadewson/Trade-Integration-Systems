@@ -6,7 +6,7 @@ import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.maybank.integratorapp.data.entity.FtiTransactionDetail;
 import com.maybank.integratorapp.data.service.FtiTransactionDetailService;
 import com.maybank.integratorapp.data.service.MsParameterService;
-import com.maybank.integratorapp.model.soap.XL41.request.SoapEnvelope;
+import com.maybank.integratorapp.model.soap.limit.XL41.request.SoapEnvelope;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
@@ -88,7 +88,7 @@ public class ProcessLimitUtilization {
             throw new RuntimeException(e);
         }
 
-        com.maybank.integratorapp.model.soap.XL41.response.SoapEnvelope cmsResponseXL41 = null;
+        com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope cmsResponseXL41 = null;
 
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPost httpPost = new HttpPost(soapUrl);
@@ -108,7 +108,7 @@ public class ProcessLimitUtilization {
                     System.out.println(_response);
                     return "failed";
                 }
-                cmsResponseXL41 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.XL41.response.SoapEnvelope.class);
+                cmsResponseXL41 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope.class);
                 String responseCode = cmsResponseXL41
                         .getBody().getXl41Response().
                         getCmsXl41Response().getResponsecode();
