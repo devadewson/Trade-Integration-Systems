@@ -10,8 +10,9 @@ import com.maybank.integratorapp.data.service.FtiTransactionDetailService;
 import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
 import com.maybank.integratorapp.data.service.MsCurrencyService;
 import com.maybank.integratorapp.data.service.MsParameterService;
-import com.maybank.integratorapp.model.mq.limitutilization.request.ServiceRequest;
-
+import com.maybank.integratorapp.model.mq.reservationsreversal.request.ServiceRequest;
+import com.maybank.integratorapp.model.mq.reservationsreversal.response.ReservationsReversalResponse;
+import com.maybank.integratorapp.model.mq.reservationsreversal.response.ServiceResponse;
 import com.maybank.integratorapp.model.soap.limit.XL41.request.SoapEnvelope;
 import jakarta.jms.JMSException;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -26,8 +27,9 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
 @Component
-public class LimitUtilizationMessageProcessor {
+public class LimitReversalMessageProcessor {
 
     @Autowired
     LogInterfaceProcessService logger;
@@ -40,9 +42,9 @@ public class LimitUtilizationMessageProcessor {
     @Autowired
     MsCurrencyService msCurrencyService;
 
-//    ServiceResponse response = new ServiceResponse();
+    ServiceResponse response = new ServiceResponse();
 
-    private final String ProcessName = "LimitUtilizationProcess";
+    private final String ProcessName = "LimitReversalProcess";
 
 
     public String processMessage(String message,Long loggerId) {
@@ -64,15 +66,21 @@ public class LimitUtilizationMessageProcessor {
 
                 // step 2.
                 setInitialResponseHeader(request);
-                String accountNo = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getAccountNumber();
-                String utilizationID = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getReservationIdentifier();
+
+//                String utilizationID = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getReservationIdentifier();
+//                String correlationID = request.getRequestHeader().getCorrelationID();
+//                String masterReference = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getMasterReference();
+//                String eventCode = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getEventReference();
+//                String customerRes = request.getReservationsReversalRequest().getCustomer();
+//            String customerRes = "0002794045";
                 String correlationID = request.getRequestHeader().getCorrelationID();
-                String masterReference = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getMasterReference();
-                String eventCode = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getEventReference();
+                String masterReference= request.getReservationsReversalRequest().getMasterReference();
+                String utilizationID  = request.getReservationsReversalRequest().getReservationIdentifier();
+                String eventCode = request.getReservationsReversalRequest().getEventReference();
 
 
                 // step 3.
-                SoapEnvelope msgRequest = mapCoreSystemRequest(utilizationID,correlationID);
+                SoapEnvelope msgRequest = mapCoreSystemRequest(utilizationID,correlationID,eventCode);
 
                 // step 4.
                 com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope msgResponse = getMsgBodyResponse(msgRequest,eventCode,masterReference,utilizationID);
@@ -124,8 +132,7 @@ public class LimitUtilizationMessageProcessor {
     }
 
     // step 3. Map external request to core system request
-    public SoapEnvelope mapCoreSystemRequest(String utilizationID,String correlationID) {
-        String soapUrl = parameterService.findValueByPrmKey("XL41Request");
+    public SoapEnvelope mapCoreSystemRequest(String utilizationID,String correlationID,String eventCode) {
         String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
 //        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
 //        String correlationID = "ServiceRequest.getRequestHeader().getCorrelationID();";
@@ -145,7 +152,7 @@ public class LimitUtilizationMessageProcessor {
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setBranchCode(limitBranch);
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setChannelID(clsChannelId);
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setClientUserID("7755");
-        soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setReference(correlationID);
+        soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setReference(eventCode);
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setTransactionDate(date);
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setTransactionTime(time);
 
@@ -153,7 +160,7 @@ public class LimitUtilizationMessageProcessor {
         soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setCtl3(limitBranch);
         soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setCust(limitCif);
         soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setDraw(limitDraw);
-        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setFlag("P");
+        soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setFlag("D");
         soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setNote(limitNoteKey);
         soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().setPart("99");
 
@@ -174,7 +181,6 @@ public class LimitUtilizationMessageProcessor {
     public com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope getMsgBodyResponse(SoapEnvelope soapEnvelopeXL41,String eventCode,String referenceId,String reservationId) {
         com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope res = new com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope();
         String soapUrl = parameterService.findValueByPrmKey("XL41Request");
-
         String dcType = soapEnvelopeXL41.getBody().getXl41().getCmsXl41Request().getFlag();
         String amount = "-";
         String noteNumber = reservationId;
@@ -227,7 +233,7 @@ public class LimitUtilizationMessageProcessor {
                     ftiTransactionDetail.setTransMessageLogId(logger.getIdLogParent());
                     ftiTransactionDetail.setFtiEvent(eventCode);
                     ftiTransactionDetail.setCoreSysName("CLS-XL41");
-                    ftiTransactionDetail.setTransName("Utilization");
+                    ftiTransactionDetail.setTransName("Reversal");
                     ftiTransactionDetail.setCoreSysStatus(responseCode);
                     ftiTransactionDetail.setCoreSysMessage(responseMessage);
                     if(responseCode.equals("00")){
@@ -255,38 +261,7 @@ public class LimitUtilizationMessageProcessor {
 
     // step 5. Map core system data to external Response
 //    private void mapExternalResponse(com.maybank.integratorapp.model.restv2.AccountInquiry.response.MsgWraper res,MsgWraper req) {
-//        AccountInquiryResponse accountInquiryResponse = new AccountInquiryResponse();
 //
-////            Details detailsResponse = new Details();
-////            detailsResponse.setInfo(res.getMsg().getMsgHeader().getStatusDesc());
-//
-//        AvailBalResponse availBalResponse = new AvailBalResponse();
-//
-//        String balance = res.getMsg().getMsgBody().getAccountInformationResponseData().getAccountData().getcADataRecord().getAvailableBalance();
-////        String formattedBalance = balance.substring(1).replace(".", "");
-//        String formattedBalance = balance.substring(1);
-//        String holdCode = res.getMsg().getMsgBody().getAccountInformationResponseData().getAccountStatus();
-//        String cifNo = res.getMsg().getMsgBody().getAccountInformationResponseData().getCifNo();
-//        String accountName = res.getMsg().getMsgBody().getAccountInformationResponseData().getAccountName();
-//        if(accountName.length()>75){
-//            accountName= accountName.substring(0,75);
-//        }
-//        String infoMessage = "#CIF:"+cifNo+" NAME:"+accountName;
-////        String infoMessage = "";
-//
-//        formattedBalance = String.format("%015.2f",Double.parseDouble(formattedBalance));
-//
-//        if (balance.startsWith("+"))
-//            availBalResponse.setNegative("N");
-//        else
-//            availBalResponse.setNegative("Y");
-//        availBalResponse.setBlocked("N");
-//        availBalResponse.setApplies("Y");
-//        availBalResponse.setErrorOrWarning("N");
-//        availBalResponse.setCheckedInBackOffice("Y");
-//        availBalResponse.setErrorCode("N");
-//        availBalResponse.setErrorMessage("HOLDCODE-" + holdCode+infoMessage);
-//        availBalResponse.setBalance(formattedBalance);
 //
 //        response.setAvailBalResponse(availBalResponse);
 //    }

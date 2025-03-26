@@ -49,7 +49,7 @@ public class CustomerSearchMessageProcessor {
     private final String ProcessName = "CustomerSearchProcess";
 
 
-    public String processMessage(String message,int loggerId) {
+    public String processMessage(String message,Long loggerId) {
         String responseXml = "";
         logger.SetLogParent(loggerId);
 

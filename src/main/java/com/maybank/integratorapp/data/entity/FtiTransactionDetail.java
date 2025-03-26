@@ -22,6 +22,13 @@ public class FtiTransactionDetail {
     private String coreSysMessage;
     private Date createdDate;
 
+    private String additionalInfo1;
+    private String additionalInfo2;
+    private String additionalInfo3;
+    private String additionalInfo4;
+    private String additionalInfo5;
+
+
     public Long getId() {
         return id;
     }
@@ -92,5 +99,45 @@ public class FtiTransactionDetail {
 
     public void setCoreSysMessage(String coreSysMessage) {
         this.coreSysMessage = coreSysMessage;
+    }
+
+    public String getAdditionalInfo1() {
+        return additionalInfo1;
+    }
+
+    public void setAdditionalInfo1(String additionalInfo1) {
+        this.additionalInfo1 = additionalInfo1;
+    }
+
+    public String getAdditionalInfo2() {
+        return additionalInfo2;
+    }
+
+    public void setAdditionalInfo2(String additionalInfo2) {
+        this.additionalInfo2 = additionalInfo2;
+    }
+
+    public String getAdditionalInfo3() {
+        return additionalInfo3;
+    }
+
+    public void setAdditionalInfo3(String additionalInfo3) {
+        this.additionalInfo3 = additionalInfo3;
+    }
+
+    public String getAdditionalInfo4() {
+        return additionalInfo4;
+    }
+
+    public void setAdditionalInfo4(String additionalInfo4) {
+        this.additionalInfo4 = additionalInfo4;
+    }
+
+    public String getAdditionalInfo5() {
+        return additionalInfo5;
+    }
+
+    public void setAdditionalInfo5(String additionalInfo5) {
+        this.additionalInfo5 = additionalInfo5;
     }
 }

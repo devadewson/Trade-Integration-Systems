@@ -21,10 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.LocalDate;
@@ -39,6 +36,7 @@ public class LimitController {
     MsFacilityRepository msFacilityRepository;
     @Autowired
     MscompanylimitRepository mscompanylimitRepository;
+
 
     @Autowired
     private MsCurrencyRepository msCurrencyRepository;
@@ -188,4 +186,29 @@ public class LimitController {
             return new ResponseEntity<OFAResponse>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    @GetMapping(value = "/RefreshLimit/{cif}")
+    public ResponseEntity<OFAResponse> RefreshLimitByCif(@PathVariable String cif){
+        OFAResponse response = new OFAResponse();
+        List<Limit> limitList = new ArrayList<>();
+
+        try{
+
+            List<MsCompanyLimit> allCompany = (List<MsCompanyLimit>) mscompanylimitRepository.findAll();
+            allCompany = allCompany.stream().filter(s->s.getCifno().equals(cif)).toList();
+
+            allCompany.forEach(x->{
+                System.out.println("Refresh Limit for "+cif);
+                processFacilities.refreshFacilities(x.getCifno(),x.getId());
+
+            });
+
+            return new ResponseEntity<OFAResponse>(response, HttpStatus.OK);
+
+        }
+        catch (Exception e){
+            return new ResponseEntity<OFAResponse>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
 }

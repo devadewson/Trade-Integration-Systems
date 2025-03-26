@@ -77,13 +77,15 @@ public class LimitFacilitiesMessageProcessor {
 
                 // step 2.
                 setInitialResponseHeader(request);
+                String cifno = request.getFacilitiesRequest().getFacilityRequestDetails().getCustomer().trim();
+                String islamicFlag = request.getFacilitiesRequest().getFacilityRequestDetails().getProductSubType().trim().equals("ISL")?"Y":"N";
+                String currency = request.getFacilitiesRequest().getFacilityRequestDetails().getPostingAmount().getCurrency();
+                //                String cifno = "0002794045";
 
                 // step 3.
-                SoapEnvelope msgRequest = mapCoreSystemRequest(request);
+                SoapEnvelope msgRequest = mapCoreSystemRequest(cifno);
 
                 //
-                String cifno = request.getFacilitiesRequest().getFacilityRequestDetails().getCustomer().trim();
-//                String cifno = "0002794045";
 
                 // Cek apakah cifno ada di MsCompanyLimit
                 if (!mscompanylimitRepository.existsByCifno(cifno)) {
@@ -102,6 +104,14 @@ public class LimitFacilitiesMessageProcessor {
                 List<MsFacility> facilities = msFacilityRepository.findByCompanyLimitId(
                         mscompanylimitRepository.findByCifno(cifno).getId());
 
+                // filter islamic facilities
+                if(islamicFlag.equals("Y"))
+                    facilities = facilities.stream().filter(x->x.getNoteType().startsWith("7")).toList();
+                else
+                    facilities = facilities.stream().filter(x->!x.getNoteType().startsWith("7")).toList();
+
+                // filter currency
+                facilities = facilities.stream().filter(x->x.getLoanCurrencyCode().equals(currency)).toList();
 
                 // step 5.
                 mapExternalResponse(facilities,cifno);
@@ -151,13 +161,13 @@ public class LimitFacilitiesMessageProcessor {
     }
 
     // step 3. Map external request to core system request
-    public SoapEnvelope mapCoreSystemRequest(ServiceRequest externalRequest) {
+    public SoapEnvelope mapCoreSystemRequest(String cifno) {
 
         String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
         String correlationID = "FTI";
         String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
-        String cifno = externalRequest.getFacilitiesRequest().getFacilityRequestDetails().getCustomer();
+//        String cifno = externalRequest.getFacilitiesRequest().getFacilityRequestDetails().getCustomer();
         // Buat request CustomerInformation
         SoapEnvelope soapReq = new SoapEnvelope();
         soapReq.getBody().getxLBT().getChannelHeader().setBranchCode("003");
@@ -317,6 +327,175 @@ public class LimitFacilitiesMessageProcessor {
         return serviceResponseMq;
     }
 
+    public void refreshFacilities (String cifno,Long idcompanyLimit){
+
+//        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
+        String soapUrl = parameterService.findValueByPrmKey("XLBTRequest");
+        String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
+        String correlationID = "serviceRequest.getRequestHeader().getCorrelationID();";
+        String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+        String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
+
+        SoapEnvelope soapReq = new SoapEnvelope();
+        soapReq.getBody().getxLBT().getChannelHeader().setBranchCode("003");
+        soapReq.getBody().getxLBT().getChannelHeader().setChannelID(clsChannelId);
+        soapReq.getBody().getxLBT().getChannelHeader().setClientSupervisorID("7766");
+        soapReq.getBody().getxLBT().getChannelHeader().setClientUserID("7755");
+        soapReq.getBody().getxLBT().getChannelHeader().setReference("FTI");
+        soapReq.getBody().getxLBT().getChannelHeader().setTransactionDate(date);
+        soapReq.getBody().getxLBT().getChannelHeader().setTransactionTime(time);
+
+        soapReq.getBody().getxLBT().getcMS_XLBTRequest().setCifno(cifno);
+        soapReq.getBody().getxLBT().getcMS_XLBTRequest().setAid("XLBT");
+
+        XmlMapper mapper = new XmlMapper();
+
+        mapper.setDefaultUseWrapper(false); // Avoid unnecessary wrapping
+        mapper.configure(ToXmlGenerator.Feature.WRITE_XML_DECLARATION, true);
+
+        String xml = null;
+        com.maybank.integratorapp.model.soap.
+                limit.XLBT.response.SoapEnvelope res = new com.maybank.integratorapp.model.
+                soap.limit.XLBT.response.SoapEnvelope();
+        try {
+            xml = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapReq);
+
+            System.out.println(xml);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        ServiceResponse serviceResponseMq = new ServiceResponse();
+        ResponseHeader responseHeaderMq = new ResponseHeader();
+        FacilitiesResponse facilitiesResponseMq = new FacilitiesResponse();
+        Details detailsResponseMq = new Details();
+
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpPost httpPost = new HttpPost(soapUrl);
+            httpPost.setHeader("Content-Type", "text/xml");
+            httpPost.setEntity(new StringEntity(xml, ContentType.TEXT_XML));
+            String _response = "";
+
+            try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+                if (response.getStatusLine().getStatusCode() == 200) {
+                    // Handle response if needed
+                    var _res = response.getEntity();
+                    var _resStream = _res.getContent();
+
+                    var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
+
+                    _response = outputResponse;
+                    res = mapper.readValue(_response, com.maybank.integratorapp.model.soap.
+                            limit.XLBT.response.SoapEnvelope.class);
+
+                    String asd = mapper.writeValueAsString(res);
+                    System.out.println("===========================XLBT=================================");
+                    System.out.println(asd.substring(0,100)+"...");
+                    System.out.println("============================================================\n");
+
+                    // Proses dan pecah key
+                    List<LoanAccounts> loanAccountsList = res.getBody().getXlbtResponse().getCmsXlbtResponse().getLoanAccounts();
+                    if (loanAccountsList != null) {
+
+                        List<MsFacility> listFacility = new ArrayList<>();
+                        List<MsFacilityUtilize> listFacilityUtilize = new ArrayList<>();
+
+                        List<LoanAccounts> loanAccountsList99 = loanAccountsList.stream().filter(x->splitKey(x.getKey())[5].equals("999")).toList();
+                        List<MsFacility> existingFacility = msFacilityRepository.findAllFacilitiesByCif(cifno);
+                        //List<LoanAccounts> loanAccountsListUtilize = loanAccountsList.stream().filter(x->!splitKey(x.getKey())[5].equals("999")).toList();
+                        loanAccountsList99.forEach(s->{
+                            String[] splitKey = splitKey(s.getKey());
+                            String companyLimitValue = splitKey[3];
+                            String draw = splitKey[5];
+
+
+                            MsFacility facility = new MsFacility();
+
+                            //Add To database FacilityUtilize
+                            facility.setCompanyLimitId(idcompanyLimit);
+
+                            facility.setKeyDigitNote(splitKey[4]);
+                            facility.setCurrency(splitKey[1]);
+                            facility.setBranchCode(splitKey[2]);
+                            facility.setCifNo(splitKey[3]);
+                            facility.setCommitmentBalance(s.getCommitmentbalance());
+                            facility.setCommitmentBalanceSign(s.getCommitmentbalancesign());
+                            facility.setDescription(s.getDescription());
+                            facility.setKeyLoanAcc(s.getKey());
+                            facility.setLoanCurrencyCode(s.getLoancurrencycode());
+                            facility.setMaturityDate(s.getMaturitydate());
+                            facility.setNoteDate(s.getNotedate());
+                            facility.setNoteType(s.getNotetype());
+                            facility.setPrincipalBalance(s.getPrincipalbalance());
+                            facility.setPrincipalBalanceSign(s.getPrincipalbalancesign());
+                            facility.setStatus(s.getStatus());
+                            if(existingFacility.stream().filter(x->x.getKeyLoanAcc().equals(facility.getKeyLoanAcc())).findAny().isEmpty()){
+                                listFacility.add(facility);
+                            }
+
+                        });
+                        List <MsFacility> listFacilityfinal = (List<MsFacility>) msFacilityRepository.saveAll(listFacility);
+                        existingFacility.addAll(listFacilityfinal);
+
+//                        List<String> existingUtilized = msFacilityUtilizeRepository.findAllKeyLoanAcc();
+                        List<MsFacilityUtilize> existingUtilized = msFacilityUtilizeRepository.findAllFacilityUtilizeByCif(cifno);
+                        //Add To database FacilityUtilize
+                        List<LoanAccounts> loanAccountsListUtilize = loanAccountsList.stream().filter(x->!splitKey(x.getKey())[5].equals("999")).toList();
+                        loanAccountsListUtilize.forEach(s->{
+                            String[] splitKey = splitKey(s.getKey());
+                            String companyLimitValue = splitKey[3];
+                            String noteNumber = splitKey[4];
+                            String draw = splitKey[5];
+
+                            MsFacilityUtilize utilize = new MsFacilityUtilize();
+
+
+                            // Mencari MsCompanyLimit berdasarkan cifno
+
+                            MsFacility msFacility = existingFacility.stream().filter(z->z.getKeyDigitNote().equals(noteNumber)).findFirst().get();
+
+                            utilize.setFacilityId(msFacility.getId());
+                            utilize.setKeyDigitNote(splitKey[4]);
+                            utilize.setCurrency(splitKey[1]);
+                            utilize.setBranchCode(splitKey[2]);
+                            utilize.setCifNo(splitKey[3]);
+                            utilize.setCompanyLimitId(idcompanyLimit);
+                            utilize.setCommitmentBalance(s.getCommitmentbalance());
+                            utilize.setCommitmentBalanceSign(s.getCommitmentbalancesign());
+                            utilize.setDescription(s.getDescription());
+                            utilize.setKeyLoanAcc(s.getKey());
+                            utilize.setLoanCurrencyCode(s.getLoancurrencycode());
+                            utilize.setMaturityDate(s.getMaturitydate());
+                            utilize.setNoteDate(s.getNotedate());
+                            utilize.setNoteType(s.getNotetype());
+                            utilize.setPrincipalBalance(s.getPrincipalbalance());
+                            utilize.setPrincipalBalanceSign(s.getPrincipalbalancesign());
+                            utilize.setStatus(s.getStatus());
+
+
+                            if(existingUtilized.stream().filter(x->x.getKeyLoanAcc().equals(utilize.getKeyLoanAcc())).findAny().isEmpty()){
+                                listFacilityUtilize.add(utilize);
+                            }
+                        });
+                        msFacilityUtilizeRepository.saveAll(listFacilityUtilize);
+                        existingUtilized.addAll(listFacilityUtilize);
+
+                        // Simpan draw terakhir ke MsRunningNumber
+                        updateLatestDrawNumber(existingUtilized);
+
+                        System.out.println("Successfully Refreshing Limit : "+cifno);
+
+
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+        }
+
+//        return serviceResponseMq;
+    }
     // step 5. Map core system data to external Response
     private void mapExternalResponse(List<MsFacility> facilities,String cifno) throws JsonProcessingException {
         ResponseHeader responseHeader = response.getResponseHeader();

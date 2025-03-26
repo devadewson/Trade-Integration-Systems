@@ -23,6 +23,7 @@ import com.maybank.integratorapp.model.rest.CustomerSearchh.response.CustomerInf
 import com.maybank.integratorapp.model.restv2.AccountInquiry.request.Msg;
 import com.maybank.integratorapp.model.restv2.AccountInquiry.request.MsgBody;
 import com.maybank.integratorapp.model.restv2.AccountInquiry.request.MsgWraper;
+import com.maybank.integratorapp.util.MQUtil;
 import jakarta.jms.JMSException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -134,7 +135,7 @@ public class AccountInquiryMessageProcessor {
         String branch = accNo.substring(1, 4);
         String currency = msCurrencyService.findByIsoCode(externalRequest.getAvailBALRequest().getPostingCurrency()).getInternalCode();
 
-        req.getMsg().getMsgHeader().setMsgID("1234567");
+        req.getMsg().getMsgHeader().setMsgID("FTI"+ MQUtil.generateRandomString(6));
         req.getMsg().getMsgHeader().setVer("01");
         req.getMsg().getMsgHeader().setSvcID("IDINQACCTINF001");
         req.getMsg().getMsgHeader().setTxnCode("IMSTXLI1");

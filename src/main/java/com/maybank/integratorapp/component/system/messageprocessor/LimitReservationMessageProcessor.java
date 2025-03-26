@@ -29,8 +29,12 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
+
 @Component
 public class LimitReservationMessageProcessor {
+    @Autowired
+    LimitUtilizationMessageProcessor utilizationMessageProcessor;
     @Autowired
     LogInterfaceProcessService logger;
     @Autowired
@@ -56,6 +60,321 @@ public class LimitReservationMessageProcessor {
     @Autowired
     private ProcessFacilities processFacilities;
 
+    @Autowired
+    private LimitFacilitiesMessageProcessor facilitiesMessageProcessor;
+
+//    public String processMessageNew(String message,Long loggerId) {
+//        String responseXml = "";
+//        logger.SetLogParent(loggerId);
+//
+//        try {
+//            // step 1. Parse request message
+//            // step 2. Set initial response
+//            // step 3. Map external request to core system request
+//            // step 4. Request data from core system
+//            // step 5. Map core system data to external Response
+//            // step 6. return response message as string
+//
+//            // step 1.
+//            ServiceRequest request = parseRequest(message);
+//
+//            if (request != null) {
+//
+//                // step 2.
+//                setInitialResponseHeader(request);
+//
+//                //From requset to maping response FTI
+//                String reservedReservationIdentifier = request.getReservationsRequest().getReservationRequestDetails().getAccountIdentifier();
+//
+//                String facilityIdentifier = request.getReservationsRequest().getReservationRequestDetails().getFacilityIdentifier();
+//                String customerRes = request.getReservationsRequest().getReservationRequestDetails().getCustomer();
+//                String masterReference= request.getReservationsRequest().getReservationRequestDetails().getMasterReference();
+//                String lineOfBusiness = request.getReservationsRequest().getReservationRequestDetails().getCustomerType();
+//                String debitCreditFlag = request.getReservationsRequest().getReservationRequestDetails().getDebitCreditFlag();
+//                String branch = request.getReservationsRequest().getReservationRequestDetails().getBranch();
+//                String FtiProductCode = request.getReservationsRequest().getReservationRequestDetails().getProduct();
+//                String eventCode = request.getReservationsRequest().getReservationRequestDetails().getEventReference();
+//                String _eventCode = eventCode.substring(0,3);
+//                String startdateRes = request.getReservationsRequest().getReservationRequestDetails().getTenorStartDate();
+//                String expireDateRes =  request.getReservationsRequest().getReservationRequestDetails().getTenorEndDate();
+//                String transDateRes = request.getReservationsRequest().getReservationRequestDetails().getValueDate();
+//                String exposureAmmount =  request.getReservationsRequest().getReservationRequestDetails().getPostingAmount().getAmount();
+//
+//                DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+//                DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("ddMMyy");
+//                LocalDate _startDate = LocalDate.parse(startdateRes, inputFormatter);
+////            String startDate = _startDate.format(outputFormatter);
+//                String startDate = "311024";
+//
+//                LocalDate _expiryDate = LocalDate.parse(expireDateRes, inputFormatter);
+//                String expiryDate = _expiryDate.format(outputFormatter);
+////            String expiryDate = "291224";
+//
+//                LocalDate _transDate = LocalDate.parse(transDateRes, inputFormatter);
+////            String transactionDate = _transDate.format(outputFormatter);
+//                String transactionDate = "311024";
+//
+//                // Ambil semua MsFacility dengan keyLoanAcc yang sesuai
+//                MsFacility facilities = msFacilityRepository.findByKeyLoanAcc(facilityIdentifier);
+//
+//                // Ambil ID dari MsFacility
+//                Long facilityId = facilities.getId();
+//                String facilitySequence = facilities.getKeyDigitNote();
+//                String currency = facilities.getLoanCurrencyCode();
+//
+//                String limitAmount =  facilities.getPrincipalBalance().replace(".00", "");
+//                String reservedAmount =  facilities.getCommitmentBalance().replace(".00", "");
+//                String availableAmount =  facilities.getCommitmentBalance().replace(".00", "");
+//
+//                String productType  = facilities.getNoteType();
+//                String newKeyLoanAcc = null;
+//                String acctReqXL01 = null;
+//
+//                System.out.println("Facility ID: " + facilityId);
+//                System.out.println("LineOfBusiness: " + lineOfBusiness);
+//
+//                // cek dulu di table referensi transaksinya
+//
+//                // Ambil MsUtilizeRunningNumber berdasarkan facilityId
+//                MsUtilizeRunningNumber runningNumberEntry = msUtilizeRunningNumberRepository.findByFacilityId(facilityId);
+//
+//                if (runningNumberEntry == null) {
+//                    MsUtilizeRunningNumber newRunning = new MsUtilizeRunningNumber();
+//                    newRunning.setCompanyLimitId(facilities.getCompanyLimitId());
+//                    newRunning.setFacilityId(facilityId);
+//                    newRunning.setRunningNumber(0);
+//                    msUtilizeRunningNumberRepository.save(newRunning);
+//                    runningNumberEntry = newRunning;
+//                    System.out.println("No Running Number found for Facility ID: " + facilityId);
+//                }
+//                // Ambil Running Number dan pastikan format 3 digit
+//                int runningNumber = runningNumberEntry.getRunningNumber();
+//                String formattedRunningNumber = String.format("%03d", runningNumber + 1);
+//                System.out.println("Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber);
+//
+//                // Buat keyLoanAcc baru dengan mengganti bagian draw
+//                String customFacilityIdentifier = buildCustomFacilityIdentifier(facilityIdentifier);
+//                System.out.println("Facility Identifier: " + customFacilityIdentifier);
+//
+//                // Buat keyLoanAcc baru dengan mengganti bagian draw
+//                newKeyLoanAcc = buildNewKey(facilityIdentifier, formattedRunningNumber);
+//                System.out.println("New KeyLoanAcc: " + newKeyLoanAcc);
+//
+//                // Buat formatted key untuk sistem proses
+//                acctReqXL01 = buildFormattedKey(facilityIdentifier, formattedRunningNumber);
+//                System.out.println("New Formatted Key: " + acctReqXL01);
+//
+//                // treat amend as issue for mapping purpose
+//                if(_eventCode.equals("AMD") || _eventCode.equals("ADJ"))
+//                    _eventCode = "ISS";
+//
+//                if(!lineOfBusiness.equals("01"))
+//                    lineOfBusiness= "00";
+//                if(productType.equals("515")) // bank limits
+//                    lineOfBusiness= "07";
+//
+//                String cls001ProductType= "";
+//                if(productType.startsWith("7")) // islamic limits
+//                {
+//                    List<MsMapClsProductType> productTypeList = msMapClsProductTypeRepository.findDraw001Products(productType);
+//
+//                    //special case 710
+//                    if(productType.equals("710")){
+//                        if(_eventCode.equals("ISS"))
+//                            cls001ProductType= productTypeList.stream().filter(x->
+//                                            x.getEventCode().equals("ISS") &&
+//                                                    x.getLiabilityCode().equals("IGT"))
+//                                    .findFirst().get().getProductType001();
+//                    }
+//
+//                }else{
+//                    cls001ProductType = msMapClsProductTypeRepository.findDraw001Product(productType, lineOfBusiness,_eventCode);
+//
+//                }
+//                logger.Log(ProcessName, "CLS Product Type search criteria "+productType+"|"+lineOfBusiness+"|"+_eventCode, "DEBUG");
+//
+//                System.out.println("CLS Product Type : " + cls001ProductType);
+//                logger.Log(ProcessName, "CLS Product Type : "+cls001ProductType, "DEBUG");
+//
+//                String xl01responseCode = "";
+//                String xl31responseCode = "";
+//                String xl01responseMessage = "";
+//                String xl31responseMessage = "";
+//                // new reservation logic
+//
+//                FtiTransaction _header = ftiTransactionService.findByMasterRefNo(masterReference).get();
+//                List<FtiTransactionDetail> _listTransactionDetail = ftiTransactionDetailService.getDetailsByHeaderId(_header.getId());
+//                _listTransactionDetail = _listTransactionDetail.stream().filter(x->x.getCoreSysName().startsWith("CLS"))
+//                        .sorted(Comparator.comparingLong(FtiTransactionDetail::getId))
+//                        .collect(Collectors.toList());
+//
+//                FtiTransactionDetail _lastLimitAction = null;
+//                String _lastLimitStatus;
+//                String _lastLimitReservationId;
+//                if(_listTransactionDetail.size()>0){
+//                    _lastLimitAction = _listTransactionDetail.get(_listTransactionDetail.size()-1);
+//                    _lastLimitReservationId = _lastLimitAction.getAdditionalInfo1();
+//                    _lastLimitStatus = _lastLimitAction.getAdditionalInfo4();
+//                } else {
+//                    _lastLimitStatus = "";
+//                    _lastLimitReservationId = "";
+//                }
+//
+//                if(eventCode.startsWith("ISS")){
+//                    String canNext = "Y";
+//                    if(
+//                        (_lastLimitAction == null) ||
+//                        (_lastLimitStatus.equals("DEL")
+//                                && _listTransactionDetail.stream().noneMatch(
+//                                        x->x.getAdditionalInfo1()
+//                                                .startsWith(customFacilityIdentifier)))){
+//                        //draw 001
+//                        // step 3.
+//                        SoapEnvelope msgRequestXL01 = mapCoreSystemXl01Request(masterReference,acctReqXL01,newKeyLoanAcc,currency,startDate,expiryDate,transactionDate,cls001ProductType,branch);
+//
+//                        // step 4.
+//                        com.maybank.integratorapp.model.soap.limit.XL01.responseComplete.SoapEnvelope msgResponseXL01 = getXl01MsgBodyResponse(msgRequestXL01,masterReference,eventCode,formattedRunningNumber,newKeyLoanAcc);
+//                        xl01responseCode = msgResponseXL01
+//                                .getBody().getXl01Draw001Response().
+//                                getCmsXL01Draw001Response().getResponsecode();
+//                        xl01responseMessage = msgResponseXL01
+//                                .getBody().getXl01Draw001Response().
+//                                getCmsXL01Draw001Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+//
+//                        if(xl01responseCode.equals("00")){
+//                            processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
+//
+//                            FtiTransaction ftiTransaction = new FtiTransaction();
+//                            ftiTransaction.setMasterRefNo(masterReference);
+//                            ftiTransaction.setDrawNumber(formattedRunningNumber);
+//                            ftiTransaction.setReservationId(newKeyLoanAcc);
+//                            ftiTransactionService.createOrUpdateFtiTransaction(ftiTransaction);
+//
+//                        }else{
+//                            canNext = "N";
+//                            formattedRunningNumber="-";
+//                            newKeyLoanAcc="-";
+//                            // step 5.
+//                            mapExternalResponse(xl01responseCode,xl01responseMessage,facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
+//
+//                        }
+//                    }
+//
+//                    if(canNext.equals("Y")){
+//                        String debit_credit = "62";
+//                        if(debitCreditFlag.equals("C"))
+//                            debit_credit = "67";
+//
+//                        //draw 31
+//                        com.maybank.integratorapp.model.soap.limit.XL31.request.SoapEnvelope msgRequestXL31= mapCoreSystemXl31Request(masterReference,exposureAmmount,newKeyLoanAcc,currency,transactionDate,debit_credit,branch,eventCode);
+//
+//                        // step 4.
+//                        com.maybank.integratorapp.model.soap.limit.XL31.response.SoapEnvelope msgResponseXL31 = getXl31MsgBodyResponse(msgRequestXL31,masterReference,eventCode);
+//
+//                        xl31responseCode = msgResponseXL31
+//                                .getBody().getXl31Response().
+//                                getCmsXl31Response().getResponsecode();
+//                        xl31responseMessage = msgResponseXL31
+//                                .getBody().getXl31Response().
+//                                getCmsXl31Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+//
+//                        formattedRunningNumber = splitKey(newKeyLoanAcc)[5];
+//                        if(xl31responseCode.equals("00")) {
+//                            processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
+//                        }
+//                        // step 5.
+//                        mapExternalResponse(xl31responseCode,xl31responseMessage,facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
+//
+//                    }
+//
+//
+//                }else {
+//                    newKeyLoanAcc =reservedReservationIdentifier;
+//
+////                    check facility difference
+//                    if(!_lastLimitReservationId.startsWith(customFacilityIdentifier)){
+//                        // find all previous XL31, then tally all the amount, 67 is minus, 62 is plus
+//                        int _finalAmount = 0;
+//                        for (FtiTransactionDetail XL31req: _listTransactionDetail.stream().filter(x->x.getCoreSysName().equals("CLS-XL31")).toList()) {
+//                            if(XL31req.getAdditionalInfo2().equals("62"))
+//                                _finalAmount = _finalAmount+ Integer.parseInt(XL31req.getAdditionalInfo3());
+//                            else if(XL31req.getAdditionalInfo2().equals("67"))
+//                                _finalAmount = _finalAmount- Integer.parseInt(XL31req.getAdditionalInfo3());
+//
+//                        }
+//
+//                        // reverse the old facility
+//                        String debit_credit = "67";
+//
+//                        //draw 31
+//                        com.maybank.integratorapp.model.soap.limit.XL31.request.SoapEnvelope msgRequestXL31= mapCoreSystemXl31Request(masterReference,exposureAmmount,newKeyLoanAcc,currency,transactionDate,debit_credit,branch,eventCode);
+//
+//                        // step 4.
+//                        com.maybank.integratorapp.model.soap.limit.XL31.response.SoapEnvelope msgResponseXL31 = getXl31MsgBodyResponse(msgRequestXL31,masterReference,eventCode);
+//
+//                        xl31responseCode = msgResponseXL31
+//                                .getBody().getXl31Response().
+//                                getCmsXl31Response().getResponsecode();
+//                        xl31responseMessage = msgResponseXL31
+//                                .getBody().getXl31Response().
+//                                getCmsXl31Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+//
+//                        formattedRunningNumber = splitKey(newKeyLoanAcc)[5];
+//                        if(xl31responseCode.equals("00")) {
+//                            processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
+//                        }
+//                        // step 5.
+//                        mapExternalResponse(xl31responseCode,xl31responseMessage,facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
+//
+//                        // release the reversal
+//                        utilizationMessageProcessor.logger = logger;
+//                        com.maybank.integratorapp.model.soap.limit.XL41.request.SoapEnvelope XL41Request = utilizationMessageProcessor.mapCoreSystemRequest(_lastLimitReservationId,masterReference);
+//
+//                        com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope XL41Response = utilizationMessageProcessor.getMsgBodyResponse(XL41Request,eventCode,masterReference,_lastLimitReservationId);
+//
+//
+//                    }
+//
+//                    String debit_credit = "62";
+//                    if(debitCreditFlag.equals("C"))
+//                        debit_credit = "67";
+//
+//                    //draw 31
+//                    com.maybank.integratorapp.model.soap.limit.XL31.request.SoapEnvelope msgRequestXL31= mapCoreSystemXl31Request(masterReference,exposureAmmount,newKeyLoanAcc,currency,transactionDate,debit_credit,branch,eventCode);
+//
+//                    // step 4.
+//                    com.maybank.integratorapp.model.soap.limit.XL31.response.SoapEnvelope msgResponseXL31 = getXl31MsgBodyResponse(msgRequestXL31,masterReference,eventCode);
+//
+//                    xl31responseCode = msgResponseXL31
+//                            .getBody().getXl31Response().
+//                            getCmsXl31Response().getResponsecode();
+//                    xl31responseMessage = msgResponseXL31
+//                            .getBody().getXl31Response().
+//                            getCmsXl31Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+//
+//                    formattedRunningNumber = splitKey(newKeyLoanAcc)[5];
+//                    if(xl31responseCode.equals("00")) {
+//                        processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
+//                    }
+//                    // step 5.
+//                    mapExternalResponse(xl31responseCode,xl31responseMessage,facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
+//                }
+//
+//
+//
+//            }
+//
+//            // step 6.
+//            XmlMapper xmlMapper = new XmlMapper();
+//            xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+//            responseXml = xmlMapper.writeValueAsString(response);
+//
+//        } catch (Exception e) {
+//            logger.Log(ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
+//
+//        }
+//        return responseXml;
+//    }
 
     public String processMessage(String message,Long loggerId) {
         String responseXml = "";
@@ -85,7 +404,7 @@ public class LimitReservationMessageProcessor {
                 String masterReference= request.getReservationsRequest().getReservationRequestDetails().getMasterReference();
                 String lineOfBusiness = request.getReservationsRequest().getReservationRequestDetails().getCustomerType();
                 String debitCreditFlag = request.getReservationsRequest().getReservationRequestDetails().getDebitCreditFlag();
-
+                String branch = request.getReservationsRequest().getReservationRequestDetails().getBranch();
                 String FtiProductCode = request.getReservationsRequest().getReservationRequestDetails().getProduct();
                 String eventCode = request.getReservationsRequest().getReservationRequestDetails().getEventReference();
                 String _eventCode = eventCode.substring(0,3);
@@ -98,7 +417,7 @@ public class LimitReservationMessageProcessor {
                 DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("ddMMyy");
                 LocalDate _startDate = LocalDate.parse(startdateRes, inputFormatter);
 //            String startDate = _startDate.format(outputFormatter);
-                String startDate = "301024";
+                String startDate = "311024";
 
                 LocalDate _expiryDate = LocalDate.parse(expireDateRes, inputFormatter);
                 String expiryDate = _expiryDate.format(outputFormatter);
@@ -106,7 +425,7 @@ public class LimitReservationMessageProcessor {
 
                 LocalDate _transDate = LocalDate.parse(transDateRes, inputFormatter);
 //            String transactionDate = _transDate.format(outputFormatter);
-                String transactionDate = "301024";
+                String transactionDate = "311024";
 
                 // Ambil semua MsFacility dengan keyLoanAcc yang sesuai
                 MsFacility facilities = msFacilityRepository.findByKeyLoanAcc(facilityIdentifier);
@@ -191,24 +510,46 @@ public class LimitReservationMessageProcessor {
                 String xl01responseMessage = "";
                 String xl31responseMessage = "";
                 // new reservation logic
-                // if the event is amd/adj AND the reserved_reservationId is not null
-                if(eventCode.startsWith("ISS")){
+
+                FtiTransaction _header = new FtiTransaction();
+
+                List<FtiTransactionDetail> _listTransactionDetail = new ArrayList<>();
+                if(ftiTransactionService.findByMasterRefNo(masterReference).isPresent()){
+                    _header = ftiTransactionService.findByMasterRefNo(masterReference).get();
+                    ftiTransactionDetailService.getDetailsByHeaderId(_header.getId());
+                    _listTransactionDetail = _listTransactionDetail.stream().filter(x->x.getCoreSysName().startsWith("CLS"))
+                            .sorted(Comparator.comparingLong(FtiTransactionDetail::getId))
+                            .collect(Collectors.toList());
+                }
+
+                FtiTransactionDetail _lastLimitAction = null;
+                if(_listTransactionDetail.size()>0){
+                    _lastLimitAction = _listTransactionDetail.get(_listTransactionDetail.size()-1);
+                }
+
+                if(eventCode.startsWith("ISS") && _lastLimitAction==null){
                     //draw 001
                     // step 3.
-                    SoapEnvelope msgRequestXL01 = mapCoreSystemXl01Request(masterReference,acctReqXL01,newKeyLoanAcc,currency,startDate,expiryDate,transactionDate,cls001ProductType);
+                    SoapEnvelope msgRequestXL01 = mapCoreSystemXl01Request(masterReference,acctReqXL01,newKeyLoanAcc,currency,startDate,expiryDate,transactionDate,cls001ProductType,branch);
 
                     // step 4.
+//                    logger.Log(ProcessName, "CLS BEFORE HIT XL01", "DEBUG");
                     com.maybank.integratorapp.model.soap.limit.XL01.responseComplete.SoapEnvelope msgResponseXL01 = getXl01MsgBodyResponse(msgRequestXL01,masterReference,eventCode,formattedRunningNumber,newKeyLoanAcc);
+//                    logger.Log(ProcessName, "CLS AFTER HIT XL01", "DEBUG");
+
                     xl01responseCode = msgResponseXL01
                             .getBody().getXl01Draw001Response().
                             getCmsXL01Draw001Response().getResponsecode();
                     xl01responseMessage = msgResponseXL01
                             .getBody().getXl01Draw001Response().
                             getCmsXL01Draw001Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+//                    logger.Log(ProcessName, "CLS AFTER HIT XL01 RESPONSE CODE :"+xl01responseCode, "DEBUG");
 
+//                    logger.Log(ProcessName, "CLS AFTER HIT XL01 RESPONSE MESSAGE :"+xl01responseMessage, "DEBUG");
                     if(xl01responseCode.equals("00")){
-                        processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
-
+//                        logger.Log(ProcessName, "CLS BEFORE REFRESH FACILITIES", "DEBUG");
+                        facilitiesMessageProcessor.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
+//                        logger.Log(ProcessName, "CLS AFTER REFRESH FACILITIES", "DEBUG");
                         FtiTransaction ftiTransaction = new FtiTransaction();
                         ftiTransaction.setMasterRefNo(masterReference);
                         ftiTransaction.setDrawNumber(formattedRunningNumber);
@@ -232,7 +573,7 @@ public class LimitReservationMessageProcessor {
                         debit_credit = "67";
 
                     //draw 31
-                    com.maybank.integratorapp.model.soap.limit.XL31.request.SoapEnvelope msgRequestXL31= mapCoreSystemXl31Request(masterReference,exposureAmmount,newKeyLoanAcc,currency,transactionDate,debit_credit);
+                    com.maybank.integratorapp.model.soap.limit.XL31.request.SoapEnvelope msgRequestXL31= mapCoreSystemXl31Request(masterReference,exposureAmmount,newKeyLoanAcc,currency,transactionDate,debit_credit,branch,eventCode);
 
                     // step 4.
                     com.maybank.integratorapp.model.soap.limit.XL31.response.SoapEnvelope msgResponseXL31 = getXl31MsgBodyResponse(msgRequestXL31,masterReference,eventCode);
@@ -307,7 +648,8 @@ public class LimitReservationMessageProcessor {
             String startDate,
             String expiryDate,
             String transactionDate,
-            String cls001ProductType
+            String cls001ProductType,
+            String branch
     ) {
         SoapEnvelope soapReqXL01 = new SoapEnvelope();
         String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
@@ -323,7 +665,7 @@ public class LimitReservationMessageProcessor {
         String currencyNumber = msCurrencyRepository.findByIsoCode(currency).getInternalCode();
 
         soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setAdditionalHeader("");
-        soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setBranchCode("003");
+        soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setBranchCode(branch);
         soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setChannelID(clsChannelId);
         soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setClientSupervisorID("7766");
         soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setClientUserID("7755");
@@ -449,6 +791,10 @@ public class LimitReservationMessageProcessor {
         try {
             XmlMapper mapper = new XmlMapper();
 
+            String dcType = soapReqXL31.getBody().getXl31().getCmsXl31Request().getTran();
+            String amount = soapReqXL31.getBody().getXl31().getCmsXl31Request().getAmount();
+            String noteNumber = soapReqXL31.getBody().getXl31().getCmsXl31Request().getNotenumber();
+
             // Avoid unnecessary wrapping
             mapper.setDefaultUseWrapper(false);
             mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
@@ -505,6 +851,13 @@ public class LimitReservationMessageProcessor {
                     ftiTransactionDetail.setTransName("Reservation");
                     ftiTransactionDetail.setCoreSysStatus(responseCode);
                     ftiTransactionDetail.setCoreSysMessage(responseMessage);
+                    if(responseCode.equals("00")){
+                        ftiTransactionDetail.setAdditionalInfo1(noteNumber);
+                        ftiTransactionDetail.setAdditionalInfo2(dcType);
+                        ftiTransactionDetail.setAdditionalInfo3(amount);
+                        ftiTransactionDetail.setAdditionalInfo4("NRY");
+                    }
+
                     ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
 
                 }
@@ -527,7 +880,9 @@ public class LimitReservationMessageProcessor {
             String newKeyloanAcc,
             String currency,
             String transactionDate,
-            String debit_credit
+            String debit_credit,
+            String branch,
+            String eventCode
     ){
 // Call XL31 request
         com.maybank.integratorapp.model.soap.limit.XL31.request.SoapEnvelope soapReqXL31 =
@@ -540,7 +895,7 @@ public class LimitReservationMessageProcessor {
         String limitBranch = splittedKey[2];
 
         soapReqXL31.getBody().getXl31().getChannelHeader().setAdditionalHeader("");
-        soapReqXL31.getBody().getXl31().getChannelHeader().setBranchCode(limitBranch);
+        soapReqXL31.getBody().getXl31().getChannelHeader().setBranchCode(branch);
         soapReqXL31.getBody().getXl31().getChannelHeader().setChannelID(clsChannelId);
         soapReqXL31.getBody().getXl31().getChannelHeader().setClientSupervisorID("7766");
         soapReqXL31.getBody().getXl31().getChannelHeader().setClientUserID("7755");
@@ -600,6 +955,16 @@ public class LimitReservationMessageProcessor {
         reservationResponseDetails.setAvailableAmount(availableAmount);
         reservationResponseDetails.setLimitCheckStatus("S");
 
+        if(!clsResponseCode.equals("00")){
+            reservationResponseDetails.setLimitCheckStatus("E");
+
+            responseHeader.setStatus("FAILED");
+            Details _details = new Details();
+            _details.setError("[CLS ERROR] "+clsResponseMessage);
+            responseHeader.setDetails(_details);
+        }
+
+
         // Set ReservationResponseDetailss
         ReservationResponseDetailss reservationResponseDetailss = new ReservationResponseDetailss();
         reservationResponseDetailss.setReservationResponseDetails(reservationResponseDetails);
@@ -615,12 +980,7 @@ public class LimitReservationMessageProcessor {
         reservationsResponse.setReservationResponseDetailss(reservationResponseDetailss);
         reservationsResponse.setReservationResponseExtraDetailss(reservationResponseExtraDetailss);
 
-        if(!clsResponseCode.equals("00")){
-            responseHeader.setStatus("FAILED");
-            Details _details = new Details();
-            _details.setError("[CLS ERROR] "+clsResponseMessage);
-            responseHeader.setDetails(_details);
-        }
+
 
         response.setReservationsResponse(reservationsResponse);
         response.setResponseHeader(responseHeader);
@@ -628,6 +988,14 @@ public class LimitReservationMessageProcessor {
     private String buildNewKey(String originalKey, String formattedRunningNumber) {
         String[] parts = splitKey(originalKey);
         parts[5] = formattedRunningNumber;
+        return String.join("", parts);
+    }
+
+    private String buildCustomFacilityIdentifier(String key) {
+        String[] parts = splitKey(key);
+        parts[5] = "";
+        parts[6] = "";
+
         return String.join("", parts);
     }
 

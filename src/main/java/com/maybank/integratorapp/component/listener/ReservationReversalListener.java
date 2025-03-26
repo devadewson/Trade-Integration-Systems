@@ -49,13 +49,14 @@ public class ReservationReversalListener implements CustomMessageListener {
 
         try {
             initializeLogData(logData, message);
-            dataDTO.save(logData);
-            message.acknowledge();
+
             String correlationId = message.getJMSCorrelationID();
             if(dataDTO.findByCorrelationId(correlationId)!= null){
                 message.acknowledge();
                 return;
             }
+            logData = dataDTO.save(logData);
+            message.acknowledge();
             ServiceRequest request = parseRequest(message);
 
             String customerRes = request.getReservationsReversalRequest().getCustomer();

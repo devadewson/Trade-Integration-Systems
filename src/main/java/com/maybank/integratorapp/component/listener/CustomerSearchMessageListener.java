@@ -7,6 +7,7 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.coresystem.ProcessCostumerSearch;
+import com.maybank.integratorapp.component.system.messageprocessor.CustomerSearchMessageProcessor;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
@@ -50,6 +51,9 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
     @Autowired
     private ProcessCostumerSearch processCustomerSearch;
 
+    @Autowired
+    private CustomerSearchMessageProcessor messageProcessor;
+
     @Override
     public void onMessage(Message message) {
         if (message instanceof TextMessage) {
@@ -76,7 +80,7 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
             throw new RuntimeException(e);
         }
     }
-    private void processMessage(TextMessage message) {
+    private void processMessageOld(TextMessage message) {
         ServiceResponse response = new ServiceResponse();
         LogQueueData logData = new LogQueueData();
 
@@ -149,6 +153,54 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
             message.acknowledge();
 
         } catch (JMSException | JsonProcessingException e) {
+            handleException(e, response, logData);
+        }
+
+        dataDTO.save(logData);
+
+    }
+
+    private void processMessage(TextMessage message) {
+        ServiceResponse response = new ServiceResponse();
+        LogQueueData logData = new LogQueueData();
+
+        try {
+            initializeLogData(logData, message);
+            System.out.println("Customer Search Listener Received : "+message.getJMSCorrelationID());
+            System.out.println(message.getBody(String.class));
+
+            String correlationId = message.getJMSCorrelationID();
+            if(dataDTO.findByCorrelationId(correlationId)!= null){
+                message.acknowledge();
+                return;
+            }
+            //new logic, if the Operation Tag is CustomerDetails, forward the message to another queues
+            if(message.getText().contains("<Operation>CustomerDetails</Operation>")){
+                forwardMessage(message);
+                message.acknowledge();
+                return;
+            }
+            logData = dataDTO.save(logData);
+            String _message = message.getBody(String.class);
+//            ServiceRequest request = parseRequest(message);
+            String responseXml = messageProcessor.processMessage(_message,logData.getId());
+
+            //Send Response To QUEUE Response
+//            XmlMapper xmlMapper = new XmlMapper();
+//            xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+//            String responseXml = xmlMapper.writeValueAsString(response);
+
+            publisher.PublishMessage(responseXml, message.getJMSCorrelationID());
+
+
+            logData.setStatus("Success");
+            logData.setResMessage(responseXml);
+            logData.setDelivery_date(new Date());
+            logData.setUpdated_date(new Date());
+
+            message.acknowledge();
+
+        } catch (JMSException e) {
             handleException(e, response, logData);
         }
 

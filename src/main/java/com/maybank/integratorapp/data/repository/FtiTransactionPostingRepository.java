@@ -10,9 +10,9 @@ import java.util.List;
 @Repository
 public interface FtiTransactionPostingRepository extends CrudRepository<FtiTransactionPosting, Long> {
     @Modifying
-    @Query("UPDATE FtiPosting p SET p.transactionSeqNo = :sequenceNo WHERE p.id = :id")
+    @Query("UPDATE FtiTransactionPosting p SET p.transactionSeqNo = :sequenceNo WHERE p.id = :id")
     void updateSequenceNo(@Param("id") Long id, @Param("sequenceNo") String sequenceNo);
 
-    @Query("select m from FtiPosting m where m.idHeader = ?1")
+    @Query("select m from FtiTransactionPosting m where m.idHeader = ?1")
     List<FtiTransactionPosting> getAllPostingByHeaderId(Long idHeader);
 }

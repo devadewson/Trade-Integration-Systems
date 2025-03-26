@@ -211,18 +211,19 @@ public class ProcessFacilities {
     }
     public ServiceResponse refreshFacilities(String cifno, Long idcompanyLimit) {
 
-        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
+//        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
+        String soapUrl = parameterService.findValueByPrmKey("XLBTRequest");
+        String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
         String correlationID = "serviceRequest.getRequestHeader().getCorrelationID();";
         String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
 
         SoapEnvelope soapReq = new SoapEnvelope();
         soapReq.getBody().getxLBT().getChannelHeader().setBranchCode("003");
-        soapReq.getBody().getxLBT().getChannelHeader().setChannelID("BT");
-        soapReq.getBody().getxLBT().getChannelHeader().setClientSupervisorID("LKE");
-        soapReq.getBody().getxLBT().getChannelHeader().setClientUserID("B027950");
-        soapReq.getBody().getxLBT().getChannelHeader().setReference("B001395000");
-        soapReq.getBody().getxLBT().getChannelHeader().setReversalSequenceNo(correlationID);
+        soapReq.getBody().getxLBT().getChannelHeader().setChannelID(clsChannelId);
+        soapReq.getBody().getxLBT().getChannelHeader().setClientSupervisorID("7766");
+        soapReq.getBody().getxLBT().getChannelHeader().setClientUserID("7755");
+        soapReq.getBody().getxLBT().getChannelHeader().setReference("FTI");
         soapReq.getBody().getxLBT().getChannelHeader().setTransactionDate(date);
         soapReq.getBody().getxLBT().getChannelHeader().setTransactionTime(time);
 
@@ -377,6 +378,7 @@ public class ProcessFacilities {
             }
         } catch (IOException e) {
             e.printStackTrace();
+            System.out.println(e.getMessage());
         }
 
         return serviceResponseMq;

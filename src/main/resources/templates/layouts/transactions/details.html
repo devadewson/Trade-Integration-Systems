@@ -22,13 +22,28 @@
                                 <td>${log.activityDescription}</td>
                                 <td>${log.activityStatus}</td>
                                 <td>${new Date(log.logDate).toLocaleString()}</td>
-                                <td><pre>${escapeHtml(log.integrationMessage)}</pre></td>
+                                <td>
+                                    <textarea rows="5" readonly="readonly" class="form-control">${log.integrationMessage}</textarea>
+                                </td>
                             </tr>
                         `);
                     });
 
                     // Show the logs section
                     $("#logs-section").show();
+                });
+
+                // Fetch logs via AJAX
+                $.get(`/transaction-details/${transMessageLogId}/log-header`, function (logData) {
+                    $("#LogId").val(`${logData.id}`);
+                    $("#CorrelationId").val(`${logData.correlationID}`);
+                    $("#CreatedDate").val(`${new Date(logData.created_date).toLocaleString()}`);
+                    $("#UpdatedDate").val(`${new Date(logData.updated_date).toLocaleString()}`);
+                    $("#LogOrigin").val(`${logData.origin}`);
+                    $("#LogDestination").val(`${logData.destination}`);
+                    $("#LogReqMessage").val(`${logData.reqMessage}`);
+                    $("#LogResMessage").val(`${logData.resMessage}`);
+
                 });
             });
             // Function to escape HTML content
@@ -83,6 +98,10 @@
                     <th>Core Sys Name</th>
                     <th>Core Sys Status</th>
                     <th>Core Sys Message</th>
+                    <th>Info1</th>
+                    <th>Info2</th>
+                    <th>Info3</th>
+                    <th>Info4</th>
                     <th>Created Date</th>
                     <th>Actions</th>
                 </tr>
@@ -95,6 +114,10 @@
                     <td th:text="${detail.coreSysName}"></td>
                     <td th:text="${detail.coreSysStatus}"></td>
                     <td th:text="${detail.coreSysMessage}"></td>
+                    <td th:text="${detail.additionalInfo1}"></td>
+                    <td th:text="${detail.additionalInfo2}"></td>
+                    <td th:text="${detail.additionalInfo3}"></td>
+                    <td th:text="${detail.additionalInfo4}"></td>
                     <td th:text="${detail.createdDate}"></td>
                     <td>
                         <button class="btn btn-info btn-sm view-logs-btn" th:data-trans-message-log-id="${detail.transMessageLogId}">View Logs</button>
@@ -109,8 +132,70 @@
     <div class="card mb-3">
         <h5 class="card-header">Transaction Detail Logs</h5>
         <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <form>
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="LogId">LogId</label>
+                            <div class="col-md-8">
+                                <input type="text" readonly="readonly" class="form-control" id="LogId">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="CreatedDate">CreatedDate</label>
+                            <div class="col-md-8">
+                                <input type="text" readonly="readonly" class="form-control" id="CreatedDate">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="LogOrigin">LogOrigin</label>
+                            <div class="col-md-8">
+                                <input type="text" readonly="readonly" class="form-control" id="LogOrigin">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="LogReqMessage">Request Message</label>
+                            <div class="col-md-8">
+                                <textarea rows="5" readonly="readonly" class="form-control" id="LogReqMessage" ></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <form>
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="CorrelationId">CorrelationId</label>
+                            <div class="col-md-8">
+                                <input type="text" readonly="readonly" class="form-control" id="CorrelationId">
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="UpdatedDate">UpdatedDate</label>
+                            <div class="col-md-8">
+                                <input type="text" readonly="readonly" class="form-control" id="UpdatedDate" >
+
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="LogDestination">LogDestination</label>
+                            <div class="col-md-8">
+                                <input type="text" readonly="readonly" class="form-control" id="LogDestination">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="LogResMessage">Response Message</label>
+                            <div class="col-md-8">
+                                <textarea rows="5" readonly="readonly" class="form-control" id="LogResMessage" ></textarea>
+
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <hr/>
             <div id="logs-section" class="mt-4" style="display: none;">
-                <h3>Logs</h3>
+
                 <table id="logs-table" class="table table-bordered">
                     <thead>
                     <tr>

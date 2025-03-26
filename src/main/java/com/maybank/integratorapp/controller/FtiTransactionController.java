@@ -1,22 +1,33 @@
 package com.maybank.integratorapp.controller;
 
 import com.maybank.integratorapp.data.entity.*;
+import com.maybank.integratorapp.data.repository.MsParameterRepository;
 import com.maybank.integratorapp.data.service.*;
+import com.maybank.integratorapp.model.soap.fcclimit.response.Limit;
+import com.maybank.integratorapp.model.soap.fcclimit.response.OFAResponse;
+import com.maybank.integratorapp.service.EmailService;
+import com.maybank.integratorapp.service.SendingEmailServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 @Controller
 public class FtiTransactionController {
-
+//    @Autowired
+//    EmailService emailService;
+    @Autowired
+    SendingEmailServiceImpl emailService;
     @Autowired
     private FtiTransactionService ftiTransactionService;
 
@@ -26,6 +37,9 @@ public class FtiTransactionController {
     private LogInterfaceProcessService logInterfaceProcessService;
     @Autowired
     FtiTransactionPostingService ftiPostingService;
+
+    @Autowired
+    MsParameterService parameterService;
 
     @Autowired
     private LogQueueDataService logQueueDataService;
@@ -98,5 +112,29 @@ public class FtiTransactionController {
         // Update the sequence numbers in the database
         ftiPostingService.updatePostingSequence(postings);
         return "redirect:/transaction-details/" + transMessageLogId + "/postings";
+    }
+
+    @GetMapping(value = "/TestEmail")
+    public ResponseEntity<OFAResponse> RefreshLimitByCif(@PathVariable Long idnotif){
+        OFAResponse response = new OFAResponse();
+        List<Limit> limitList = new ArrayList<>();
+
+        try{
+
+//            emailService.sendTransactionNotification(ftiTransactionDetailService.getById(idnotif));
+            String from = parameterService.findValueByPrmKey("EmailNotificationFrom");
+            String to = parameterService.findValueByPrmKey("EmailNotificationTo");
+            String message = "Testing Email";
+            String subject = "Testing Email";
+
+            emailService.sendEmail(from,to,message,subject);
+
+            return new ResponseEntity<OFAResponse>(response, HttpStatus.OK);
+
+        }
+        catch (Exception e){
+            System.out.println(e.getMessage());
+            return new ResponseEntity<OFAResponse>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }

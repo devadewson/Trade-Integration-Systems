@@ -22,6 +22,7 @@ public class MsParameter {
     }
 
     private String prmKey;
+    @Column(columnDefinition = "TEXT")
     private String prmValue;
 
     private String prmDesc;

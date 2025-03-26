@@ -3,6 +3,7 @@ package com.maybank.integratorapp.data.service;
 import com.maybank.integratorapp.data.entity.FtiTransaction;
 import com.maybank.integratorapp.data.entity.FtiTransactionDetail;
 import com.maybank.integratorapp.data.repository.FtiTransactionDetailRepository;
+import com.maybank.integratorapp.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +18,13 @@ public class FtiTransactionDetailService {
     private FtiTransactionDetailRepository ftiTransactionDetailRepository;
 
     @Autowired
+    private EmailService emailService;
+
+    @Autowired
     private FtiTransactionService ftiTransactionService;
+    public FtiTransactionDetail getById(Long id){
+        return ftiTransactionDetailRepository.findById(id).get();
+    }
     public List<FtiTransactionDetail> getDetailsByHeaderId(Long headerId) {
         return ftiTransactionDetailRepository.findByHeaderId(headerId);
     }
@@ -45,10 +52,14 @@ public class FtiTransactionDetailService {
         FtiTransactionDetail savedDetail = ftiTransactionDetailRepository.save(detail);
 
         // Update the FtiTransaction's lastEvent with the detail's ftiEvent
+//        if(!detail.getAdditionalInfo1().isEmpty())
+//            ftiTransaction.setReservationId(detail.getAdditionalInfo1());
         ftiTransaction.setLastStep(detail.getTransName());
         ftiTransaction.setLastEvent(detail.getFtiEvent());
         ftiTransaction.setUpdateDate(new Date());
         ftiTransactionService.createOrUpdateFtiTransaction(ftiTransaction);
+
+        emailService.sendTransactionNotification(savedDetail);
 
         return savedDetail;
     }
