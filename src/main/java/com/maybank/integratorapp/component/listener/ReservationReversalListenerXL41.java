@@ -8,6 +8,7 @@ import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.coresystem.ProcessReservationReversal;
 import com.maybank.integratorapp.component.coresystem.ProcessReservationReversalXL41;
+import com.maybank.integratorapp.component.system.messageprocessor.LimitReversalMessageProcessor;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
@@ -29,6 +30,8 @@ public class ReservationReversalListenerXL41 implements CustomMessageListener {
     @Autowired
     ProcessReservationReversalXL41 processReservationReversalXL41;
     @Autowired
+    LimitReversalMessageProcessor messageProcessor;
+    @Autowired
     private LogQueueDataRepository dataDTO;
     @Autowired
     private Environment env;
@@ -45,6 +48,41 @@ public class ReservationReversalListenerXL41 implements CustomMessageListener {
         }
     }
     private void processMessage(TextMessage message) {
+        ServiceResponse response = new ServiceResponse();
+
+        LogQueueData logData = new LogQueueData();
+
+        try {
+            initializeLogData(logData, message);
+
+            String correlationId = message.getJMSCorrelationID();
+            if(dataDTO.findByCorrelationId(correlationId)!= null){
+                message.acknowledge();
+                return;
+            }
+            String _message = message.getBody(String.class);
+            System.out.println("Limit Reversal Listener Received : "+message.getJMSCorrelationID());
+            System.out.println(message.getBody(String.class));
+            logData = dataDTO.save(logData);
+            message.acknowledge();
+
+            String responseLimit = messageProcessor.processMessage(_message,logData.getId());
+
+            logData.setStatus("Success");
+            logData.setDelivery_date(new Date());
+            logData.setUpdated_date(new Date());
+            logData.setResMessage(responseLimit);
+            dataDTO.save(logData);
+
+            publisher.PublishMessage(responseLimit, message.getJMSCorrelationID());
+
+
+
+        } catch (JMSException e) {
+            handleException(e, logData);
+        }
+    }
+    private void processMessageOld(TextMessage message) {
         ServiceResponse response = new ServiceResponse();
 
         LogQueueData logData = new LogQueueData();

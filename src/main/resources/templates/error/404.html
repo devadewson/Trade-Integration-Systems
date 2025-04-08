@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
+<body>
+
+<main>
+    <style>
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+        .error-icon {
+            font-size: 5em;
+            margin: 20px 0;
+            animation: shake 0.5s infinite alternate;
+        }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+        .home-button {
+            display: inline-block;
+            background-color: #ff6b88;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: transform 0.3s;
+        }
+        .home-button:hover {
+            transform: scale(1.1);
+        }
+        .footprints {
+            font-size: 2em;
+            margin: 20px 0;
+            letter-spacing: 5px;
+        }
+    </style>
+    <div class="container">
+        <div class="error-icon">🔍</div>
+        <h1>Oops! Page Not Found</h1>
+        <p>Looks like you took a wrong turn, explorer!</p>
+        <p>The page you're looking for has vanished like a cookie in a room full of programmers.</p>
+
+        <div class="footprints">
+            👣 👣 👣
+        </div>
+
+        <p>Let's get you back to safety:</p>
+        <a href="/" class="home-button">Take Me Home</a>
+
+        <p style="margin-top: 30px;">
+            <small>Error 404 - Page Not Found</small>
+        </p>
+
+    </div>
+
+
+
+</main>
+</body>
+
+</html>

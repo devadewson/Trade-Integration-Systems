@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
+<body>
+<main>
+
+    <h1>Log Queue Details</h1>
+
+    <div class="card mb-3">
+        <h5 class="card-header">Detail Logs</h5>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <form>
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="LogId">LogId</label>
+                            <div class="col-md-8">
+                                <input type="text" readonly="readonly" th:value="${logQueue.id}" class="form-control" id="LogId">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="CreatedDate">CreatedDate</label>
+                            <div class="col-md-8">
+                                <input type="text" readonly="readonly" th:value="${logQueue.created_date}" class="form-control" id="CreatedDate">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="LogOrigin">LogOrigin</label>
+                            <div class="col-md-8">
+                                <input type="text" readonly="readonly" th:value="${logQueue.origin}" class="form-control" id="LogOrigin">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="LogReqMessage">Request Message</label>
+                            <div class="col-md-8">
+                                <textarea rows="5" readonly="readonly" th:text="${logQueue.reqMessage}" class="form-control" id="LogReqMessage" ></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <form>
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="CorrelationId">CorrelationId</label>
+                            <div class="col-md-8">
+                                <input type="text" readonly="readonly" th:value="${logQueue.correlationID}" class="form-control" id="CorrelationId">
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="UpdatedDate">UpdatedDate</label>
+                            <div class="col-md-8">
+                                <input type="text" readonly="readonly" th:value="${logQueue.updated_date}" class="form-control" id="UpdatedDate" >
+
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="LogDestination">LogDestination</label>
+                            <div class="col-md-8">
+                                <input type="text" readonly="readonly" th:value="${logQueue.destination}" class="form-control" id="LogDestination">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-4 col-form-label" for="LogResMessage">Response Message</label>
+                            <div class="col-md-8">
+                                <textarea rows="5" readonly="readonly" th:text="${logQueue.resMessage}" class="form-control" id="LogResMessage" ></textarea>
+
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <hr/>
+            <div id="logs-section" class="mt-4">
+
+                <table id="logs-table" class="table table-bordered">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Activity</th>
+                        <th>Activity Description</th>
+                        <th>Activity Status</th>
+                        <th>Log Date</th>
+                        <th>Integration Message</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="log : ${logs}">
+                        <td th:text="${log.id}"></td>
+                        <td th:text="${log.activity}"></td>
+                        <td th:text="${log.activityDescription}"></td>
+                        <td th:text="${log.activityStatus}"></td>
+                        <td th:text="${log.logDate}"></td>
+                        <td>
+                            <textarea rows="5" readonly="readonly" class="form-control" th:text="${log.integrationMessage}"></textarea>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+</main>
+<!-- JavaScript to Handle "View Logs" Button Click -->
+
+</body>
+
+</html>

@@ -100,8 +100,42 @@ public class CustomerSearchMessageProcessor {
                 com.maybank.integratorapp.model.restv2.CustomerInformation.request.MsgWraper msgRequestCustomerInformation = mapCoreSystemCustomerInformationRequest(request);
 
                 // step 4.
+                String accountList_responseStatus;
+                String accountList_responseMessage;
+                String accountList_add_responseStatus;
+                String accountList_add_responseMessage;
+                String customerInfo_responseStatus;
+                String customerInfo_responseMessage;
+                String customerInfo_add_responseStatus;
+                String customerInfo_add_responseMessage;
+//                com.maybank.integratorapp.model.restv2.AccountList.response.AccountListResponse accountListResponse= null;
+//                com.maybank.integratorapp.model.restv2.CustomerInformation.response.CustomerInfoData customerInfoData = null;
+                
                 com.maybank.integratorapp.model.restv2.AccountList.response.MsgWraper msgResponse = getAccountListMsgBodyResponse(request,msgRequestAccountList);
-                com.maybank.integratorapp.model.restv2.CustomerInformation.response.MsgWraper msgResponse2 = getCustomerInfoMsgBodyResponse(request,msgRequestCustomerInformation);
+                com.maybank.integratorapp.model.restv2.CustomerInformation.response.MsgWraper msgResponse2 = null;
+                if(msgResponse.getMsg()!=null){
+                    accountList_responseStatus = msgResponse.getMsg().getMsgHeader().getStatusCode();
+                    accountList_responseMessage = msgResponse.getMsg().getMsgHeader().getStatusDesc();
+                    accountList_add_responseStatus = msgResponse.getMsg().getMsgHeader().getAdditionalStatusCodes().get(0).getHostStatusCode();
+                    accountList_add_responseMessage = msgResponse.getMsg().getMsgHeader().getAdditionalStatusCodes().get(0).getHostStatusDesc();
+                    logger.Log(ProcessName, "Response ESB Account Info", "ESB-MESSAGE", accountList_responseStatus+"|"+accountList_responseMessage+";"+accountList_add_responseStatus+"|"+accountList_add_responseMessage);
+
+                }
+
+
+                if(msgResponse.getMsg().getMsgHeader().getStatusCode().equals("0")
+                        && msgResponse.getMsg().getMsgBody().getAccountListResponse()!=null){
+                    msgResponse2 = getCustomerInfoMsgBodyResponse(request,msgRequestCustomerInformation);
+                    if(msgResponse2.getMsg()!=null){
+                        customerInfo_responseStatus = msgResponse2.getMsg().getMsgHeader().getStatusCode();
+                        customerInfo_responseMessage = msgResponse2.getMsg().getMsgHeader().getStatusDesc();
+                        customerInfo_add_responseStatus = msgResponse2.getMsg().getMsgHeader().getAdditionalStatusCodes().get(0).getHostStatusCode();
+                        customerInfo_add_responseMessage = msgResponse2.getMsg().getMsgHeader().getAdditionalStatusCodes().get(0).getHostStatusDesc();
+                        logger.Log(ProcessName, "Response ESB Customer Info", "ESB-MESSAGE", customerInfo_responseStatus+"|"+customerInfo_responseMessage+";"+customerInfo_add_responseStatus+"|"+customerInfo_add_responseMessage);
+
+                    }
+
+                }
 
                 // step 5.
                 mapExternalResponse(request, msgResponse,msgResponse2);
@@ -220,26 +254,30 @@ public class CustomerSearchMessageProcessor {
                     logger.Log(ProcessName, "Response ESB Message", "ESB-MESSAGE", responseString);
                     res = objectMapper.readValue(responseString, com.maybank.integratorapp.model.restv2.AccountList.response.MsgWraper.class);
 
-                    String gcifNo = request.getCustomerSearchRequest().getCustomerNumber();
-                    String cifNo = request.getCustomerSearchRequest().getCustomerNumber();
-                    String tagBank = request.getCustomerSearchRequest().getIncludeBanks();
-                    String tagCustomer = request.getCustomerSearchRequest().getIncludeCustomers();
-                    var _el = res.getMsg().getMsgBody().getAccountListResponse().getAccountData().stream().filter(x->x.getCifNo().equals(cifNo)).findFirst().get();
-                    String responseCifNo = _el.getCifNo();
-                    MsCompanyData companyData = companyDataRepository.findByGcif(gcifNo);
-                    if(companyData == null){
-                        companyData = new MsCompanyData();
-                        companyData.setGcifno(gcifNo);
-                        companyData.setCreated_date(new Date());
+                    if(res.getMsg().getMsgHeader().getStatusCode().equals("0")){
+
+                        String gcifNo = request.getCustomerSearchRequest().getCustomerNumber();
+                        String cifNo = request.getCustomerSearchRequest().getCustomerNumber();
+                        String tagBank = request.getCustomerSearchRequest().getIncludeBanks();
+                        String tagCustomer = request.getCustomerSearchRequest().getIncludeCustomers();
+                        var _el = res.getMsg().getMsgBody().getAccountListResponse().getAccountData().stream().filter(x->x.getCifNo().equals(cifNo)).findFirst().get();
+                        String responseCifNo = _el.getCifNo();
+                        MsCompanyData companyData = companyDataRepository.findByGcif(gcifNo);
+                        if(companyData == null){
+                            companyData = new MsCompanyData();
+                            companyData.setGcifno(gcifNo);
+                            companyData.setCreated_date(new Date());
+                        }
+
+                        companyData.setCifno(responseCifNo);
+                        companyData.setTagBank(tagBank);
+                        companyData.setTagCustomer(tagCustomer);
+                        companyData.setAccInfoData(responseString);
+                        companyData.setUpdated_date(new Date());
+
+                        companyData = companyDataRepository.save(companyData);
+
                     }
-
-                    companyData.setCifno(responseCifNo);
-                    companyData.setTagBank(tagBank);
-                    companyData.setTagCustomer(tagCustomer);
-                    companyData.setAccInfoData(responseString);
-                    companyData.setUpdated_date(new Date());
-
-                    companyData = companyDataRepository.save(companyData);
 
 
                 } catch (Exception e) {
@@ -322,45 +360,70 @@ public class CustomerSearchMessageProcessor {
     // step 5. Map core system data to external Response
     private void mapExternalResponse(ServiceRequest request,com.maybank.integratorapp.model.restv2.AccountList.response.MsgWraper accountListResponse, com.maybank.integratorapp.model.restv2.CustomerInformation.response.MsgWraper customerInfoResponse) {
 
-        String requestGcifNo = request.getCustomerSearchRequest().getCustomerNumber();
-        String requestCifNo = request.getCustomerSearchRequest().getCustomerMnemonic();
+        if(accountListResponse.getMsg().getMsgBody().getAccountListResponse()!= null
+        && customerInfoResponse!=null){
+            String requestGcifNo = request.getCustomerSearchRequest().getCustomerNumber();
+            String requestCifNo = request.getCustomerSearchRequest().getCustomerMnemonic();
 
-        String responseGcifNo = customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getgCIFNo();
-        var _el = accountListResponse.getMsg().getMsgBody().getAccountListResponse().getAccountData().stream().filter(x->x.getCifNo().equals(requestCifNo)).findFirst().get();
-        String responseCifNo = _el.getCifNo();
-        String fullname = customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getFullName();
-        String countryOrResidence = customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getNationality();
-        String address = customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine1() + " "+
-                customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine2() + " "+
-                customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine3() + " "+
-                customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine4() + " "+
-                customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine5() + " "+
-                customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine6() + " "+
-                customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine7() + " "+
-                customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine8() + " "+
-                customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine9() + " "+
-                customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine10();
-        address = address.trim();
-        if(address.length()>59)
-            address = address.substring(0,59);
+            String responseGcifNo = customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getgCIFNo();
+            var _el = accountListResponse.getMsg().getMsgBody().getAccountListResponse().getAccountData().stream().filter(x->x.getCifNo().equals(requestCifNo)).findFirst().get();
+            String responseCifNo = _el.getCifNo();
+            String fullname = customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getFullName();
+            String countryOrResidence = customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getNationality();
+            String address = customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine1() + " "+
+                    customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine2() + " "+
+                    customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine3() + " "+
+                    customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine4() + " "+
+                    customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine5() + " "+
+                    customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine6() + " "+
+                    customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine7() + " "+
+                    customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine8() + " "+
+                    customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine9() + " "+
+                    customerInfoResponse.getMsg().getMsgBody().getCustomerInfoData().getAddressLine10();
+            address = address.trim();
+            if(address.length()>59)
+                address = address.substring(0,59);
 //            Details detailsResponse = new Details();
 //            detailsResponse.setInfo(res.getMsg().getMsgHeader().getStatusDesc());
-        CustomerSearchResult customerSearchResult = new CustomerSearchResult();
+            CustomerSearchResult customerSearchResult = new CustomerSearchResult();
 
-        customerSearchResult.setGroup("ADIMAH");
-        customerSearchResult.setAccountOfficer("*");
-        customerSearchResult.setBlocked("N");
-        customerSearchResult.setCustomerMnemonic(responseCifNo);
-        customerSearchResult.setCustomerNumber(responseGcifNo);
-        customerSearchResult.setFullName(fullname);
-        customerSearchResult.setCountryOfResidence(countryOrResidence);
-        customerSearchResult.setLocation(address);
+            customerSearchResult.setGroup("ADIMAH");
+            customerSearchResult.setAccountOfficer("*");
+            customerSearchResult.setBlocked("N");
+            customerSearchResult.setCustomerMnemonic(responseCifNo);
+            customerSearchResult.setCustomerNumber(responseGcifNo);
+            customerSearchResult.setFullName(fullname);
+            customerSearchResult.setCountryOfResidence(countryOrResidence);
+            customerSearchResult.setLocation(address);
 
-        ArrayList<CustomerSearchResult> _result = new ArrayList<>();
-        _result.add(customerSearchResult);
-        response.setCustomerSearchResponse(new CustomerSearchResponse());
-        response.getCustomerSearchResponse().setCustomerSearchResults(new CustomerSearchResults());
-        response.getCustomerSearchResponse().getCustomerSearchResults().setCustomerSearchResult(_result);
+            ArrayList<CustomerSearchResult> _result = new ArrayList<>();
+            _result.add(customerSearchResult);
+            response.setCustomerSearchResponse(new CustomerSearchResponse());
+            response.getCustomerSearchResponse().setCustomerSearchResults(new CustomerSearchResults());
+            response.getCustomerSearchResponse().getCustomerSearchResults().setCustomerSearchResult(_result);
+
+        }else{
+            String accountList_responseStatus;
+            String accountList_responseMessage;
+            String accountList_add_responseStatus;
+            String accountList_add_responseMessage;
+
+            accountList_responseStatus = accountListResponse.getMsg().getMsgHeader().getStatusCode();
+            accountList_responseMessage = accountListResponse.getMsg().getMsgHeader().getStatusDesc();
+            accountList_add_responseStatus = accountListResponse.getMsg().getMsgHeader().getAdditionalStatusCodes().get(0).getHostStatusCode();
+            accountList_add_responseMessage = accountListResponse.getMsg().getMsgHeader().getAdditionalStatusCodes().get(0).getHostStatusDesc();
+
+            Details detailsResponse = new Details();
+            detailsResponse.setError("ESB-HOST ERROR : "+accountList_responseMessage+"|"+accountList_add_responseMessage);
+            response.getResponseHeader().setDetails(detailsResponse);
+            response.getResponseHeader().setStatus("FAILED");
+            response.setCustomerSearchResponse(null);
+//            response.getCustomerSearchResponse().setCustomerSearchResults(new CustomerSearchResults());
+//            ArrayList<CustomerSearchResult> _result = new ArrayList<>();
+//            response.getCustomerSearchResponse().getCustomerSearchResults().setCustomerSearchResult(_result);
+
+        }
+
     }
 }
 

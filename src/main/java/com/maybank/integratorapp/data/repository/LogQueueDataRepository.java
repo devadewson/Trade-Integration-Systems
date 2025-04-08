@@ -1,6 +1,9 @@
 package com.maybank.integratorapp.data.repository;
 
+import com.maybank.integratorapp.data.entity.FtiTransaction;
 import com.maybank.integratorapp.data.entity.LogQueueData;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,6 +13,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
+import java.util.Optional;
 
 @Repository
 public interface LogQueueDataRepository extends CrudRepository<LogQueueData, Long> {
@@ -17,4 +21,10 @@ public interface LogQueueDataRepository extends CrudRepository<LogQueueData, Lon
     // Additional methods if needed
     @Query("select m from LogQueueData m where m.correlationID = ?1")
     LogQueueData findByCorrelationId(String prmKey);
+
+    Optional<LogQueueData> findByCorrelationID(String correlationId);
+    Page<LogQueueData> findAll(Pageable pageable);
+    @Query("SELECT t FROM LogQueueData t WHERE LOWER(t.correlationID) LIKE LOWER(CONCAT('%', :correlationId, '%'))")
+    Page<LogQueueData> findByCorrelationIdContainingIgnoreCase(@Param("correlationId") String correlationId, Pageable pageable);
+
 }

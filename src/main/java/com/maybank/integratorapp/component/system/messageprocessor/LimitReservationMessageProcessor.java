@@ -464,14 +464,17 @@ public class LimitReservationMessageProcessor {
                 int runningNumber = runningNumberEntry.getRunningNumber();
                 String formattedRunningNumber = String.format("%03d", runningNumber + 1);
                 System.out.println("Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber);
+                logger.Log(ProcessName, "Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber, "DEBUG");
 
                 // Buat keyLoanAcc baru dengan mengganti bagian draw
                 newKeyLoanAcc = buildNewKey(facilityIdentifier, formattedRunningNumber);
                 System.out.println("New KeyLoanAcc: " + newKeyLoanAcc);
+                logger.Log(ProcessName, "New KeyLoanAcc: " + newKeyLoanAcc, "DEBUG");
 
                 // Buat formatted key untuk sistem proses
                 acctReqXL01 = buildFormattedKey(facilityIdentifier, formattedRunningNumber);
                 System.out.println("New Formatted Key: " + acctReqXL01);
+                logger.Log(ProcessName, "New Formatted Key: " + acctReqXL01, "DEBUG");
 
                 // treat amend as issue for mapping purpose
                 if(_eventCode.equals("AMD") || _eventCode.equals("ADJ"))

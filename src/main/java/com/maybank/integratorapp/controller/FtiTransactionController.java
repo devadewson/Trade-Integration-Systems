@@ -1,11 +1,9 @@
 package com.maybank.integratorapp.controller;
 
 import com.maybank.integratorapp.data.entity.*;
-import com.maybank.integratorapp.data.repository.MsParameterRepository;
 import com.maybank.integratorapp.data.service.*;
 import com.maybank.integratorapp.model.soap.fcclimit.response.Limit;
 import com.maybank.integratorapp.model.soap.fcclimit.response.OFAResponse;
-import com.maybank.integratorapp.service.EmailService;
 import com.maybank.integratorapp.service.SendingEmailServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -112,6 +110,12 @@ public class FtiTransactionController {
         // Update the sequence numbers in the database
         ftiPostingService.updatePostingSequence(postings);
         return "redirect:/transaction-details/" + transMessageLogId + "/postings";
+    }
+
+    @GetMapping("/posting")
+    public String getAllPostings(Model model) {
+
+        return "error/dev";
     }
 
     @GetMapping(value = "/TestEmail")

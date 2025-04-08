@@ -1,0 +1,50 @@
+Manifest-Version: 1.0
+Main-Class: com.maybank.integratorapp.IntegratorAppMain
+Class-Path: lib/micrometer-commons-1.11.2.jar lib/spring-beans-6.0.11.ja
+ r lib/spring-webmvc-6.0.11.jar lib/spring-expression-6.0.11.jar lib/spr
+ ing-boot-starter-jdbc-3.1.2.jar lib/micrometer-observation-1.11.2.jar l
+ ib/jakarta.transaction-api-2.0.1.jar lib/jakarta.inject-api-2.0.1.jar l
+ ib/logback-core-1.4.8.jar lib/jjwt-jackson-0.11.5.jar lib/jackson-datab
+ ind-2.17.1.jar lib/jul-to-slf4j-2.0.7.jar lib/spring-boot-starter-aop-3
+ .1.2.jar lib/spring-jms-6.0.11.jar lib/spring-xml-4.0.5.jar lib/spring-
+ boot-autoconfigure-3.1.2.jar lib/spring-jdbc-6.0.11.jar lib/tomcat-embe
+ d-core-10.1.11.jar lib/spring-boot-starter-json-3.1.2.jar lib/jackson-m
+ odule-parameter-names-2.15.2.jar lib/txw2-4.0.3.jar lib/woodstox-core-6
+ .6.2.jar lib/istack-commons-runtime-4.1.2.jar lib/jackson-annotations-2
+ .17.1.jar lib/jakarta.jms-api-3.1.0.jar lib/spring-ws-core-4.0.5.jar li
+ b/commons-codec-1.15.jar lib/hibernate-commons-annotations-6.0.6.Final.
+ jar lib/mssql-jdbc-11.2.3.jre17.jar lib/spring-context-6.0.11.jar lib/j
+ boss-logging-3.5.3.Final.jar lib/tomcat-embed-el-10.1.11.jar lib/jsch-0
+ .1.55.jar lib/spring-boot-starter-logging-3.1.2.jar lib/jjwt-api-0.11.5
+ .jar lib/spring-data-commons-3.1.2.jar lib/commons-pool2-2.11.1.jar lib
+ /classmate-1.5.1.jar lib/jackson-core-2.17.1.jar lib/jakarta.activation
+ -api-2.1.2.jar lib/jjwt-impl-0.11.5.jar lib/spring-oxm-6.0.11.jar lib/t
+ hymeleaf-3.1.1.RELEASE.jar lib/HikariCP-5.0.1.jar lib/commons-logging-1
+ .2.jar lib/com.ibm.mq.allclient-9.4.0.0.jar lib/jaxb-core-4.0.3.jar lib
+ /byte-buddy-1.14.4.jar lib/spring-data-jpa-3.1.2.jar lib/pooled-jms-3.1
+ .0.jar lib/attoparser-2.0.6.RELEASE.jar lib/lombok-1.18.28.jar lib/jaka
+ rta.xml.ws-api-4.0.0.jar lib/spring-aspects-6.0.11.jar lib/spring-boot-
+ starter-thymeleaf-3.1.2.jar lib/com.ibm.mq.jakarta.client-9.4.1.0.jar l
+ ib/jakarta.persistence-api-3.1.0.jar lib/spring-web-6.0.11.jar lib/stax
+ -ex-2.1.0.jar lib/spring-boot-3.1.2.jar lib/unbescape-1.1.6.RELEASE.jar
+  lib/logback-classic-1.4.8.jar lib/spring-orm-6.0.11.jar lib/json-20240
+ 303.jar lib/hibernate-core-6.2.6.Final.jar lib/spring-core-6.0.11.jar l
+ ib/tomcat-embed-websocket-10.1.11.jar lib/jakarta.annotation-api-2.1.1.
+ jar lib/jackson-datatype-jdk8-2.15.2.jar lib/spring-boot-starter-data-j
+ pa-3.1.2.jar lib/spring-aop-6.0.11.jar lib/aspectjweaver-1.9.19.jar lib
+ /jakarta.xml.bind-api-4.0.0.jar lib/bcprov-jdk18on-1.78.1.jar lib/log4j
+ -api-2.20.0.jar lib/angus-activation-2.0.1.jar lib/spring-boot-starter-
+ web-3.1.2.jar lib/spring-jcl-6.0.11.jar lib/stax2-api-4.2.2.jar lib/spr
+ ing-tx-6.0.11.jar lib/jackson-dataformat-xml-2.17.1.jar lib/thymeleaf-s
+ pring6-3.1.1.RELEASE.jar lib/bcpkix-jdk18on-1.78.1.jar lib/httpclient-4
+ .5.14.jar lib/antlr4-runtime-4.10.1.jar lib/javax.jms-api-2.0.1.jar lib
+ /spring-boot-starter-3.1.2.jar lib/spring-boot-starter-web-services-3.1
+ .2.jar lib/spring-messaging-6.0.11.jar lib/jaxb-runtime-4.0.3.jar lib/j
+ akarta.xml.soap-api-3.0.0.jar lib/slf4j-api-2.0.7.jar lib/spring-boot-s
+ tarter-tomcat-3.1.2.jar lib/jackson-datatype-jsr310-2.15.2.jar lib/snak
+ eyaml-1.33.jar lib/saaj-impl-3.0.2.jar lib/mq-jms-spring-boot-starter-3
+ .3.5.jar lib/jandex-3.0.5.jar lib/log4j-to-slf4j-2.20.0.jar lib/httpcor
+ e-4.4.16.jar lib/bcutil-jdk18on-1.78.1.jar lib/jakarta.mail-1.1.0.jar l
+ ib/spring-boot-starter-mail-3.1.2.jar lib/angus-activation-2.0.1.jar li
+ b/spring-context-support-6.0.11.jar
+

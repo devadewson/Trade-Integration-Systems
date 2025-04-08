@@ -1,33 +1,38 @@
 package com.maybank.integratorapp.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ibm.mq.*;
 import com.ibm.mq.constants.CMQC;
 import com.maybank.integratorapp.component.MessagePublisher;
-import com.maybank.integratorapp.data.entity.LogQueueData;
-import com.maybank.integratorapp.data.entity.MsQueueConfig;
+import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.MsQueueConfigRepository;
-import com.maybank.integratorapp.service.QueueConfigService;
+import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
+import com.maybank.integratorapp.data.service.LogQueueDataService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.GregorianCalendar;
-import java.util.List;
+import java.util.*;
 
 @Controller
 public class MQController {
 
     @Autowired
     private MsQueueConfigRepository queueConfigRepository;
+    @Autowired
+    private LogQueueDataService logQueueDataService;
+    @Autowired
+    private LogInterfaceProcessService logInterfaceProcessService;
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -197,5 +202,46 @@ public class MQController {
         }
 
         return "layouts/sandbox/queuecheck";
+    }
+
+    @GetMapping("/log-queue")
+    public String getAllLogQueue(
+            @RequestParam("page") Optional<Integer> page,
+            @RequestParam("size") Optional<Integer> size,
+            @RequestParam("search") Optional<String> search,
+            Model model) {
+
+        // Set default values for pagination
+        int currentPage = page.orElse(1);
+        int pageSize = size.orElse(10);
+
+        // Fetch a page of FtiTransactions
+        Pageable pageable = PageRequest.of(currentPage - 1, pageSize, Sort.by("id").descending());
+
+        // Fetch a page of FtiTransactions
+        Page<LogQueueData> logQueuePage;
+        if (search.isPresent() && !search.get().isEmpty()) {
+            // If search term is provided, search by masterRefNo
+            logQueuePage = logQueueDataService.searchByCorrelationId(search.get(), pageable);
+        } else {
+            // Otherwise, fetch all transactions with default sorting
+            logQueuePage = logQueueDataService.getAll(pageable);
+        }
+        // Add data to the model
+        model.addAttribute("logQueuePage", logQueuePage);
+        model.addAttribute("currentPage", currentPage);
+        model.addAttribute("totalPages", logQueuePage.getTotalPages());
+        model.addAttribute("search", search.orElse(""));
+
+        return "layouts/queue/index"; // Thymeleaf template name
+    }
+
+    @GetMapping("/log-queue/{id}/details")
+    public String getLogQueueDetails(@PathVariable Long id, Model model) {
+        LogQueueData logQueueData = logQueueDataService.findById(id).get();
+        List<LogInterfaceProcess> details = logInterfaceProcessService.getLogsByParentId(id);
+        model.addAttribute("logQueue", logQueueData);
+        model.addAttribute("logs", details);
+        return "layouts/queue/details"; // Thymeleaf template name
     }
 }
