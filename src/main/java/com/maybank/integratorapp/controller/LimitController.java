@@ -108,13 +108,15 @@ public class LimitController {
                     LocalDate _maturitydate = LocalDate.parse(s.getMaturityDate(), DateTimeFormatter.BASIC_ISO_DATE);
                     String maturityDate = _maturitydate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                     String ISOcurrency = currencies.stream().filter(x->x.getInternalCode().equals(s.getCurrency())).findFirst().get().getIsoCode();
+//                    String ISOcurrency = currencies.stream().filter(x->x.getInternalCode().equals(s.get())).findFirst().get().getIsoCode();
+
 
                     Limit limit = new Limit();
                     limit.setLimitName(s.getDescription().trim());
                     limit.setLimitNo(s.getKeyLoanAcc());
 //                    limit.setParentLimitNo(s.getKeyLoanAcc());
                     limit.setProductCode(s.getNoteType());
-                    limit.setLimitCurrency(ISOcurrency);
+                    limit.setLimitCurrency(s.getLoanCurrencyCode());
                     limit.setLimitAmount(balance);
                     limit.setExpiryDate(maturityDate);
                     limit.setTenorPeriod("180");

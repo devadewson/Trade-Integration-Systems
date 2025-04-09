@@ -16,6 +16,17 @@ public class ExtraData {
 
     private String iDCurrencyNumber;
 
+    @JacksonXmlProperty(localName = "GroupID", namespace = "urn:custom.service.ti.apps.tiplus2.misys.com")
+    private String groupID;
+
+    public String getGroupID() {
+        return groupID;
+    }
+
+    public void setGroupID(String groupID) {
+        this.groupID = groupID;
+    }
+
     public String getHoldCodeOverride() {
         return holdCodeOverride;
     }

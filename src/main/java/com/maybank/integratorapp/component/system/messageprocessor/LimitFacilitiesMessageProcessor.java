@@ -528,6 +528,8 @@ public class LimitFacilitiesMessageProcessor {
                     String balance = s.getPrincipalBalance().split("\\.")[0];
                     String utilizedBalance = s.getCommitmentBalance().split("\\.")[0];
 
+                    fac.setStatus(s.getNoteType());
+                    fac.setDescription(s.getDescription());
                     fac.setLimitAmount(balance);
                     fac.setAvailableAmount(balance);
                     fac.setMultiCurrency("N");

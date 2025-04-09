@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.model.restv2.AccountList.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
@@ -9,6 +10,7 @@ public class AccountData {
     private String cifNo;
 
     @JsonProperty("AccountDataRecord")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private List<AccountDataRecord> accountDataRecord;
 
     public String getCifNo() {

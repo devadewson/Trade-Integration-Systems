@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.model.restv2.AccountList.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class MsgBody {
@@ -7,6 +8,7 @@ public class MsgBody {
     private Object responseDetail;
 
     @JsonProperty("AccountListResponse")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public AccountListResponse accountListResponse;
 
     public Object getResponseDetail() {

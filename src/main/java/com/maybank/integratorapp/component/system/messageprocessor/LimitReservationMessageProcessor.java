@@ -63,7 +63,7 @@ public class LimitReservationMessageProcessor {
     @Autowired
     private LimitFacilitiesMessageProcessor facilitiesMessageProcessor;
 
-//    public String processMessageNew(String message,Long loggerId) {
+//    public String processMessage(String message,Long loggerId) {
 //        String responseXml = "";
 //        logger.SetLogParent(loggerId);
 //
@@ -442,12 +442,22 @@ public class LimitReservationMessageProcessor {
                 String productType  = facilities.getNoteType();
                 String newKeyLoanAcc = null;
                 String acctReqXL01 = null;
+                String formattedRunningNumber = "";
+
+                String xl01responseCode = "";
+                String xl31responseCode = "";
+                String xl01responseMessage = "";
+                String xl31responseMessage = "";
 
                 System.out.println("Facility ID: " + facilityId);
                 System.out.println("LineOfBusiness: " + lineOfBusiness);
 
-                // cek dulu di table referensi transaksinya
 
+
+//                if(newKeyLoanAcc != null){
+//
+//
+//                }
                 // Ambil MsUtilizeRunningNumber berdasarkan facilityId
                 MsUtilizeRunningNumber runningNumberEntry = msUtilizeRunningNumberRepository.findByFacilityId(facilityId);
 
@@ -462,7 +472,7 @@ public class LimitReservationMessageProcessor {
                 }
                 // Ambil Running Number dan pastikan format 3 digit
                 int runningNumber = runningNumberEntry.getRunningNumber();
-                String formattedRunningNumber = String.format("%03d", runningNumber + 1);
+                formattedRunningNumber = String.format("%03d", runningNumber + 1);
                 System.out.println("Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber);
                 logger.Log(ProcessName, "Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber, "DEBUG");
 
@@ -475,6 +485,41 @@ public class LimitReservationMessageProcessor {
                 acctReqXL01 = buildFormattedKey(facilityIdentifier, formattedRunningNumber);
                 System.out.println("New Formatted Key: " + acctReqXL01);
                 logger.Log(ProcessName, "New Formatted Key: " + acctReqXL01, "DEBUG");
+
+                // cek dulu di table referensi transaksinya
+                // timpa & pakai yang lama jika ada
+                Optional<FtiTransaction> ftiTransactionData = ftiTransactionService.findByMasterRefNo(masterReference);
+
+                if(!ftiTransactionData.isEmpty()){
+                    FtiTransaction transaction = ftiTransactionData.get();
+                    String _customFacilityIdentifier = facilityIdentifier.substring(0,(facilityIdentifier.length()-6));
+                    String _facNew = splitKey(facilityIdentifier)[4];
+                    List<FtiTransactionDetail> transactionDetails = ftiTransactionDetailService.getDetailsByHeaderId(transaction.getId());
+                    if(transactionDetails.stream().anyMatch(x->x.getFtiEvent().equals("ISS001"))){
+//                        FtiTransactionDetail transactionDetails1;
+//                        transactionDetails.forEach(x->{
+//                            if(x.getAdditionalInfo1()!=null){
+//                                transactionDetails1 = x;
+//                                break;
+//                            }
+//                        });
+                        FtiTransactionDetail transactionDetails1 = transactionDetails.stream().filter(x->x.getFtiEvent().equals("ISS001")&&x.getAdditionalInfo1()!=null).findFirst().get();
+                        logger.Log(ProcessName, "Get Old : " + transactionDetails1.getId(), "DEBUG");
+
+//                        check whether its the same facility
+                        String _facOld = splitKey(transactionDetails1.getAdditionalInfo1())[4];
+
+                        if(_facOld.equals(_facNew)){
+                            logger.Log(ProcessName, "Previous KeyLoanAcc: " + transactionDetails1.getAdditionalInfo1(), "DEBUG");
+
+                            newKeyLoanAcc = transactionDetails1.getAdditionalInfo1();
+                            xl01responseCode = "00";
+                            formattedRunningNumber = splitKey(newKeyLoanAcc)[5];
+                            acctReqXL01 = buildFormattedKey(facilityIdentifier, formattedRunningNumber);
+                        }
+
+                    }
+                }
 
                 // treat amend as issue for mapping purpose
                 if(_eventCode.equals("AMD") || _eventCode.equals("ADJ"))
@@ -508,10 +553,7 @@ public class LimitReservationMessageProcessor {
                 System.out.println("CLS Product Type : " + cls001ProductType);
                 logger.Log(ProcessName, "CLS Product Type : "+cls001ProductType, "DEBUG");
 
-                String xl01responseCode = "";
-                String xl31responseCode = "";
-                String xl01responseMessage = "";
-                String xl31responseMessage = "";
+
                 // new reservation logic
 
                 FtiTransaction _header = new FtiTransaction();
@@ -519,15 +561,17 @@ public class LimitReservationMessageProcessor {
                 List<FtiTransactionDetail> _listTransactionDetail = new ArrayList<>();
                 if(ftiTransactionService.findByMasterRefNo(masterReference).isPresent()){
                     _header = ftiTransactionService.findByMasterRefNo(masterReference).get();
-                    ftiTransactionDetailService.getDetailsByHeaderId(_header.getId());
+                    _listTransactionDetail = ftiTransactionDetailService.getDetailsByHeaderId(_header.getId());
                     _listTransactionDetail = _listTransactionDetail.stream().filter(x->x.getCoreSysName().startsWith("CLS"))
                             .sorted(Comparator.comparingLong(FtiTransactionDetail::getId))
                             .collect(Collectors.toList());
                 }
 
                 FtiTransactionDetail _lastLimitAction = null;
-                if(_listTransactionDetail.size()>0){
-                    _lastLimitAction = _listTransactionDetail.get(_listTransactionDetail.size()-1);
+                if(_listTransactionDetail.stream().count()>0){
+                    logger.Log(ProcessName, "Transaction Detail Count : "+_listTransactionDetail.stream().count(), "DEBUG");
+
+                    _lastLimitAction = _listTransactionDetail.get((int) (_listTransactionDetail.stream().count()-1));
                 }
 
                 if(eventCode.startsWith("ISS") && _lastLimitAction==null){
@@ -565,7 +609,7 @@ public class LimitReservationMessageProcessor {
                         mapExternalResponse(xl01responseCode,xl01responseMessage,facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
 
                     }
-                }else{
+                }else if (_lastLimitAction!=null && reservedReservationIdentifier!=null){
                     // amend/adjust
                     newKeyLoanAcc =reservedReservationIdentifier;
                 }

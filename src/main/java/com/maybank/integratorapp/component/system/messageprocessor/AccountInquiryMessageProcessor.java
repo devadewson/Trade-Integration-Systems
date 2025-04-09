@@ -171,6 +171,8 @@ public class AccountInquiryMessageProcessor {
 
             // String Reqjson = objectMapper.writeValueAsString(body);
             String json = objectMapper.writeValueAsString(wraperRequest);
+            logger.Log(ProcessName, "Request Message", "ESB-MESSAGE", json);
+
 
             // Kirim request ke API eksternal
             try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
@@ -180,6 +182,7 @@ public class AccountInquiryMessageProcessor {
 
                 try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
                     String responseString = EntityUtils.toString(response.getEntity());
+                    logger.Log(ProcessName, "Response Message", "ESB-MESSAGE", responseString);
 
                     res = objectMapper.readValue(responseString, com.maybank.integratorapp.model.restv2.AccountInquiry.response.MsgWraper.class);
 

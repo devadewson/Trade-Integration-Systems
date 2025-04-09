@@ -14,6 +14,18 @@ public class AccountListResponse {
     @JsonProperty("Birthdate")
     private String birthdate;
 
+    @JsonProperty("Salutation")
+    private String salutation;
+
+    @JsonProperty("Gender")
+    private String gender;
+
+    @JsonProperty("RaceCode")
+    private String raceCode;
+
+    @JsonProperty("IdentityNo")
+    private String identityNo;
+
     @JsonProperty("MobileNo")
     private String mobileNo;
 
@@ -32,22 +44,20 @@ public class AccountListResponse {
     @JsonProperty("AccountData")
     private List<AccountData> accountData;
 
-    @JsonProperty("CreditCardData")
-    private List<CreditCardData> creditCardData;
-
-    @JsonProperty("WealthAccountData")
-    private WealthAccountData wealthAccountData;
-
-    @JsonProperty("BancAssuranceAccountData")
-    private BancAssuranceAccountData bancAssuranceAccountData;
-
-
     public String getGcifNo() {
         return gcifNo;
     }
 
     public void setGcifNo(String gcifNo) {
         this.gcifNo = gcifNo;
+    }
+
+    public String getSalutation() {
+        return salutation;
+    }
+
+    public void setSalutation(String salutation) {
+        this.salutation = salutation;
     }
 
     public String getCustomerName() {
@@ -114,27 +124,5 @@ public class AccountListResponse {
         this.accountData = accountData;
     }
 
-    public List<CreditCardData> getCreditCardData() {
-        return creditCardData;
-    }
 
-    public void setCreditCardData(List<CreditCardData> creditCardData) {
-        this.creditCardData = creditCardData;
-    }
-
-    public WealthAccountData getWealthAccountData() {
-        return wealthAccountData;
-    }
-
-    public void setWealthAccountData(WealthAccountData wealthAccountData) {
-        this.wealthAccountData = wealthAccountData;
-    }
-
-    public BancAssuranceAccountData getBancAssuranceAccountData() {
-        return bancAssuranceAccountData;
-    }
-
-    public void setBancAssuranceAccountData(BancAssuranceAccountData bancAssuranceAccountData) {
-        this.bancAssuranceAccountData = bancAssuranceAccountData;
-    }
 }

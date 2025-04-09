@@ -228,6 +228,9 @@ public class LimitReversalMessageProcessor {
                     String responseMessage = cmsResponseXL41
                             .getBody().getXl41Response().
                             getCmsXl41Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+                    String responseMessage2 = cmsResponseXL41
+                            .getBody().getXl41Response().
+                            getCmsXl41Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("status1")).findFirst().get().getValue();
 
                     FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
                     ftiTransactionDetail.setTransMessageLogId(logger.getIdLogParent());
@@ -235,12 +238,12 @@ public class LimitReversalMessageProcessor {
                     ftiTransactionDetail.setCoreSysName("CLS-XL41");
                     ftiTransactionDetail.setTransName("Reversal");
                     ftiTransactionDetail.setCoreSysStatus(responseCode);
-                    ftiTransactionDetail.setCoreSysMessage(responseMessage);
+                    ftiTransactionDetail.setCoreSysMessage(responseMessage+responseMessage2);
                     if(responseCode.equals("00")){
                         ftiTransactionDetail.setAdditionalInfo1(noteNumber);
                         ftiTransactionDetail.setAdditionalInfo2(dcType);
                         ftiTransactionDetail.setAdditionalInfo3(amount);
-                        ftiTransactionDetail.setAdditionalInfo4("REL");
+                        ftiTransactionDetail.setAdditionalInfo4("DEL");
                     }
                     ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
 
