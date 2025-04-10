@@ -3,12 +3,12 @@ package com.maybank.integratorapp.model.mq.reservationsreversal.response;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
 public class Details {
-    @JacksonXmlProperty(localName = "Error")
+    @JacksonXmlProperty(localName = "Error" ,namespace = "urn:control.services.tiplus2.misys.com")
     private String error;
-    @JacksonXmlProperty(localName = "Warning")
+    @JacksonXmlProperty(localName = "Warning",namespace = "urn:control.services.tiplus2.misys.com")
 
     private String warning;
-    @JacksonXmlProperty(localName = "Info")
+    @JacksonXmlProperty(localName = "Info",namespace = "urn:control.services.tiplus2.misys.com")
 
     private String info;
 

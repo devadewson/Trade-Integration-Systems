@@ -415,6 +415,12 @@ public class LimitReservationMessageProcessor {
 
                 DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
                 DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("ddMMyy");
+
+                if(startdateRes == null)
+                    startdateRes=transDateRes;
+                if(expireDateRes==null)
+                    expireDateRes=transDateRes;
+
                 LocalDate _startDate = LocalDate.parse(startdateRes, inputFormatter);
 //            String startDate = _startDate.format(outputFormatter);
                 String startDate = "311024";
@@ -448,6 +454,9 @@ public class LimitReservationMessageProcessor {
                 String xl31responseCode = "";
                 String xl01responseMessage = "";
                 String xl31responseMessage = "";
+
+                boolean needXL2B = false;
+                boolean needXL31 = false;
 
                 System.out.println("Facility ID: " + facilityId);
                 System.out.println("LineOfBusiness: " + lineOfBusiness);
@@ -492,18 +501,11 @@ public class LimitReservationMessageProcessor {
 
                 if(!ftiTransactionData.isEmpty()){
                     FtiTransaction transaction = ftiTransactionData.get();
-                    String _customFacilityIdentifier = facilityIdentifier.substring(0,(facilityIdentifier.length()-6));
                     String _facNew = splitKey(facilityIdentifier)[4];
                     List<FtiTransactionDetail> transactionDetails = ftiTransactionDetailService.getDetailsByHeaderId(transaction.getId());
                     if(transactionDetails.stream().anyMatch(x->x.getFtiEvent().equals("ISS001"))){
-//                        FtiTransactionDetail transactionDetails1;
-//                        transactionDetails.forEach(x->{
-//                            if(x.getAdditionalInfo1()!=null){
-//                                transactionDetails1 = x;
-//                                break;
-//                            }
-//                        });
-                        FtiTransactionDetail transactionDetails1 = transactionDetails.stream().filter(x->x.getFtiEvent().equals("ISS001")&&x.getAdditionalInfo1()!=null).findFirst().get();
+
+                        FtiTransactionDetail transactionDetails1 = transactionDetails.stream().filter(x->x.getFtiEvent().equals("ISS001")&&x.getAdditionalInfo4().equals("DRW")).findFirst().get();
                         logger.Log(ProcessName, "Get Old : " + transactionDetails1.getId(), "DEBUG");
 
 //                        check whether its the same facility
@@ -513,11 +515,23 @@ public class LimitReservationMessageProcessor {
                             logger.Log(ProcessName, "Previous KeyLoanAcc: " + transactionDetails1.getAdditionalInfo1(), "DEBUG");
 
                             newKeyLoanAcc = transactionDetails1.getAdditionalInfo1();
-                            xl01responseCode = "00";
+//                            xl01responseCode = "00";
+                            needXL31 = true;
                             formattedRunningNumber = splitKey(newKeyLoanAcc)[5];
                             acctReqXL01 = buildFormattedKey(facilityIdentifier, formattedRunningNumber);
-                        }
 
+                            // check for XL2B
+                            String _dateOld = transactionDetails1.getAdditionalInfo5();
+                            String _dateNew = startDate+"#"+expiryDate;
+                            String _dateFromReq = request.getReservationsRequest().getReservationRequestDetails().getTenorStartDate();
+
+                            if(_dateFromReq != null){
+                                if(!_dateOld.equals(_dateNew)){
+                                    needXL2B = true;
+                                }
+                            }
+
+                        }
                     }
                 }
 
@@ -569,7 +583,7 @@ public class LimitReservationMessageProcessor {
 
                 FtiTransactionDetail _lastLimitAction = null;
                 if(_listTransactionDetail.stream().count()>0){
-                    logger.Log(ProcessName, "Transaction Detail Count : "+_listTransactionDetail.stream().count(), "DEBUG");
+//                    logger.Log(ProcessName, "Transaction Detail Count : "+_listTransactionDetail.stream().count(), "DEBUG");
 
                     _lastLimitAction = _listTransactionDetail.get((int) (_listTransactionDetail.stream().count()-1));
                 }
@@ -614,7 +628,25 @@ public class LimitReservationMessageProcessor {
                     newKeyLoanAcc =reservedReservationIdentifier;
                 }
 
-                if(xl01responseCode.equals("00") || !eventCode.startsWith("ISS")){
+                if(needXL2B){
+                    //req XL2B
+                    com.maybank.integratorapp.model.soap.limit.XL2B.request.SoapEnvelope msgRequestXL2B=
+                            mapCoreSystemXl2BRequest(masterReference,expiryDate,newKeyLoanAcc,branch);
+
+                    // step 4.
+                    com.maybank.integratorapp.model.soap.limit.XL2B.response.SoapEnvelope msgResponseXL2B =
+                            getXl2BMsgBodyResponse(msgRequestXL2B,masterReference,eventCode);
+
+                    String xl2BresponseCode = msgResponseXL2B
+                            .getBody().getXl2BResponse().
+                            getCmsXl2BResponse().getResponsecode();
+                    String xl2BresponseMessage = msgResponseXL2B
+                            .getBody().getXl2BResponse().
+                            getCmsXl2BResponse().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+
+                }
+
+                if((xl01responseCode.equals("00") || !eventCode.startsWith("ISS")) || needXL31){
                     String debit_credit = "62";
                     if(debitCreditFlag.equals("C"))
                         debit_credit = "67";
@@ -815,6 +847,17 @@ public class LimitReservationMessageProcessor {
                     ftiTransactionDetail.setTransName("Reservation");
                     ftiTransactionDetail.setCoreSysStatus(responseCode);
                     ftiTransactionDetail.setCoreSysMessage(responseMessage);
+                    if(responseCode.equals("00")){
+                        ftiTransactionDetail.setAdditionalInfo1(limitReservationId);
+                        ftiTransactionDetail.setAdditionalInfo2("-");
+                        ftiTransactionDetail.setAdditionalInfo3("-");
+                        ftiTransactionDetail.setAdditionalInfo4("DRW");
+                        String _StartAndMaturity =
+                                soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().getIntstart()
+                                +"#"+
+                                soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().getMatdate();
+                        ftiTransactionDetail.setAdditionalInfo5(_StartAndMaturity);
+                    }
                     ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
 
                 }
@@ -963,6 +1006,131 @@ public class LimitReservationMessageProcessor {
 
         return soapReqXL31;
     }
+
+    public com.maybank.integratorapp.model.soap.limit.XL2B.request.SoapEnvelope mapCoreSystemXl2BRequest(
+            String referenceId,
+            String maturityDate,
+            String newKeyloanAcc,
+            String branch
+    ){
+
+        com.maybank.integratorapp.model.soap.limit.XL2B.request.SoapEnvelope soapReqXL2B =
+                new com.maybank.integratorapp.model.soap.limit.XL2B.request.SoapEnvelope();
+        String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
+        String correlationID = "FTI";
+        String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+        String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
+        String[] splittedKey = splitKey(newKeyloanAcc);
+        String limitBranch = splittedKey[2];
+
+        soapReqXL2B.getBody().getXl2B().getChannelHeader().setAdditionalHeader("");
+        soapReqXL2B.getBody().getXl2B().getChannelHeader().setBranchCode(branch);
+        soapReqXL2B.getBody().getXl2B().getChannelHeader().setChannelID(clsChannelId);
+        soapReqXL2B.getBody().getXl2B().getChannelHeader().setClientSupervisorID("7766");
+        soapReqXL2B.getBody().getXl2B().getChannelHeader().setClientUserID("7755");
+        soapReqXL2B.getBody().getXl2B().getChannelHeader().setReference(referenceId);
+        soapReqXL2B.getBody().getXl2B().getChannelHeader().setTransactionDate(date);
+        soapReqXL2B.getBody().getXl2B().getChannelHeader().setTransactionTime(time);
+
+        soapReqXL2B.getBody().getXl2B().getCmsXl2BRequest().setMaturity(maturityDate);
+        soapReqXL2B.getBody().getXl2B().getCmsXl2BRequest().setNoteNo(newKeyloanAcc);
+        soapReqXL2B.getBody().getXl2B().getCmsXl2BRequest().setOfficerCode(clsChannelId);
+
+
+        return soapReqXL2B;
+    }
+
+    public com.maybank.integratorapp.model.soap.limit.XL2B.response.SoapEnvelope getXl2BMsgBodyResponse(
+            com.maybank.integratorapp.model.soap.limit.XL2B.request.SoapEnvelope soapReqXL2B,String referenceId,String eventCode) {
+        com.maybank.integratorapp.model.soap.limit.XL2B.response.SoapEnvelope serviceResponse
+                = new com.maybank.integratorapp.model.soap.limit.XL2B.response.SoapEnvelope();
+        String soapUrl = parameterService.findValueByPrmKey("XL31Request");
+        try {
+            XmlMapper mapper = new XmlMapper();
+
+            String dcType = "-";
+            String amount = "-";
+            String noteNumber = soapReqXL2B.getBody().getXl2B().getCmsXl2BRequest().getNoteNo();
+
+            // Avoid unnecessary wrapping
+            mapper.setDefaultUseWrapper(false);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+
+            mapper.configure(ToXmlGenerator.Feature.WRITE_XML_DECLARATION, true);
+
+            String xmlString = null;
+            try {
+                xmlString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapReqXL2B);
+
+                System.out.println(xmlString);
+
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+            logger.Log(ProcessName, "Hit ESB Message", "ESB-MESSAGE", xmlString);
+
+//            com.maybank.integratorapp.model.soap.limit.XL31.response.SoapEnvelope cmsResponseXL31 = null;
+
+            try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+                HttpPost httpPost = new HttpPost(soapUrl);
+                httpPost.setHeader("Content-Type", "text/xml");
+                httpPost.setEntity(new StringEntity(xmlString, ContentType.TEXT_XML));
+                String _response = "";
+
+                try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+
+                    // Handle response if needed
+                    var _res = response.getEntity();
+                    var _resStream = _res.getContent();
+                    var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
+                    _response = outputResponse;
+                    logger.Log(ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
+                    if (_response.contains("Fault")) {
+                        System.out.println(_response);
+                    }
+                    serviceResponse = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL2B.response.SoapEnvelope.class);
+
+
+                    String xmlResponseXL01 = mapper.writeValueAsString(serviceResponse);
+                    System.out.println(xmlResponseXL01);
+
+                    // Extract  response code
+                    String responseCode = serviceResponse
+                            .getBody().getXl2BResponse().
+                            getCmsXl2BResponse().getResponsecode();
+                    String responseMessage = serviceResponse
+                            .getBody().getXl2BResponse().
+                            getCmsXl2BResponse().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+                    FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
+                    ftiTransactionDetail.setTransMessageLogId(logger.getIdLogParent());
+                    ftiTransactionDetail.setFtiEvent(eventCode);
+                    ftiTransactionDetail.setCoreSysName("CLS-XL2B");
+                    ftiTransactionDetail.setTransName("Reservation");
+                    ftiTransactionDetail.setCoreSysStatus(responseCode);
+                    ftiTransactionDetail.setCoreSysMessage(responseMessage);
+                    if(responseCode.equals("00")){
+                        ftiTransactionDetail.setAdditionalInfo1(noteNumber);
+                        ftiTransactionDetail.setAdditionalInfo2(dcType);
+                        ftiTransactionDetail.setAdditionalInfo3(amount);
+                        ftiTransactionDetail.setAdditionalInfo4("NRY");
+                    }
+
+                    ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
+
+                }
+            } catch (Exception e) {
+
+                logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+
+            }
+
+        } catch (Exception e) {
+            logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+
+        }
+        return serviceResponse;
+    }
+
 
     // step 5. Map core system data to external Response
     private void mapExternalResponse(

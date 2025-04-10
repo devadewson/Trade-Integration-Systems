@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.model.restv2.AccountList.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
@@ -42,6 +43,7 @@ public class AccountListResponse {
     private String residentPhoneNo;
 
     @JsonProperty("AccountData")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private List<AccountData> accountData;
 
     public String getGcifNo() {

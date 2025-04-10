@@ -109,8 +109,6 @@ public class CustomerInfoData {
     public String authorizedPersonIDType1;
     @JsonProperty("AuthorizedPersonIDNo1")
     public String authorizedPersonIDNo1;
-    @JsonProperty("CustomerGroup")
-    public String customerGroup;
     public String isStaff;
 
     public String getgCIFNo() {
@@ -537,13 +535,6 @@ public class CustomerInfoData {
         this.authorizedPersonIDNo1 = authorizedPersonIDNo1;
     }
 
-    public String getCustomerGroup() {
-        return customerGroup;
-    }
-
-    public void setCustomerGroup(String customerGroup) {
-        this.customerGroup = customerGroup;
-    }
 
     public String getIsStaff() {
         return isStaff;

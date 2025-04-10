@@ -10,6 +10,7 @@ import com.maybank.integratorapp.data.service.FtiTransactionDetailService;
 import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
 import com.maybank.integratorapp.data.service.MsCurrencyService;
 import com.maybank.integratorapp.data.service.MsParameterService;
+import com.maybank.integratorapp.model.mq.reservationsreversal.response.ResponseHeader;
 import com.maybank.integratorapp.model.mq.reservationsreversal.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.reservationsreversal.response.ReservationsReversalResponse;
 import com.maybank.integratorapp.model.mq.reservationsreversal.response.ServiceResponse;
@@ -92,8 +93,8 @@ public class LimitReversalMessageProcessor {
 
             // step 6.
             XmlMapper xmlMapper = new XmlMapper();
-            xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-            responseXml = xmlMapper.writeValueAsString("");
+            xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_ABSENT);
+            responseXml = xmlMapper.writeValueAsString(response);
 
         } catch (Exception e) {
             logger.Log(ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
@@ -123,12 +124,15 @@ public class LimitReversalMessageProcessor {
 
     // step 2. Set initial response
     private void setInitialResponseHeader(ServiceRequest request) {
-//        response.getResponseHeader().setCorrelationID(request.getRequestHeader().getCorrelationID());
-//        response.getResponseHeader().setService(request.getRequestHeader().getService());
-//        response.getResponseHeader().setOperation(request.getRequestHeader().getOperation());
-//        response.getResponseHeader().setSourceSystem(request.getRequestHeader().getTargetSystem());
-//        response.getResponseHeader().setTargetSystem(request.getRequestHeader().getSourceSystem());
-//        response.getResponseHeader().setStatus("SUCCEEDED");
+        response.setResponseHeader(new ResponseHeader());
+        response.getResponseHeader().setCorrelationID(request.getRequestHeader().getCorrelationID());
+        response.getResponseHeader().setService(request.getRequestHeader().getService());
+        response.getResponseHeader().setOperation(request.getRequestHeader().getOperation());
+        response.getResponseHeader().setSourceSystem(request.getRequestHeader().getTargetSystem());
+        response.getResponseHeader().setTargetSystem(request.getRequestHeader().getSourceSystem());
+        response.getResponseHeader().setStatus("SUCCEEDED");
+
+        response.setReservationsReversalResponse(null);
     }
 
     // step 3. Map external request to core system request
@@ -238,7 +242,7 @@ public class LimitReversalMessageProcessor {
                     ftiTransactionDetail.setCoreSysName("CLS-XL41");
                     ftiTransactionDetail.setTransName("Reversal");
                     ftiTransactionDetail.setCoreSysStatus(responseCode);
-                    ftiTransactionDetail.setCoreSysMessage(responseMessage+responseMessage2);
+                    ftiTransactionDetail.setCoreSysMessage(responseMessage2);
                     if(responseCode.equals("00")){
                         ftiTransactionDetail.setAdditionalInfo1(noteNumber);
                         ftiTransactionDetail.setAdditionalInfo2(dcType);

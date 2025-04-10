@@ -257,7 +257,7 @@ public class CustomerSearchMessageProcessor {
                     if(res.getMsg().getMsgHeader().getStatusCode().equals("0")){
 
                         String gcifNo = request.getCustomerSearchRequest().getCustomerNumber();
-                        String cifNo = request.getCustomerSearchRequest().getCustomerNumber();
+                        String cifNo = request.getCustomerSearchRequest().getCustomerMnemonic();
                         String tagBank = request.getCustomerSearchRequest().getIncludeBanks();
                         String tagCustomer = request.getCustomerSearchRequest().getIncludeCustomers();
                         var _el = res.getMsg().getMsgBody().getAccountListResponse().getAccountData().stream().filter(x->x.getCifNo().equals(cifNo)).findFirst().get();

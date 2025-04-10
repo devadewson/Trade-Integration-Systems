@@ -3,11 +3,9 @@ package com.maybank.integratorapp.component.coresystem;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maybank.integratorapp.data.entity.*;
-import com.maybank.integratorapp.data.repository.FtiAccountTypeRepository;
 import com.maybank.integratorapp.data.repository.VwTbrMappingRepository;
 import com.maybank.integratorapp.data.service.*;
 import com.maybank.integratorapp.model.mq.batchposting.request.Posting;
-import com.maybank.integratorapp.model.rest.compositetbr.request.RestEnvelope;
 import com.maybank.integratorapp.util.DynamicClassGenerator;
 import com.maybank.integratorapp.util.DynamicClassPropertyMap;
 import com.maybank.integratorapp.util.ReflectionUtils;
@@ -27,6 +25,12 @@ import static org.springframework.util.StringUtils.capitalize;
 @Component
 public class ProcessCompositeTBR {
 
+    @Autowired
+    FtiTransactionDetailPostingService ftiTransactionDetailPostingService;
+    @Autowired
+    FtiTransactionDetailPostingGroupService ftiTransactionDetailPostingGroupService;
+    @Autowired
+    FtiTransactionDetailService ftiTransactionDetailService;
     @Autowired
     private MsTBRFieldService tbrFieldService;
     @Autowired
@@ -132,6 +136,8 @@ public class ProcessCompositeTBR {
         this.logger.SetLogParent(idLogParent);
 
         String referenceID = data.stream().findFirst().get().getMasterReference();
+        String eventCode = data.stream().findFirst().get().getEventReference();
+
 
         // remove the 999 vs 07 posting
         List<Posting> removed = data.stream().filter(x->x.getBackOfficeAccountNo().startsWith("07") || x.getBackOfficeAccountNo().startsWith("999")).toList();
@@ -142,6 +148,43 @@ public class ProcessCompositeTBR {
         List<PostingGroup> finalData = groupPosting(data);
         logger.Log("Posting - Group Posting Data","Group posting into pair of debit credit","END");
         // condition check if there is cross valas
+
+        FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
+        ftiTransactionDetail.setTransMessageLogId(logger.getIdLogParent());
+        ftiTransactionDetail.setFtiEvent(eventCode);
+        ftiTransactionDetail.setCoreSysName("FMS-CompositeTBR");
+        ftiTransactionDetail.setTransName("Posting");
+        ftiTransactionDetail = ftiTransactionDetailService.createDetailByMasterRefNo(referenceID, ftiTransactionDetail);
+
+        for (PostingGroup postingGroup:finalData) {
+            FtiTransactionDetailPostingGroup _group = new FtiTransactionDetailPostingGroup();
+            _group.setDetailId(ftiTransactionDetail.getId());
+            _group.setGroupId(String.valueOf(postingGroup.getGroupId()));
+            _group.setTbrCode(postingGroup.getTbrCode());
+            _group.setFlagCrossValas(postingGroup.getFlagCrossValas());
+            _group.setFlagMdmc(postingGroup.getFlagMdmc());
+            _group.setMappingType(postingGroup.getMappingType());
+
+            _group = ftiTransactionDetailPostingGroupService.save(_group);
+
+            for(PostingExtender posting:postingGroup.getPostings()){
+                FtiTransactionDetailPosting _posting = new FtiTransactionDetailPosting();
+                _posting.setIdGroup(_group.getId());
+                _posting.setAccount(posting.getBackOfficeAccountNo());
+                _posting.setPostingSeqNo(posting.getPostingSeqNo());
+                _posting.setAccountType(posting.getAccountType());
+                _posting.setAccountTypeAlias(posting.getAccountTypeAlias());
+                _posting.setAmount(posting.getPostingAmount());
+                _posting.setCcyAlias(posting.getPostingCcyAlias());
+                _posting.setCcy(posting.getPostingCcy());
+                _posting.setCcyNumber(posting.getPostingCcyNumber());
+                _posting.setValueDate(posting.getValueDate());
+                _posting.setDebitCredit(posting.getDebitCreditFlag());
+
+                ftiTransactionDetailPostingService.save(_posting);
+            }
+
+        }
 
         for (PostingGroup postingGroup:finalData) {
 
@@ -1025,6 +1068,7 @@ public class ProcessCompositeTBR {
         public String MappingType;
         public String FlagCrossValas;
         public String FlagMdmc;
+        public Long MappingId;
         public List<vw_tbr_mapping> Mappings = new ArrayList<>();
         public List<PostingExtender> Postings = new ArrayList<>();
 
@@ -1082,6 +1126,14 @@ public class ProcessCompositeTBR {
 
         public void setFlagMdmc(String flagMdmc) {
             FlagMdmc = flagMdmc;
+        }
+
+        public Long getMappingId() {
+            return MappingId;
+        }
+
+        public void setMappingId(Long mappingId) {
+            MappingId = mappingId;
         }
     }
 }

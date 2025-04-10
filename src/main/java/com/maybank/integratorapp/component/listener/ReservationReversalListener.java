@@ -11,6 +11,7 @@ import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.model.mq.reservationsreversal.request.ServiceRequest;
+import com.maybank.integratorapp.model.mq.reservationsreversal.response.ReservationsReversalResponse;
 import com.maybank.integratorapp.model.mq.reservationsreversal.response.ServiceResponse;
 import com.maybank.integratorapp.util.MQUtil;
 import jakarta.jms.JMSException;
@@ -74,7 +75,6 @@ public class ReservationReversalListener implements CustomMessageListener {
 
             XmlMapper xmlMapper = new XmlMapper();
             xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-            String responseXml = xmlMapper.writeValueAsString(response);
 
             response.getResponseHeader().setCorrelationID(request.getRequestHeader().getCorrelationID());
             response.getResponseHeader().setService(request.getRequestHeader().getService());
@@ -82,6 +82,10 @@ public class ReservationReversalListener implements CustomMessageListener {
             response.getResponseHeader().setSourceSystem(request.getRequestHeader().getTargetSystem());
             response.getResponseHeader().setTargetSystem(request.getRequestHeader().getSourceSystem());
             response.getResponseHeader().setStatus("SUCCEEDED");
+
+            response.setReservationsReversalResponse(new ReservationsReversalResponse());
+
+            String responseXml = xmlMapper.writeValueAsString(response);
 
             System.out.println(responseXml);
             publisher.PublishMessage(responseXml, message.getJMSCorrelationID());
@@ -91,6 +95,7 @@ public class ReservationReversalListener implements CustomMessageListener {
             logData.setUpdated_date(new Date());
             logData.setResMessage(responseXml);
             dataDTO.save(logData);
+
 
         } catch (JMSException | JsonProcessingException e) {
             handleException(e, logData);

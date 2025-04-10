@@ -232,7 +232,7 @@ public class LimitUtilizationMessageProcessor {
                     ftiTransactionDetail.setCoreSysName("CLS-XL41");
                     ftiTransactionDetail.setTransName("Utilization");
                     ftiTransactionDetail.setCoreSysStatus(responseCode);
-                    ftiTransactionDetail.setCoreSysMessage(responseMessage+responseMessage2);
+                    ftiTransactionDetail.setCoreSysMessage(responseMessage2);
                     if(responseCode.equals("00")){
                         ftiTransactionDetail.setAdditionalInfo1(noteNumber);
                         ftiTransactionDetail.setAdditionalInfo2(dcType);
