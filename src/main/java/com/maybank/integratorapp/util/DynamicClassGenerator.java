@@ -1,13 +1,16 @@
 package com.maybank.integratorapp.util;
 
 //import javassist.*;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.implementation.FieldAccessor;
 import net.bytebuddy.matcher.ElementMatchers;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class DynamicClassGenerator {
 
@@ -40,23 +43,69 @@ public class DynamicClassGenerator {
 //        return ctClass.toClass();
 //    }
 
+//    public static Class<?> generateClass(String className, List<DynamicClassPropertyMap> propertyNames) throws Exception {
+//        ByteBuddy byteBuddy = new ByteBuddy();
+//        DynamicType.Builder<?> builder = byteBuddy.subclass(Object.class).name(className);
+//
+//        // Iterate through property names to create fields and methods
+//        for (var property : propertyNames) {
+//            builder = builder
+//                    .defineField(property.getFieldName(), property.getFieldType().equals("Integer")?Integer.class:String.class, Modifier.PRIVATE)
+//                    .defineMethod("get" + capitalize(property.getFieldName()), property.getFieldType().equals("Integer")?Integer.class:String.class, Modifier.PUBLIC)
+//                    .intercept(FieldAccessor.ofField(property.getFieldName()))
+//                    .defineMethod("set" + capitalize(property.getFieldName()), void.class, java.lang.reflect.Modifier.PUBLIC)
+//                    .withParameter(property.getFieldType().equals("Integer")?Integer.class:String.class)
+//                    .intercept(FieldAccessor.ofField(property.getFieldName()));
+//        }
+//
+//        // Create the dynamic class
+//        return builder.make().load(DynamicClassGenerator.class.getClassLoader()).getLoaded();
+//    }
     public static Class<?> generateClass(String className, List<DynamicClassPropertyMap> propertyNames) throws Exception {
         ByteBuddy byteBuddy = new ByteBuddy();
         DynamicType.Builder<?> builder = byteBuddy.subclass(Object.class).name(className);
 
-        // Iterate through property names to create fields and methods
-        for (var property : propertyNames) {
-            builder = builder
-                    .defineField(property.getFieldName(), property.getFieldType().equals("Integer")?Integer.class:String.class, Modifier.PRIVATE)
-                    .defineMethod("get" + capitalize(property.getFieldName()), property.getFieldType().equals("Integer")?Integer.class:String.class, Modifier.PUBLIC)
-                    .intercept(FieldAccessor.ofField(property.getFieldName()))
-                    .defineMethod("set" + capitalize(property.getFieldName()), void.class, java.lang.reflect.Modifier.PUBLIC)
-                    .withParameter(property.getFieldType().equals("Integer")?Integer.class:String.class)
-                    .intercept(FieldAccessor.ofField(property.getFieldName()));
+        // First pass: collect all existing field names to avoid duplicates
+        Set<String> existingFields = new HashSet<>();
+
+        // Second pass: define fields and methods
+        for (DynamicClassPropertyMap property : propertyNames) {
+            String fieldName = property.getFieldName();
+            Class<?> fieldType = property.getFieldType().equals("Integer") ? Integer.class : String.class;
+            String capitalizedName = capitalize(fieldName);
+            String getterName = "get" + capitalizedName;
+            String setterName = "set" + capitalizedName;
+
+            // Skip if field already exists
+            if (existingFields.contains(fieldName)) {
+                continue;
+            }
+            existingFields.add(fieldName);
+
+            // Define the field
+            builder = builder.defineField(fieldName, fieldType, Modifier.PRIVATE);
+
+            // Define getter if it doesn't exist
+            try {
+                builder = builder.defineMethod(getterName, fieldType, Modifier.PUBLIC)
+                        .intercept(FieldAccessor.ofField(fieldName));
+            } catch (IllegalStateException e) {
+                // Getter already exists, skip
+            }
+
+            // Define setter if it doesn't exist
+            try {
+                builder = builder.defineMethod(setterName, void.class, Modifier.PUBLIC)
+                        .withParameter(fieldType, fieldName)
+                        .intercept(FieldAccessor.ofField(fieldName));
+            } catch (IllegalStateException e) {
+                // Setter already exists, skip
+            }
         }
 
-        // Create the dynamic class
-        return builder.make().load(DynamicClassGenerator.class.getClassLoader()).getLoaded();
+        return builder.make()
+                .load(DynamicClassGenerator.class.getClassLoader())
+                .getLoaded();
     }
 
     // Utility method to capitalize the first letter of a string

@@ -154,6 +154,11 @@ public class ProcessCompositeTBR {
         ftiTransactionDetail.setFtiEvent(eventCode);
         ftiTransactionDetail.setCoreSysName("FMS-CompositeTBR");
         ftiTransactionDetail.setTransName("Posting");
+        ftiTransactionDetail.setAdditionalInfo1("-");
+        ftiTransactionDetail.setAdditionalInfo2("-");
+        ftiTransactionDetail.setAdditionalInfo3("-");
+        ftiTransactionDetail.setAdditionalInfo4("-");
+        ftiTransactionDetail.setAdditionalInfo5("-");
         ftiTransactionDetail = ftiTransactionDetailService.createDetailByMasterRefNo(referenceID, ftiTransactionDetail);
 
         for (PostingGroup postingGroup:finalData) {
@@ -739,7 +744,7 @@ public class ProcessCompositeTBR {
                 PostingExtender post = filteredPostings.get(i);
                 // find all fields for this posting
                 int finalSeq = seq;
-                logger.Log("Posting - Map Data to ESB", "Map seq "+String.valueOf(finalSeq), "PROCESS");
+                logger.Log("Posting - Map Data to ESB", "Map seq "+String.valueOf(finalSeq), "DEBUG");
 
                 List<MsTBRField> listField = listMapping.stream().filter(x->
                         x.getMappingDebitCredit().equals(post.getDebitCreditFlag())
@@ -758,7 +763,7 @@ public class ProcessCompositeTBR {
                     if(field.getDefaultValue() != null && !field.getDefaultValue().isEmpty()){
 
                         Object value = field.getDefaultValue();
-                        logger.Log("Posting - Map Data to ESB", "Map default value "+String.valueOf(value)+" into "+destinationPropertyName+" ESB", "PROCESS");
+                        logger.Log("Posting - Map Data to ESB", "Map default value "+String.valueOf(value)+" into "+destinationPropertyName+" ESB", "DEBUG");
 
                         if((field.getDestinationFieldDataType() != null && !field.getDestinationFieldDataType().isEmpty())){
                             if(field.getDestinationFieldDataType().equals("Integer")){
@@ -771,7 +776,7 @@ public class ProcessCompositeTBR {
                         }
                         continue;
                     }
-                    logger.Log("Posting - Map Data to ESB", "Map "+sourcePropertyName+" data into "+destinationPropertyName+" ESB", "PROCESS");
+                    logger.Log("Posting - Map Data to ESB", "Map "+sourcePropertyName+" data into "+destinationPropertyName+" ESB", "DEBUG");
                     Class<?> sourceClass = post.getClass();
                     Class<?> destinationClass = dynamicClass;
 
@@ -810,7 +815,7 @@ public class ProcessCompositeTBR {
                 PostingExtender post = filteredPostings.get(i);
                 // find all fields for this posting
                 int finalSeq = seq;
-                logger.Log("Posting - Map Data to ESB", "Map seq "+String.valueOf(finalSeq), "PROCESS");
+                logger.Log("Posting - Map Data to ESB", "Map seq "+String.valueOf(finalSeq), "DEBUG");
 
                 List<MsTBRField> listField = listMapping.stream().filter(x->
                         x.getMappingDebitCredit().equals(post.getDebitCreditFlag())
@@ -830,7 +835,7 @@ public class ProcessCompositeTBR {
                     if(field.getDefaultValue() != null && !field.getDefaultValue().isEmpty()){
 
                         Object value = field.getDefaultValue();
-                        logger.Log("Posting - Map Data to ESB", "Map default value "+String.valueOf(value)+" into "+destinationPropertyName+" ESB", "PROCESS");
+                        logger.Log("Posting - Map Data to ESB", "Map default value "+String.valueOf(value)+" into "+destinationPropertyName+" ESB", "DEBUG");
 
                         if((field.getDestinationFieldDataType() != null && !field.getDestinationFieldDataType().isEmpty())){
                             if(field.getDestinationFieldDataType().equals("Integer")){
@@ -843,7 +848,7 @@ public class ProcessCompositeTBR {
                         }
                         continue;
                     }
-                    logger.Log("Posting - Map Data to ESB", "Map "+sourcePropertyName+" data into "+destinationPropertyName+" ESB", "PROCESS");
+                    logger.Log("Posting - Map Data to ESB", "Map "+sourcePropertyName+" data into "+destinationPropertyName+" ESB", "DEBUG");
                     Class<?> sourceClass = post.getClass();
                     Class<?> destinationClass = dynamicClass;
 
@@ -878,7 +883,7 @@ public class ProcessCompositeTBR {
                 String destinationPropertyName = field.getDestinationField();
                 String destinationSetterName = "set" + capitalize(destinationPropertyName);
                 if(!mappedFields.contains(destinationPropertyName)){
-                    logger.Log("Posting - Map Data to ESB", "Map empty data into "+destinationPropertyName+" ESB", "PROCESS");
+                    logger.Log("Posting - Map Data to ESB", "Map empty data into "+destinationPropertyName+" ESB", "DEBUG");
 
                     dynamicClass.getMethod(destinationSetterName, String.class).invoke(instance, "");
                 }

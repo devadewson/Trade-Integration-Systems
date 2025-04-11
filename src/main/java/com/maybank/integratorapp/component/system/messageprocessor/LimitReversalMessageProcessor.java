@@ -243,12 +243,10 @@ public class LimitReversalMessageProcessor {
                     ftiTransactionDetail.setTransName("Reversal");
                     ftiTransactionDetail.setCoreSysStatus(responseCode);
                     ftiTransactionDetail.setCoreSysMessage(responseMessage2);
-                    if(responseCode.equals("00")){
-                        ftiTransactionDetail.setAdditionalInfo1(noteNumber);
-                        ftiTransactionDetail.setAdditionalInfo2(dcType);
-                        ftiTransactionDetail.setAdditionalInfo3(amount);
-                        ftiTransactionDetail.setAdditionalInfo4("DEL");
-                    }
+                    ftiTransactionDetail.setAdditionalInfo1(noteNumber);
+                    ftiTransactionDetail.setAdditionalInfo2(dcType);
+                    ftiTransactionDetail.setAdditionalInfo3(amount);
+                    ftiTransactionDetail.setAdditionalInfo4("DEL");
                     ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
 
                     String xmlResponseXL41 = mapper.writeValueAsString(cmsResponseXL41);

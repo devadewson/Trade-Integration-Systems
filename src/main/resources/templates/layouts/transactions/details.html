@@ -2,6 +2,14 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
 <body>
 <main>
+    <style>
+        .wrap-table td {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            /* Optional: set a max-width to force wrapping */
+            max-width: 200px;
+          }
+    </style>
     <script>
         $(document).ready(function () {
             // Handle "View Logs" button click
@@ -89,7 +97,7 @@
                 </form>
             </div>
             <hr />
-            <table class="table table-bordered mt-4">
+            <table class="table table-bordered mt-4 wrap-table">
                 <thead>
                 <tr>
                     <th>ID</th>

@@ -431,6 +431,13 @@ public class LimitFacilitiesMessageProcessor {
                             facility.setStatus(s.getStatus());
                             if(existingFacility.stream().filter(x->x.getKeyLoanAcc().equals(facility.getKeyLoanAcc())).findAny().isEmpty()){
                                 listFacility.add(facility);
+                            }else{
+                                MsFacility _existing = existingFacility.stream().filter(x->x.getKeyLoanAcc().equals(facility.getKeyLoanAcc())).findAny().get();
+                                _existing.setCommitmentBalance(facility.getCommitmentBalance());
+                                _existing.setCommitmentBalanceSign(facility.getCommitmentBalanceSign());
+                                _existing.setStatus(facility.getStatus());
+                                msFacilityRepository.save(_existing);
+
                             }
 
                         });
@@ -527,21 +534,22 @@ public class LimitFacilitiesMessageProcessor {
 //                            fac.setCurrency(currencies.stream().filter(x->x.getInternalCode().equals(s.getCurrency())).findFirst().get().getIsoCode());
                     String balance = s.getPrincipalBalance().split("\\.")[0];
                     String utilizedBalance = s.getCommitmentBalance().split("\\.")[0];
+                    String remainingBalance = String.valueOf((Long.parseLong(balance) - Long.parseLong(utilizedBalance)));
 
                     fac.setStatus(s.getNoteType());
                     fac.setDescription(s.getDescription());
-                    fac.setLimitAmount(balance);
-                    fac.setAvailableAmount(balance);
+                    fac.setLimitAmount(balance+"00");
+                    fac.setAvailableAmount(utilizedBalance+"00");
                     fac.setMultiCurrency("N");
 
                     fac.setDisplayField1(s.getKeyLoanAcc());
                     fac.setDisplayField2(s.getDescription());
                     fac.setDisplayField3("-");
                     fac.setDisplayField4(s.getNoteType());
-                    fac.setDisplayField5(balance);
-                    fac.setDisplayField6(balance);
-                    fac.setDisplayField7(utilizedBalance);
-                    fac.setDisplayField8(utilizedBalance);
+                    fac.setDisplayField5(s.getPrincipalBalance());
+                    fac.setDisplayField6(s.getCommitmentBalance());
+                    fac.setDisplayField7("-");
+                    fac.setDisplayField8("-");
                     fac.setDisplayField9(FormattedExpiryDate);
                     fac.setDisplayField10(s.getStatus());
 
