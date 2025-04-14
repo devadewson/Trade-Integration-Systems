@@ -20,6 +20,9 @@ public class LogQueueDataService {
     public Page<LogQueueData> searchByCorrelationId(String correlationId, Pageable pageable) {
         return repo.findByCorrelationIdContainingIgnoreCase(correlationId, pageable);
     }
+    public Page<LogQueueData> searchByTransactionId(String transref, Pageable pageable) {
+        return repo.findByTransactionIdContainingIgnoreCase(transref, pageable);
+    }
     public LogQueueData findByCorrelationId(String correlationId){
         return repo.findByCorrelationId(correlationId);
     }

@@ -328,9 +328,9 @@ public class LimitReservationMessageProcessor {
 //
 //                        // release the reversal
 //                        utilizationMessageProcessor.logger = logger;
-//                        com.maybank.integratorapp.model.soap.limit.XL41.request.SoapEnvelope XL41Request = utilizationMessageProcessor.mapCoreSystemRequest(_lastLimitReservationId,masterReference);
+//                        com.maybank.integratorapp.model.soap.limit.XL41.request.SoapEnvelope XL41Request = utilizationMessageProcessor.mapXL41Request(_lastLimitReservationId,masterReference);
 //
-//                        com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope XL41Response = utilizationMessageProcessor.getMsgBodyResponse(XL41Request,eventCode,masterReference,_lastLimitReservationId);
+//                        com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope XL41Response = utilizationMessageProcessor.getXL41Response(XL41Request,eventCode,masterReference,_lastLimitReservationId);
 //
 //
 //                    }
@@ -658,6 +658,8 @@ public class LimitReservationMessageProcessor {
                             .getBody().getXl2BResponse().
                             getCmsXl2BResponse().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
 
+                    // step 5.
+                    mapExternalResponse(xl2BresponseCode,xl2BresponseMessage,facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
                 }
 
 //                if((xl01responseCode.equals("00") || !eventCode.startsWith("ISS")) || needXL31){

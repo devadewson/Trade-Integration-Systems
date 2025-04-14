@@ -15,6 +15,7 @@
             // Handle "View Logs" button click
             $(".view-logs-btn").click(function () {
                 const transMessageLogId = $(this).data("trans-message-log-id");
+                const transLogId = $(this).data("trans-log-id");
 
                 // Fetch logs via AJAX
                 $.get(`/transaction-details/${transMessageLogId}/logs`, function (logs) {
@@ -53,6 +54,44 @@
                     $("#LogResMessage").val(`${logData.resMessage}`);
 
                 });
+
+                // Fetch postings via AJAX
+                $.get(`/transaction-details/${transLogId}/postings`, function (postingGroups) {
+
+                    $("#accordionPostings").empty();
+                    // Populate the logs table
+                    postingGroups.forEach(postingGroup => {
+
+                        var groupId = postingGroup.groupId;
+                        var postingTableId = "#postingGroup"+groupId+"-table tbody";
+
+                        var accordionItem = buildAccordionItem(postingGroup);
+                        $("#accordionPostings").append(accordionItem);
+
+                        console.log(postingTableId);
+                        console.log(postings);
+
+                        postingGroup.postings.forEach(posting=> {
+                            $(postingTableId).append(`
+                                <tr>
+                                    <td>${posting.id}</td>
+                                    <td>${posting.debitCredit}</td>
+                                    <td>${posting.account}</td>
+                                    <td>${posting.amount}</td>
+                                    <td>${posting.accountType}</td>
+                                    <td>${posting.accountTypeAlias}</td>
+                                    <td>${posting.ccy}</td>
+                                    <td>${posting.ccyAlias}</td>
+                                    <td>${posting.ccyNumber}</td>
+                                    <td>${posting.postingSeqNo}</td>
+                                </tr>
+                            `);
+                        });
+                    });
+
+                    // Show the logs section
+                    $("#postings-section").show();
+                });
             });
             // Function to escape HTML content
             function escapeHtml(unsafe) {
@@ -65,6 +104,56 @@
                     .replace(/>/g, "&gt;")
                     .replace(/"/g, "&quot;")
                     .replace(/'/g, "&#039;");
+            }
+            function buildAccordionItem(postingGroup){
+
+                var template = `<div class="accordion-item">
+                                <h2 class="accordion-header" id="heading##">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse##" aria-expanded="false" aria-controls="collapse##">
+                                        Grouping ## - TBR @TBR
+                                    </button>
+                                </h2>
+                                <div id="collapse##" class="accordion-collapse collapse" aria-labelledby="heading##" data-bs-parent="#accordionPostings">
+                                    <div class="accordion-body">
+                                        <p>TBR : @TBR</p>
+                                        <p>Mapping Type : @MappingType</p>
+                                        <p>Flag Cross Valas : @FlagCrossValas</p>
+                                        <p>Flag Mdmc : @FlagMdmc</p>
+                                        <p>GroupId : @GroupId</p>
+                                        <hr/>
+                                        <h4>Posting Legs</h4>
+                                        <table id="postingGroup##-table" class="table table-bordered">
+                                            <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>DebitCredit</th>
+                                                <th>Account</th>
+                                                <th>Amount</th>
+                                                <th>Account Type</th>
+                                                <th>Account Type Alias</th>
+                                                <th>CCY</th>
+                                                <th>CCY Alias</th>
+                                                <th>CCY Number</th>
+                                                <th>Posting Sequence</th>
+
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>`;
+
+                return template
+                        .replaceAll("@TBR",postingGroup.tbrCode)
+                        .replaceAll("@MappingType",postingGroup.mappingType)
+                        .replaceAll("@FlagCrossValas",postingGroup.flagCrossValas)
+                        .replaceAll("@FlagMdmc",postingGroup.flagMdmc)
+                        .replaceAll("@GroupId",postingGroup.groupId)
+                        .replaceAll("##",postingGroup.groupId);
+
+
             }
         });
     </script>
@@ -130,7 +219,7 @@
                     <td th:text="${detail.additionalInfo5}"></td>
                     <td th:text="${detail.createdDate}"></td>
                     <td>
-                        <button class="btn btn-info btn-sm view-logs-btn" th:data-trans-message-log-id="${detail.transMessageLogId}">View Logs</button>
+                        <button class="btn btn-info btn-sm view-logs-btn" th:data-trans-log-id="${detail.id}" th:data-trans-message-log-id="${detail.transMessageLogId}">View Logs</button>
                     </td>
                 </tr>
                 </tbody>
@@ -140,88 +229,115 @@
     </div>
     <hr/>
     <div class="card mb-3">
-        <h5 class="card-header">Transaction Detail Logs</h5>
+        <h5 class="card-header">Transaction Related Logs</h5>
         <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <form>
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label" for="LogId">LogId</label>
-                            <div class="col-md-8">
-                                <input type="text" readonly="readonly" class="form-control" id="LogId">
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label" for="CreatedDate">CreatedDate</label>
-                            <div class="col-md-8">
-                                <input type="text" readonly="readonly" class="form-control" id="CreatedDate">
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label" for="LogOrigin">LogOrigin</label>
-                            <div class="col-md-8">
-                                <input type="text" readonly="readonly" class="form-control" id="LogOrigin">
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label" for="LogReqMessage">Request Message</label>
-                            <div class="col-md-8">
-                                <textarea rows="5" readonly="readonly" class="form-control" id="LogReqMessage" ></textarea>
-                            </div>
-                        </div>
-                    </form>
+
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button" role="tab" aria-controls="activity" aria-selected="true">Activity Log</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="queue-tab" data-bs-toggle="tab" data-bs-target="#queue" type="button" role="tab" aria-controls="queue" aria-selected="false">Queue Log</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="postings-tab" data-bs-toggle="tab" data-bs-target="#postings" type="button" role="tab" aria-controls="postings" aria-selected="false">Postings</button>
+                </li>
+            </ul>
+            <div class="tab-content" id="myTabContent">
+                <div class="tab-pane fade show active" id="activity" role="tabpanel" aria-labelledby="activity-tab">
+                    <div id="logs-section" class="mt-4" style="display: none;">
+
+                        <table id="logs-table" class="table table-bordered">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Activity</th>
+                                <th>Activity Description</th>
+                                <th>Activity Status</th>
+                                <th>Log Date</th>
+                                <th>Integration Message</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <!-- Logs will be dynamically populated here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <form>
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label" for="CorrelationId">CorrelationId</label>
-                            <div class="col-md-8">
-                                <input type="text" readonly="readonly" class="form-control" id="CorrelationId">
-                            </div>
+                <div class="tab-pane fade" id="queue" role="tabpanel" aria-labelledby="queue-tab">
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <form>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="LogId">LogId</label>
+                                    <div class="col-md-8">
+                                        <input type="text" readonly="readonly" class="form-control" id="LogId">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="CreatedDate">CreatedDate</label>
+                                    <div class="col-md-8">
+                                        <input type="text" readonly="readonly" class="form-control" id="CreatedDate">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="LogOrigin">LogOrigin</label>
+                                    <div class="col-md-8">
+                                        <input type="text" readonly="readonly" class="form-control" id="LogOrigin">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="LogReqMessage">Request Message</label>
+                                    <div class="col-md-8">
+                                        <textarea rows="5" readonly="readonly" class="form-control" id="LogReqMessage" ></textarea>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <form>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="CorrelationId">CorrelationId</label>
+                                    <div class="col-md-8">
+                                        <input type="text" readonly="readonly" class="form-control" id="CorrelationId">
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="UpdatedDate">UpdatedDate</label>
+                                    <div class="col-md-8">
+                                        <input type="text" readonly="readonly" class="form-control" id="UpdatedDate" >
+
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="LogDestination">LogDestination</label>
+                                    <div class="col-md-8">
+                                        <input type="text" readonly="readonly" class="form-control" id="LogDestination">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="LogResMessage">Response Message</label>
+                                    <div class="col-md-8">
+                                        <textarea rows="5" readonly="readonly" class="form-control" id="LogResMessage" ></textarea>
+
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="postings" role="tabpanel" aria-labelledby="postings-tab">
+                    <div id="postings-section" class="mt-4" style="display: none;">
+                        <div class="accordion" id="accordionPostings">
+
+
                         </div>
 
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label" for="UpdatedDate">UpdatedDate</label>
-                            <div class="col-md-8">
-                                <input type="text" readonly="readonly" class="form-control" id="UpdatedDate" >
-
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label" for="LogDestination">LogDestination</label>
-                            <div class="col-md-8">
-                                <input type="text" readonly="readonly" class="form-control" id="LogDestination">
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label" for="LogResMessage">Response Message</label>
-                            <div class="col-md-8">
-                                <textarea rows="5" readonly="readonly" class="form-control" id="LogResMessage" ></textarea>
-
-                            </div>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
-            <hr/>
-            <div id="logs-section" class="mt-4" style="display: none;">
 
-                <table id="logs-table" class="table table-bordered">
-                    <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Activity</th>
-                        <th>Activity Description</th>
-                        <th>Activity Status</th>
-                        <th>Log Date</th>
-                        <th>Integration Message</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <!-- Logs will be dynamically populated here -->
-                    </tbody>
-                </table>
-            </div>
         </div>
     </div>
 

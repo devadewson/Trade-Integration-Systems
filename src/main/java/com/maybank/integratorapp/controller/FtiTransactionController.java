@@ -33,8 +33,14 @@ public class FtiTransactionController {
     private FtiTransactionDetailService ftiTransactionDetailService;
     @Autowired
     private LogInterfaceProcessService logInterfaceProcessService;
+//    @Autowired
+//    FtiTransactionPostingService ftiPostingService;
+
     @Autowired
-    FtiTransactionPostingService ftiPostingService;
+    FtiTransactionDetailPostingService ftiPostingService;
+
+    @Autowired
+    FtiTransactionDetailPostingGroupService ftiPostingGroupService;
 
     @Autowired
     MsParameterService parameterService;
@@ -98,19 +104,41 @@ public class FtiTransactionController {
     }
 
     @GetMapping("/transaction-details/{transMessageLogId}/postings")
-    public String showPostings(@PathVariable Long transMessageLogId, Model model) {
+    @ResponseBody
+    public List<PostingExtender> getPostingsByTransMessageLogId(@PathVariable Long transMessageLogId) {
+        List<PostingExtender> listOfPostingGroups = new ArrayList<>();
         // Fetch the list of postings from the database
-        List<FtiTransactionPosting> postings = ftiPostingService.getAllPostingByHeaderId(transMessageLogId);
-        model.addAttribute("postings", postings);
-        return "layouts/transactions/postings";
+        List<FtiTransactionDetailPostingGroup> postingGroups = ftiPostingGroupService.getByDetailId(transMessageLogId);
+        postingGroups.forEach(x->{
+            PostingExtender _new = new PostingExtender();
+            _new.setFlagCrossValas(x.getFlagCrossValas());
+            _new.setFlagMdmc(x.getFlagMdmc());
+            _new.setGroupId(x.getGroupId());
+            _new.setFlagMdmc(x.getFlagMdmc());
+            _new.setMappingType(x.getMappingType());
+            _new.setTbrCode(x.getTbrCode());
+            _new.setDetailId(x.getDetailId());
+            _new.setId(x.getId());
+            List<FtiTransactionDetailPosting> _postings = new ArrayList<>();
+            if (!_new.getGroupId().isEmpty()) {
+                _postings = ftiPostingService.getByIdGroup(_new.getId());
+
+            }
+
+            _new.setPostings(_postings);
+
+            listOfPostingGroups.add(_new);
+        });
+
+        return listOfPostingGroups;
     }
 
-    @PostMapping("/transaction-details/{transMessageLogId}/update-posting-sequence")
-    public String updateSequence(@PathVariable Long transMessageLogId,@RequestParam("postings") List<FtiTransactionPosting> postings) {
-        // Update the sequence numbers in the database
-        ftiPostingService.updatePostingSequence(postings);
-        return "redirect:/transaction-details/" + transMessageLogId + "/postings";
-    }
+//    @PostMapping("/transaction-details/{transMessageLogId}/update-posting-sequence")
+//    public String updateSequence(@PathVariable Long transMessageLogId,@RequestParam("postings") List<FtiTransactionPosting> postings) {
+//        // Update the sequence numbers in the database
+//        ftiPostingService.updatePostingSequence(postings);
+//        return "redirect:/transaction-details/" + transMessageLogId + "/postings";
+//    }
 
     @GetMapping("/posting")
     public String getAllPostings(Model model) {
@@ -139,6 +167,19 @@ public class FtiTransactionController {
         catch (Exception e){
             System.out.println(e.getMessage());
             return new ResponseEntity<OFAResponse>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+    }
+
+    public class PostingExtender extends FtiTransactionDetailPostingGroup{
+        private List<FtiTransactionDetailPosting> postings;
+
+        public List<FtiTransactionDetailPosting> getPostings() {
+            return postings;
+        }
+
+        public void setPostings(List<FtiTransactionDetailPosting> postings) {
+            this.postings = postings;
         }
     }
 }

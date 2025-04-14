@@ -27,4 +27,7 @@ public interface LogQueueDataRepository extends CrudRepository<LogQueueData, Lon
     @Query("SELECT t FROM LogQueueData t WHERE LOWER(t.correlationID) LIKE LOWER(CONCAT('%', :correlationId, '%'))")
     Page<LogQueueData> findByCorrelationIdContainingIgnoreCase(@Param("correlationId") String correlationId, Pageable pageable);
 
+    @Query("SELECT t FROM LogQueueData t WHERE t.reqMessage LIKE LOWER(CONCAT('%', :transref, '%'))")
+    Page<LogQueueData> findByTransactionIdContainingIgnoreCase(@Param("transref") String transref, Pageable pageable);
+
 }

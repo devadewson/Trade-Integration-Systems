@@ -209,6 +209,7 @@ public class MQController {
             @RequestParam("page") Optional<Integer> page,
             @RequestParam("size") Optional<Integer> size,
             @RequestParam("search") Optional<String> search,
+            @RequestParam("transref") Optional<String> transref,
             Model model) {
 
         // Set default values for pagination
@@ -223,7 +224,12 @@ public class MQController {
         if (search.isPresent() && !search.get().isEmpty()) {
             // If search term is provided, search by masterRefNo
             logQueuePage = logQueueDataService.searchByCorrelationId(search.get(), pageable);
-        } else {
+        }
+        else if (transref.isPresent() && !transref.get().isEmpty()) {
+            // If search term is provided, search by masterRefNo
+            logQueuePage = logQueueDataService.searchByTransactionId(transref.get(), pageable);
+        }
+        else {
             // Otherwise, fetch all transactions with default sorting
             logQueuePage = logQueueDataService.getAll(pageable);
         }
@@ -232,6 +238,7 @@ public class MQController {
         model.addAttribute("currentPage", currentPage);
         model.addAttribute("totalPages", logQueuePage.getTotalPages());
         model.addAttribute("search", search.orElse(""));
+        model.addAttribute("transref", transref.orElse(""));
 
         return "layouts/queue/index"; // Thymeleaf template name
     }

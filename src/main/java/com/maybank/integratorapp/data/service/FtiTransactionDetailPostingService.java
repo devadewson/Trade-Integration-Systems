@@ -5,10 +5,16 @@ import com.maybank.integratorapp.data.repository.FtiTransactionDetailPostingRepo
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class FtiTransactionDetailPostingService {
     @Autowired
     private FtiTransactionDetailPostingRepository ftiTransactionDetailPostingRepository;
+    
+    public List<FtiTransactionDetailPosting> getByIdGroup(Long idGroup){
+        return ftiTransactionDetailPostingRepository.findByIdGroup(idGroup);
+    }
 
     public FtiTransactionDetailPosting save(FtiTransactionDetailPosting entry) {
 

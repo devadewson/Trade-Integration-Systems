@@ -4,12 +4,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
+import com.maybank.integratorapp.data.entity.FtiTransaction;
 import com.maybank.integratorapp.data.entity.FtiTransactionDetail;
 import com.maybank.integratorapp.data.repository.MsParameterRepository;
-import com.maybank.integratorapp.data.service.FtiTransactionDetailService;
-import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
-import com.maybank.integratorapp.data.service.MsCurrencyService;
-import com.maybank.integratorapp.data.service.MsParameterService;
+import com.maybank.integratorapp.data.service.*;
 import com.maybank.integratorapp.model.mq.limitutilization.request.ServiceRequest;
 
 import com.maybank.integratorapp.model.soap.limit.XL41.request.SoapEnvelope;
@@ -25,7 +23,12 @@ import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Component
 public class LimitUtilizationMessageProcessor {
 
@@ -39,7 +42,8 @@ public class LimitUtilizationMessageProcessor {
     private FtiTransactionDetailService ftiTransactionDetailService;
     @Autowired
     MsCurrencyService msCurrencyService;
-
+    @Autowired
+    FtiTransactionService ftiTransactionService;
 //    ServiceResponse response = new ServiceResponse();
 
     private final String ProcessName = "LimitUtilizationProcess";
@@ -70,12 +74,58 @@ public class LimitUtilizationMessageProcessor {
                 String masterReference = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getMasterReference();
                 String eventCode = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getEventReference();
 
+                FtiTransaction _header = new FtiTransaction();
+                List<FtiTransactionDetail> _listTransactionDetail = new ArrayList<>();
+                if(ftiTransactionService.findByMasterRefNo(masterReference).isPresent()){
+                    _header = ftiTransactionService.findByMasterRefNo(masterReference).get();
+                    _listTransactionDetail = ftiTransactionDetailService.getDetailsByHeaderId(_header.getId());
+                    _listTransactionDetail = _listTransactionDetail.stream().filter(x->x.getCoreSysName().startsWith("CLS"))
+                            .sorted(Comparator.comparingLong(FtiTransactionDetail::getId))
+                            .collect(Collectors.toList());
+                }
 
-                // step 3.
-                SoapEnvelope msgRequest = mapCoreSystemRequest(utilizationID,correlationID);
+                boolean needXL40 = false;
+                boolean needXL41 = false;
 
-                // step 4.
-                com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope msgResponse = getMsgBodyResponse(msgRequest,eventCode,masterReference,utilizationID);
+                FtiTransactionDetail _lastLimitAction = null;
+                if(_listTransactionDetail.stream().count()>0){
+//                    logger.Log(ProcessName, "Transaction Detail Count : "+_listTransactionDetail.stream().count(), "DEBUG");
+
+                    _lastLimitAction = _listTransactionDetail.get((int) (_listTransactionDetail.stream().count()-1));
+                    if(_lastLimitAction.getCoreSysName().contains("XL2B")){
+                        needXL40 =true;
+                    }else if(_lastLimitAction.getCoreSysName().contains("XL31")){
+                        needXL41 = true;
+                        // check whether before XL31 there is XL2B
+                        FtiTransactionDetail _beforeLastLimitAction = ftiTransactionDetailService.getById(_lastLimitAction.getId()-1);
+                        if(_beforeLastLimitAction.getCoreSysName().contains("XL2B")){
+                            needXL40 = true;
+                        }
+                    }
+
+
+                }
+                if(needXL40){
+                    // step 3.
+                    com.maybank.integratorapp.model.soap.limit.XL40.request.SoapEnvelope msgRequest = mapXL40Request(utilizationID,correlationID);
+
+                    // step 4.
+                    com.maybank.integratorapp.model.soap.limit.XL40.response.SoapEnvelope msgResponse = getXL40Response(msgRequest,eventCode,masterReference,utilizationID);
+
+                }
+
+                if(needXL41){
+                    // step 3.
+                    com.maybank.integratorapp.model.soap.limit.XL41.request.SoapEnvelope msgRequest = mapXL41Request(utilizationID,correlationID);
+
+                    // step 4.
+                    com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope msgResponse = getXL41Response(msgRequest,eventCode,masterReference,utilizationID);
+
+                }
+
+
+
+
 
                 // step 5.
 //                mapExternalResponse(msgResponse,msgRequest);
@@ -124,7 +174,7 @@ public class LimitUtilizationMessageProcessor {
     }
 
     // step 3. Map external request to core system request
-    public SoapEnvelope mapCoreSystemRequest(String utilizationID,String correlationID) {
+    public SoapEnvelope mapXL41Request(String utilizationID, String correlationID) {
         String soapUrl = parameterService.findValueByPrmKey("XL41Request");
         String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
 //        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
@@ -159,6 +209,35 @@ public class LimitUtilizationMessageProcessor {
 
         return soapEnvelopeXL41;
     }
+    public com.maybank.integratorapp.model.soap.limit.XL40.request.SoapEnvelope mapXL40Request(String utilizationID,String correlationID) {
+        String soapUrl = parameterService.findValueByPrmKey("XL41Request");
+        String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
+//        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
+//        String correlationID = "ServiceRequest.getRequestHeader().getCorrelationID();";
+        String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+        String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
+        com.maybank.integratorapp.model.soap.limit.XL40.request.SoapEnvelope soapEnvelope = new com.maybank.integratorapp.model.soap.limit.XL40.request.SoapEnvelope();
+
+        String[] splittedKey = splitKey(utilizationID);
+        String limitCurrency = splittedKey[1];
+        String limitBranch = splittedKey[2];
+        String limitCif = splittedKey[3];
+        String limitNoteKey = splittedKey[4];
+        String limitDraw = splittedKey[5];
+        String dateNow = new SimpleDateFormat("ddMMyy").format(new Date());
+
+        soapEnvelope.getBody().getXl40().getChannelHeader().setAdditionalHeader("");
+        soapEnvelope.getBody().getXl40().getChannelHeader().setBranchCode(limitBranch);
+        soapEnvelope.getBody().getXl40().getChannelHeader().setChannelID(clsChannelId);
+        soapEnvelope.getBody().getXl40().getChannelHeader().setClientUserID("7755");
+        soapEnvelope.getBody().getXl40().getChannelHeader().setReference(correlationID);
+        soapEnvelope.getBody().getXl40().getChannelHeader().setTransactionDate(date);
+        soapEnvelope.getBody().getXl40().getChannelHeader().setTransactionTime(time);
+
+        soapEnvelope.getBody().getXl40().getCmsXl40Request().setLoanNumber(buildXL40Key(utilizationID));
+        soapEnvelope.getBody().getXl40().getCmsXl40Request().setScreenid("XL2B");
+        return soapEnvelope;
+    }
     private String[] splitKey(String key) {
         String bank = key.substring(0, 2);
         String currency = key.substring(2, 5);
@@ -170,8 +249,20 @@ public class LimitUtilizationMessageProcessor {
 
         return new String[]{bank, currency, branchCode, cif, note, draw, seq};
     }
+    private String buildXL40Key(String key) {
+        String bank = key.substring(0, 2);
+        String currency = key.substring(2, 5);
+        String branchCode = key.substring(5, 8);
+        String cif = key.substring(8, 18);
+        String note = key.substring(18, 26);
+        String draw = key.substring(26, 29);
+        String seq = key.substring(29, 31);
+
+        return branchCode+"-"+cif+"."+note
+                +" "+draw+"-"+seq;
+    }
     // step 4. Request data from core system
-    public com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope getMsgBodyResponse(SoapEnvelope soapEnvelopeXL41,String eventCode,String referenceId,String reservationId) {
+    public com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope getXL41Response(SoapEnvelope soapEnvelopeXL41, String eventCode, String referenceId, String reservationId) {
         com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope res = new com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope();
         String soapUrl = parameterService.findValueByPrmKey("XL41Request");
 
@@ -241,6 +332,88 @@ public class LimitUtilizationMessageProcessor {
 
                     String xmlResponseXL41 = mapper.writeValueAsString(cmsResponseXL41);
                     System.out.println(xmlResponseXL41);
+
+                }
+            } catch (Exception e) {
+                logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+
+            }
+        } catch (Exception e) {
+            logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+
+        }
+        return res;
+    }
+    public com.maybank.integratorapp.model.soap.limit.XL40.response.SoapEnvelope getXL40Response(com.maybank.integratorapp.model.soap.limit.XL40.request.SoapEnvelope soapEnvelopeXL40, String eventCode, String referenceId, String reservationId) {
+        com.maybank.integratorapp.model.soap.limit.XL40.response.SoapEnvelope res = new com.maybank.integratorapp.model.soap.limit.XL40.response.SoapEnvelope();
+        String soapUrl = parameterService.findValueByPrmKey("XL41Request");
+
+        String dcType = "-";
+        String amount = "-";
+        String noteNumber = reservationId;
+
+        try {
+            XmlMapper mapper = new XmlMapper();
+
+            // Avoid unnecessary wrapping
+            mapper.setDefaultUseWrapper(false);
+            mapper.configure(ToXmlGenerator.Feature.WRITE_XML_DECLARATION, true);
+
+            String xmlString = null;
+            try {
+                xmlString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapEnvelopeXL40);
+
+                System.out.println(xmlString);
+
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+            logger.Log(ProcessName, "Hit ESB Message", "ESB-MESSAGE", xmlString);
+
+            com.maybank.integratorapp.model.soap.limit.XL40.response.SoapEnvelope cmsResponseXL40 = null;
+
+            try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+                HttpPost httpPost = new HttpPost(soapUrl);
+                httpPost.setHeader("Content-Type", "text/xml");
+                httpPost.setEntity(new StringEntity(xmlString, ContentType.TEXT_XML));
+                String _response = "";
+
+                try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+
+                    // Handle response if needed
+                    var _res = response.getEntity();
+                    var _resStream = _res.getContent();
+                    var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
+
+                    _response = outputResponse;
+                    logger.Log(ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
+
+                    cmsResponseXL40 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL40.response.SoapEnvelope.class);
+                    String responseCode = cmsResponseXL40
+                            .getBody().getXl40Response().
+                            getCmsXl40Response().getResponsecode();
+                    String responseMessage = cmsResponseXL40
+                            .getBody().getXl40Response().
+                            getCmsXl40Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+                    String responseMessage2 = cmsResponseXL40
+                            .getBody().getXl40Response().
+                            getCmsXl40Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message_1")).findFirst().get().getValue();
+
+                    FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
+                    ftiTransactionDetail.setTransMessageLogId(logger.getIdLogParent());
+                    ftiTransactionDetail.setFtiEvent(eventCode);
+                    ftiTransactionDetail.setCoreSysName("CLS-XL40");
+                    ftiTransactionDetail.setTransName("Utilization");
+                    ftiTransactionDetail.setCoreSysStatus(responseCode);
+                    ftiTransactionDetail.setCoreSysMessage(responseMessage2);
+                    ftiTransactionDetail.setAdditionalInfo1(noteNumber);
+                    ftiTransactionDetail.setAdditionalInfo2(dcType);
+                    ftiTransactionDetail.setAdditionalInfo3(amount);
+                    ftiTransactionDetail.setAdditionalInfo4("REL");
+                    ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
+
+                    String xmlResponseXL40 = mapper.writeValueAsString(cmsResponseXL40);
+                    System.out.println(xmlResponseXL40);
 
                 }
             } catch (Exception e) {

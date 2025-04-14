@@ -9,14 +9,22 @@
     <h1>Log Queue Data</h1>
 
     <div class="card mb-3">
-        <h5 class="card-header">CorrelationId Search</h5>
+        <h5 class="card-header">Search Box</h5>
         <div class="card-body">
+
             <!-- Search Box -->
             <form th:action="@{/log-queue}" method="get" class="mb-4">
-                <div class="input-group">
-                    <input type="text" name="search" th:value="${search}" class="form-control" placeholder="Search by CorrelationId">
-                    <button type="submit" class="btn btn-primary">Search</button>
+                <div class="mb-3 row">
+                    <div class="col-sm-6">
+                        <input type="text" name="search" th:value="${search}" class="form-control" placeholder="Search by CorrelationId">
+                    </div>
                 </div>
+                <div class="mb-3 row">
+                    <div class="col-sm-6">
+                        <input type="text" name="transref" th:value="${transref}" class="form-control" placeholder="Search by TransactionId">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Search</button>
             </form>
         </div>
     </div>
