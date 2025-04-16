@@ -13,8 +13,18 @@ public class MsUtilizeRunningNumber {
 
     private Long facilityId;
     private Long companyLimitId;
-
+    @ManyToOne
+    @JoinColumn(name = "companyLimitId", insertable = false, updatable = false)
+    private MsFacility facility;
     private int runningNumber;
+
+    public MsFacility getFacility() {
+        return facility;
+    }
+
+    public void setFacility(MsFacility facility) {
+        this.facility = facility;
+    }
 
     public Long getId() {
         return id;

@@ -17,4 +17,6 @@ public interface MsFacilityUtilizeRepository extends CrudRepository<MsFacilityUt
     MsFacilityUtilize findByKeyLoanAcc(String keyLoanAcc);
     @Query("SELECT f FROM MsFacilityUtilize f join MsCompanyLimit c on c.id = f.companyLimitId where c.cifno=?1")
     List<MsFacilityUtilize> findAllFacilityUtilizeByCif(String cifNo);
+    @Query("SELECT f FROM MsFacilityUtilize f where f.companyLimitId = ?1")
+    List<MsFacilityUtilize> findByCompanyLimitId(Long id);
 }

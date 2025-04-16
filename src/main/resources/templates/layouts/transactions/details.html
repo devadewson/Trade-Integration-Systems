@@ -10,6 +10,7 @@
             max-width: 200px;
           }
     </style>
+    <h1>Transaction</h1>
     <script>
         $(document).ready(function () {
             // Handle "View Logs" button click
@@ -64,7 +65,7 @@
 
                         var groupId = postingGroup.groupId;
                         var postingTableId = "#postingGroup"+groupId+"-table tbody";
-
+                        var logTableId = "#postingMessage"+groupId+"-table tbody";
                         var accordionItem = buildAccordionItem(postingGroup);
                         $("#accordionPostings").append(accordionItem);
 
@@ -87,6 +88,21 @@
                                 </tr>
                             `);
                         });
+                        postingGroup.logInterfaces.forEach(log => {
+                            $(logTableId).append(`
+                                <tr>
+                                    <td>${log.id}</td>
+                                    <td>${log.activity}</td>
+                                    <td>${log.activityDescription}</td>
+                                    <td>${log.activityStatus}</td>
+                                    <td>${new Date(log.logDate).toLocaleString()}</td>
+                                    <td>
+                                        <textarea rows="5" readonly="readonly" class="form-control">${log.integrationMessage}</textarea>
+                                    </td>
+                                </tr>
+                            `);
+                        });
+
                     });
 
                     // Show the logs section
@@ -141,6 +157,22 @@
                                             <tbody>
                                             </tbody>
                                         </table>
+                                        <h4>Posting Message</h4>
+                                        <table id="postingMessage##-table" class="table table-bordered">
+                                            <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Activity</th>
+                                                <th>Activity Description</th>
+                                                <th>Activity Status</th>
+                                                <th>Log Date</th>
+                                                <th>Integration Message</th>
+
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>`;
@@ -157,7 +189,6 @@
             }
         });
     </script>
-    <h1>Transaction</h1>
 
     <div class="card mb-3">
         <h5 class="card-header">Transaction Detail</h5>

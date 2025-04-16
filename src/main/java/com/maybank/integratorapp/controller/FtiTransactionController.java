@@ -120,12 +120,16 @@ public class FtiTransactionController {
             _new.setDetailId(x.getDetailId());
             _new.setId(x.getId());
             List<FtiTransactionDetailPosting> _postings = new ArrayList<>();
+            List<LogInterfaceProcess> _logInterfaceProcessList = new ArrayList<>();
             if (!_new.getGroupId().isEmpty()) {
                 _postings = ftiPostingService.getByIdGroup(_new.getId());
+                String activityName = "Posting "+_new.getGroupId();
+                _logInterfaceProcessList = logInterfaceProcessService.getLogsByActivityName(activityName);
 
             }
 
             _new.setPostings(_postings);
+            _new.setLogInterfaces(_logInterfaceProcessList);
 
             listOfPostingGroups.add(_new);
         });
@@ -139,12 +143,6 @@ public class FtiTransactionController {
 //        ftiPostingService.updatePostingSequence(postings);
 //        return "redirect:/transaction-details/" + transMessageLogId + "/postings";
 //    }
-
-    @GetMapping("/posting")
-    public String getAllPostings(Model model) {
-
-        return "error/dev";
-    }
 
     @GetMapping(value = "/TestEmail")
     public ResponseEntity<OFAResponse> RefreshLimitByCif(@PathVariable Long idnotif){
@@ -173,6 +171,15 @@ public class FtiTransactionController {
 
     public class PostingExtender extends FtiTransactionDetailPostingGroup{
         private List<FtiTransactionDetailPosting> postings;
+        private List<LogInterfaceProcess> logInterfaces;
+
+        public List<LogInterfaceProcess> getLogInterfaces() {
+            return logInterfaces;
+        }
+
+        public void setLogInterfaces(List<LogInterfaceProcess> logInterfaces) {
+            this.logInterfaces = logInterfaces;
+        }
 
         public List<FtiTransactionDetailPosting> getPostings() {
             return postings;

@@ -189,15 +189,11 @@ public class ProcessCompositeTBR {
                 ftiTransactionDetailPostingService.save(_posting);
             }
 
-        }
-
-        for (PostingGroup postingGroup:finalData) {
-
             // check if its cross valas
             if (postingGroup.getFlagCrossValas().equals("N"))
             {
                 logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "START");
-                postTbr(referenceID,postingGroup);
+                postTbr(referenceID,postingGroup, Long.valueOf(postingGroup.getGroupId()));
                 logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "END");
 
             }
@@ -215,6 +211,7 @@ public class ProcessCompositeTBR {
 
         }
 
+
     }
 
     private void postRtgs(PostingGroup postingGroup) {
@@ -228,7 +225,7 @@ public class ProcessCompositeTBR {
 
     }
 
-    public void postTbr(String referenceID, PostingGroup data){
+    public void postTbr(String referenceID, PostingGroup data, Long groupId){
         try{
 
             String tbrNumber = data.TbrCode;
@@ -308,14 +305,14 @@ public class ProcessCompositeTBR {
 //                                    .writeValueAsString(envelope);
             String jsonPayload = objectMapper.writerWithDefaultPrettyPrinter() // enable pretty print
                     .writeValueAsString(_msgWrapper);
-            logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "DATA-REQ",jsonPayload);
+            logger.Log("Posting "+groupId, "Request ESB", "DATA-REQ",jsonPayload);
 
             System.out.println("Serialized JSON Payload: " + jsonPayload);
 
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
             String response = "";
             response = restTemplate.exchange(url, HttpMethod.POST, request, String.class).getBody();
-            logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "DATA-RES",response);
+            logger.Log("Posting "+groupId, "Response ESB", "DATA-RES",response);
 
 //            ResponseEntity<String> _response = restTemplate.postForEntity(url,_msgWrapper,String.class);
 

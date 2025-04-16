@@ -15,4 +15,6 @@ public interface FtiAccountTypeRepository extends CrudRepository<FtiAccountType,
 
     @Query("select m from MsAccountType m join FtiAccountType fat on m.id =fat.AccountTypeId where fat.AccountType = ?1")
     MsAccountType findByFtiAccountType(String ftiAccountType);
+
+
 }

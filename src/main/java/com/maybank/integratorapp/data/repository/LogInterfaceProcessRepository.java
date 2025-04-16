@@ -10,4 +10,6 @@ import java.util.List;
 public interface LogInterfaceProcessRepository extends CrudRepository<LogInterfaceProcess, Long> {
     @Query("select f from LogInterfaceProcess f where f.IdLogParent = ?1")
     List<LogInterfaceProcess> findByIdLogParent(Long idLogParent);
+    @Query("select f from LogInterfaceProcess f where f.Activity = ?1")
+    List<LogInterfaceProcess> findByActivityName(String activityName);
 }

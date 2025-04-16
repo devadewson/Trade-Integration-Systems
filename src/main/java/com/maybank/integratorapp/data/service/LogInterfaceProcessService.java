@@ -57,4 +57,8 @@ public class LogInterfaceProcessService {
         logEntry.setLogDate(new Date());
         repo.save(logEntry);
     }
+
+    public List<LogInterfaceProcess> getLogsByActivityName(String activityName) {
+        return repo.findByActivityName(activityName);
+    }
 }

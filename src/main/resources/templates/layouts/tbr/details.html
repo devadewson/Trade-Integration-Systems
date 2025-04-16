@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
+<body>
+<main>
+    <style>
+        .wrap-table td {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            /* Optional: set a max-width to force wrapping */
+            max-width: 200px;
+          }
+    </style>
+
+    <div class="card mb-3 mt-3">
+        <h5 class="card-header">TBR Detail</h5>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <p><strong>ID:</strong> <span th:text="${tbr.id}"></span></p>
+                </div>
+                <div class="col-md-3">
+                    <p><strong>Code:</strong> <span th:text="${tbr.TBRCode}"></span></p>
+                </div>
+                <div class="col-md-3">
+                    <p><strong>Name:</strong> <span th:text="${tbr.TBRName}"></span></p>
+                </div>
+                <div class="col-md-3">
+                    <p><strong>Method:</strong> <span th:text="${tbr.TBRMethod}"></span></p>
+                </div>
+            </div>
+            <hr/>
+            <a href="/tbr" class="btn btn-secondary">Back to List</a>
+        </div>
+    </div>
+    <hr/>
+    <div class="card mb-3">
+        <h5 class="card-header">TBR Related Settings</h5>
+        <div class="card-body">
+
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="mapping-tab" data-bs-toggle="tab" data-bs-target="#mapping" type="button" role="tab" aria-controls="mapping" aria-selected="true">Mapping</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="field-tab" data-bs-toggle="tab" data-bs-target="#field" type="button" role="tab" aria-controls="field" aria-selected="false">Field Mapping</button>
+                </li>
+
+            </ul>
+            <div class="tab-content" id="myTabContent">
+                <div class="tab-pane fade show active" id="mapping" role="tabpanel" aria-labelledby="mapping-tab">
+                    <div class="row m-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5>Mapping Details</h5>
+                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMappingModal">
+                                        Add New Mapping
+                                    </button>
+
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-striped table-bordered">
+                                    <thead class="thead-light">
+                                    <tr>
+                                        <th>Account Type</th>
+                                        <th>Debit/Credit</th>
+                                        <th>Currency Code</th>
+                                        <th>Mapping Type</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="mapping : ${mappings}">
+                                        <td th:text="${mapping.accountType.AccountType + ' - ' + mapping.accountType.AccountDescription}"></td>
+                                        <td th:text="${mapping.Debit_Credit}"></td>
+                                        <td th:text="${mapping.CurrencyCode}"></td>
+                                        <td th:text="${mapping.MappingType}"></td>
+                                        <td>
+
+                                            <a th:href="@{/tbr/mapping/delete/{id}(id=${mapping.id}, tbrId=${tbr.id})}"
+                                               class="btn btn-sm btn-danger"
+                                               onclick="return confirm('Are you sure you want to delete this mapping?')">
+                                                Delete
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="field" role="tabpanel" aria-labelledby="field-tab">
+                    <div class="row mt-4">
+                        TO BE DEVELOPED
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Add Mapping Modal -->
+    <div class="modal fade" id="addMappingModal" tabindex="-1" aria-labelledby="addMappingModal" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Mapping</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form th:action="@{/tbr/mapping/add}" method="post">
+                    <input type="hidden" name="TBR_Id" th:value="${tbr.id}">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="accountType">Account Type</label>
+                            <select class="form-control" id="accountType" name="AccountType_Id" required>
+                                <option value="">Select Account Type</option>
+                                <option th:each="accountType : ${accountTypes}"
+                                        th:value="${accountType.id}"
+                                        th:text="${accountType.AccountType + ' - ' + accountType.AccountDescription}"></option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="debitCredit">Debit/Credit</label>
+                            <select class="form-control" id="debitCredit" name="Debit_Credit" required>
+                                <option value="">Select</option>
+                                <option value="Debit">Debit</option>
+                                <option value="Credit">Credit</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="currencyCode">Currency Code</label>
+                            <input type="text" class="form-control" id="currencyCode" name="CurrencyCode" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="mappingType">Mapping Type</label>
+                            <input type="text" class="form-control" id="mappingType" name="MappingType" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Mapping Modal -->
+    <div class="modal fade" id="editMappingModal" tabindex="-1" role="dialog" aria-labelledby="editMappingModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editMappingModalLabel">Edit Mapping</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form th:action="@{/tbr/mapping/update}" method="post">
+                    <input type="hidden" id="editMappingId" name="id">
+                    <input type="hidden" name="TBR_Id" th:value="${tbr.id}">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="editAccountType">Account Type</label>
+                            <select class="form-control" id="editAccountType" name="AccountType_Id" required>
+                                <option th:each="accountType : ${accountTypes}"
+                                        th:value="${accountType.id}"
+                                        th:text="${accountType.AccountDescription}"></option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editDebitCredit">Debit/Credit</label>
+                            <select class="form-control" id="editDebitCredit" name="Debit_Credit" required>
+                                <option value="Debit">Debit</option>
+                                <option value="Credit">Credit</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editCurrencyCode">Currency Code</label>
+                            <input type="text" class="form-control" id="editCurrencyCode" name="CurrencyCode" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editMappingType">Mapping Type</label>
+                            <input type="text" class="form-control" id="editMappingType" name="MappingType" required>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary">Save changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+        function editMapping(id, accountTypeId, debitCredit, currencyCode, mappingType) {
+            $('#editMappingId').val(id);
+            $('#editAccountType').val(accountTypeId);
+            $('#editDebitCredit').val(debitCredit);
+            $('#editCurrencyCode').val(currencyCode);
+            $('#editMappingType').val(mappingType);
+
+            $('#editMappingModal').modal('show');
+        }
+    </script>
+</main>
+<!-- JavaScript to Handle "View Logs" Button Click -->
+
+</body>
+
+</html>

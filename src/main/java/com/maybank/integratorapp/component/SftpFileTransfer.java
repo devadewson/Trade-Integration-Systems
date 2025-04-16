@@ -64,7 +64,7 @@ public class SftpFileTransfer {
             // Create session and connect to the SFTP server
             destination1Session = connectToSftp(destination1SftpHost,destination1SftpUser,destination1SftpPassword);
             // Open SFTP channel
-            destination1ChannelSftp = (ChannelSftp) destination1Session.openChannel("sftp");
+            destination1ChannelSftp = (ChannelSftp) destination1Session.openChannel("ftp");
             destination1ChannelSftp.connect();
 
             // Create session and connect to the SFTP server

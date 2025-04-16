@@ -94,7 +94,7 @@ public class JmsListenerService {
 //                    && !config.getServiceName().equals("FacilityUtilization")
 //                    && !config.getServiceName().equals("ReservationReversal"))
 //                return;
-//        if (!config.getServiceName().equals("BatchPosting"))
+//        if (!config.getServiceName().equals("CustomerSearch"))
 //            return;
         try {
             // Reuse existing connection if available

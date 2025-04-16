@@ -22,4 +22,12 @@ public class FtiAccountTypeService {
     public List<FtiAccountType> getAll(){
         return (List<FtiAccountType>)repo.findAll();
     }
+
+    public List<FtiAccountType> findAll() {
+        return (List<FtiAccountType>) repo.findAll();
+    }
+
+    public FtiAccountType findById(Long accountTypeId) {
+        return repo.findById(accountTypeId).get();
+    }
 }

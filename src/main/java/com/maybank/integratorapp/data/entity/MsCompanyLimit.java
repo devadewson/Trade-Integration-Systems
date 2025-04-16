@@ -3,6 +3,8 @@ package com.maybank.integratorapp.data.entity;
 import jakarta.persistence.*;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Entity
 @Table(name = "MsCompanyLimit",schema = "dbo")
 @NoArgsConstructor
@@ -13,6 +15,14 @@ public class MsCompanyLimit {
     private Long id;
 
     private String cifno;
+
+    @OneToMany
+    @JoinColumn(name = "id", insertable = false, updatable = false)
+    private List<MsFacility> facilities;
+
+    @OneToMany
+    @JoinColumn(name = "id", insertable = false, updatable = false)
+    private List<MsFacilityUtilize> facilityUtilizes;
 
     public Long getId() {
         return id;

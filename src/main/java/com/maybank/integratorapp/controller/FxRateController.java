@@ -51,6 +51,7 @@ public class FxRateController {
             if(config != null && config.getEnableStatus() == 1){
                 LogQueueData _data = new LogQueueData();
                 String api = parameterRepository.findValueByPrmKey("FxRateRequest");
+                String fxRateFCCBankAbbvName = parameterRepository.findValueByPrmKey("FxRateFCCBankName");
 
                 ProcessFXRate fxRate = new ProcessFXRate();
                 List<FxRateListData> data = fxRate.getAllFxRate(api);
@@ -64,7 +65,7 @@ public class FxRateController {
                 dataRecordIDR.setBaseISOCode("IDR");
                 dataRecordIDR.setIsoCode("IDR");
                 dataRecordIDR.setPatyVal("1");
-                dataRecordIDR.setBankAbbvName("MAYBANKID");
+                dataRecordIDR.setBankAbbvName(fxRateFCCBankAbbvName);
                 dataRecordIDR.setBuyTtRate("1");
                 dataRecordIDR.setMidTtRate("1");
                 dataRecordIDR.setSellTtRate("1");
@@ -83,7 +84,7 @@ public class FxRateController {
                     dataRecord.setBaseISOCode(_againstCcy);
                     dataRecord.setIsoCode(_baseCcy);
                     dataRecord.setPatyVal("1");
-                    dataRecord.setBankAbbvName("MAYBANKID");
+                    dataRecord.setBankAbbvName(fxRateFCCBankAbbvName);
 //                    dataRecord.setBuyTtRate(item.getBid());
 //                    dataRecord.setMidTtRate(item.getBid());
 //                    dataRecord.setSellTtRate(item.getAsk());
