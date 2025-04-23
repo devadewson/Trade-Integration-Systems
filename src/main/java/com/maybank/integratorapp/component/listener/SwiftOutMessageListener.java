@@ -49,7 +49,7 @@ public class SwiftOutMessageListener implements CustomMessageListener {
             LogQueueData _data = new LogQueueData();
 
             try {
-                System.out.println("Received 1 Message With CorrelationID : "+message.getJMSCorrelationID());
+                System.out.println("SwiftOut Received Message With CorrelationID : "+message.getJMSCorrelationID());
 
                 String _message = message.getBody(String.class);
 

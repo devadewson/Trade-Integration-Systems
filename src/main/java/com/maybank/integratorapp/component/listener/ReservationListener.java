@@ -82,7 +82,7 @@ public class ReservationListener implements CustomMessageListener {
             }
             String _message = message.getBody(String.class);
             System.out.println("Reservation Listener Received : "+message.getJMSCorrelationID());
-            System.out.println(message.getBody(String.class));
+//            System.out.println(message.getBody(String.class));
             logData = dataDTO.save(logData);
             message.acknowledge();
 

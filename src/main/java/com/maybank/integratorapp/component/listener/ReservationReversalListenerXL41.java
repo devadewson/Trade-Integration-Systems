@@ -62,7 +62,7 @@ public class ReservationReversalListenerXL41 implements CustomMessageListener {
             }
             String _message = message.getBody(String.class);
             System.out.println("Limit Reversal Listener Received : "+message.getJMSCorrelationID());
-            System.out.println(message.getBody(String.class));
+//            System.out.println(message.getBody(String.class));
             logData = dataDTO.save(logData);
             message.acknowledge();
 

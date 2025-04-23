@@ -47,7 +47,7 @@ public class BatchPostingMessageListener implements CustomMessageListener {
             String correlationId = "";
             try {
                 System.out.println("Batch Posting Listener Received : "+message.getJMSCorrelationID());
-                System.out.println(message.getBody(String.class));
+//                System.out.println(message.getBody(String.class));
                 correlationId = message.getJMSCorrelationID();
                 if(dataDTO.findByCorrelationId(correlationId)!= null){
                     message.acknowledge();

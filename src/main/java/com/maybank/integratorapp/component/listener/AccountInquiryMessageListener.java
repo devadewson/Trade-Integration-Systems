@@ -64,7 +64,7 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
 
                 String _message = message.getBody(String.class);
                 System.out.println("Account Inquiry Listener Received : "+message.getJMSCorrelationID());
-                System.out.println(message.getBody(String.class));
+//                System.out.println(message.getBody(String.class));
 
                 correlationId = message.getJMSCorrelationID();
                 if(dataDTO.findByCorrelationId(correlationId)!= null){
@@ -83,9 +83,9 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
 
                 message.acknowledge();
                 responseXml = accountInquiryMessageProcessor.processMessage(_message, Math.toIntExact(_data.getId()));
-                System.out.println("===========================xmlResponse=================================");
-                System.out.println(responseXml);
-                System.out.println("============================================================\n");
+//                System.out.println("===========================xmlResponse=================================");
+//                System.out.println(responseXml);
+//                System.out.println("============================================================\n");
                 _data.setResMessage(responseXml);
                 _data.setStatus("Success");
                 _data.setDelivery_date(new Date());

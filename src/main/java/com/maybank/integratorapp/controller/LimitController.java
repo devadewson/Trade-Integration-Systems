@@ -8,7 +8,7 @@ import com.maybank.integratorapp.component.coresystem.ProcessFacilities;
 import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.MsCurrencyRepository;
 import com.maybank.integratorapp.data.repository.MsFacilityRepository;
-import com.maybank.integratorapp.data.repository.MscompanylimitRepository;
+import com.maybank.integratorapp.data.repository.MsCompanyLimitRepository;
 import com.maybank.integratorapp.model.mq.facilities.response.FacilityDetails;
 import com.maybank.integratorapp.model.soap.fcclimit.request.OFA;
 import com.maybank.integratorapp.model.soap.fcclimit.response.Limit;
@@ -35,7 +35,7 @@ public class LimitController {
     @Autowired
     MsFacilityRepository msFacilityRepository;
     @Autowired
-    MscompanylimitRepository mscompanylimitRepository;
+    MsCompanyLimitRepository mscompanylimitRepository;
 
 
     @Autowired

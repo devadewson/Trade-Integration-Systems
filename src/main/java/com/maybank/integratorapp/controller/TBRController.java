@@ -1,12 +1,7 @@
 package com.maybank.integratorapp.controller;
 
-import com.maybank.integratorapp.data.entity.FtiAccountType;
-import com.maybank.integratorapp.data.entity.FtiTransaction;
-import com.maybank.integratorapp.data.entity.MsTBR;
-import com.maybank.integratorapp.data.entity.MsTBRMapping;
-import com.maybank.integratorapp.data.service.FtiAccountTypeService;
-import com.maybank.integratorapp.data.service.MsTBRMappingService;
-import com.maybank.integratorapp.data.service.MsTBRService;
+import com.maybank.integratorapp.data.entity.*;
+import com.maybank.integratorapp.data.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,7 +25,10 @@ public class TBRController {
     private MsTBRMappingService mappingService;
 
     @Autowired
-    private FtiAccountTypeService accountTypeService;
+    private MsAccountTypeService accountTypeService;
+
+    @Autowired
+    private MsTBRFieldService msTBRFieldService;
 
     @GetMapping()
     public String listTBRs( @RequestParam("page") Optional<Integer> page,
@@ -67,11 +65,13 @@ public class TBRController {
     public String showTBRDetail(@PathVariable Long id, Model model) {
         MsTBR tbr = tbrService.findById(id);
         List<MsTBRMapping> mappings = mappingService.findByTBRId(id);
-        List<FtiAccountType> accountTypes = accountTypeService.findAll();
+        List<MsAccountType> accountTypes = accountTypeService.findAll();
+        List<MsTBRField> fields = msTBRFieldService.findByTBRId(id);
 
         model.addAttribute("tbr", tbr);
         model.addAttribute("mappings", mappings);
         model.addAttribute("accountTypes", accountTypes);
+        model.addAttribute("fields", fields);
 
         return "layouts/tbr/details";
     }
@@ -79,7 +79,7 @@ public class TBRController {
     @PostMapping("/mapping/add")
     public String addMapping(@ModelAttribute MsTBRMapping mapping, @RequestParam Long TBR_Id) {
         MsTBR tbr = tbrService.findById(TBR_Id);
-        FtiAccountType accountType = accountTypeService.findById(mapping.getAccountType_Id());
+        MsAccountType accountType = accountTypeService.findById(mapping.getAccountType_Id());
 
         mapping.setTBR_Id(TBR_Id);
         mapping.setAccountType_Id(mapping.getAccountType_Id());
@@ -93,7 +93,7 @@ public class TBRController {
     @PostMapping("/mapping/update")
     public String updateMapping(@ModelAttribute MsTBRMapping mapping, @RequestParam Long TBR_Id) {
         MsTBR tbr = tbrService.findById(TBR_Id);
-        FtiAccountType accountType = accountTypeService.findById(mapping.getAccountType_Id());
+        MsAccountType accountType = accountTypeService.findById(mapping.getAccountType_Id());
 
         mapping.setTBR_Id(TBR_Id);
         mapping.setAccountType_Id(mapping.getAccountType_Id());
@@ -107,6 +107,34 @@ public class TBRController {
     @GetMapping("/mapping/delete/{id}")
     public String deleteMapping(@PathVariable Long id, @RequestParam Long tbrId) {
         mappingService.deleteById(id);
+        return "redirect:/tbr/detail/" + tbrId;
+    }
+
+    @PostMapping("/field/add")
+    public String addField(@ModelAttribute MsTBRField field, @RequestParam Long TBR_Id) {
+        MsTBR tbr = tbrService.findById(TBR_Id);
+
+        field.setTBR_Id(TBR_Id);
+        field.setTbr(tbr);
+
+        msTBRFieldService.save(field);
+        return "redirect:/tbr/detail/" + TBR_Id;
+    }
+
+    @PostMapping("/field/update")
+    public String updateField(@ModelAttribute MsTBRField field, @RequestParam Long TBR_Id) {
+        MsTBR tbr = tbrService.findById(TBR_Id);
+
+        field.setTBR_Id(TBR_Id);
+        field.setTbr(tbr);
+
+        msTBRFieldService.save(field);
+        return "redirect:/tbr/detail/" + TBR_Id;
+    }
+
+    @GetMapping("/field/delete/{id}")
+    public String deleteField(@PathVariable Long id, @RequestParam Long tbrId) {
+        msTBRFieldService.deleteById(id);
         return "redirect:/tbr/detail/" + tbrId;
     }
 }

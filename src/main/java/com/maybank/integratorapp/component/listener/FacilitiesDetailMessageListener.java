@@ -39,12 +39,12 @@ public class FacilitiesDetailMessageListener implements CustomMessageListener {
             LogQueueData _data = new LogQueueData();
             String responseXml = "";
             try {
-                System.out.println("Received 1 Message With CorrelationID : " + message.getJMSCorrelationID());
+                System.out.println("Facilities Received 1 Message With CorrelationID : " + message.getJMSCorrelationID());
                 String _message = message.getBody(String.class);
 
-                System.out.println("===========================xmlRequest=================================");
-                System.out.println(_message);
-                System.out.println("============================================================\n");
+//                System.out.println("===========================xmlRequest=================================");
+//                System.out.println(_message);
+//                System.out.println("============================================================\n");
 
                 Queue sourceQueue = (Queue) message.getJMSDestination();
                 _data.setOrigin("MQ_" + sourceQueue.getQueueName());
@@ -63,9 +63,9 @@ public class FacilitiesDetailMessageListener implements CustomMessageListener {
                 var resultSoap = processFacilitiesDetails.getFacilitiesDetails(request);
 
                 responseXml = xmlMapper.writeValueAsString(request);
-                System.out.println("===========================responseXml=================================");
-                System.out.println(responseXml);
-                System.out.println("============================================================\n");
+//                System.out.println("===========================responseXml=================================");
+//                System.out.println(responseXml);
+//                System.out.println("============================================================\n");
 
             } catch (Exception e) {
                 System.out.println(e.getMessage());

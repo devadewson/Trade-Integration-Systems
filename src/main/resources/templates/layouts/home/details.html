@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
+<body>
+<main>
+    <div class="row">
+        <div class="container mt-4">
+            <h1 th:text="'Log: ' + ${logName}"></h1>
+            <a href="/" class="btn btn-secondary mb-3">Back to Dashboard</a>
+            <pre class="bg-light p-3" style="max-height: 70vh; overflow: auto;" th:text="${logContent}"></pre>
+        </div>
+    </div>
+</main>
+
+</body>
+</html>

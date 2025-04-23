@@ -15,13 +15,23 @@ public class MsCompanyLimit {
     private Long id;
 
     private String cifno;
+    private String cbranch;
+    private String ibranch;
+
+//    @OneToMany
+//    @JoinColumn(name = "company_limit_id", insertable = false, updatable = false)
+//    private List<MsFacility> facilities;
+//
+//    @OneToMany
+//    @JoinColumn(name = "company_limit_utilize_id", insertable = false, updatable = false)
+//    private List<MsFacilityUtilize> facilityUtilizes;
 
     @OneToMany
-    @JoinColumn(name = "id", insertable = false, updatable = false)
+    @JoinColumn(name = "companyLimitId")  // matches FK column in MsFacility table
     private List<MsFacility> facilities;
 
     @OneToMany
-    @JoinColumn(name = "id", insertable = false, updatable = false)
+    @JoinColumn(name = "companyLimitId")  // matches FK column in MsFacilityUtilize table
     private List<MsFacilityUtilize> facilityUtilizes;
 
     public Long getId() {
@@ -38,5 +48,37 @@ public class MsCompanyLimit {
 
     public void setCifno(String cifno) {
         this.cifno = cifno;
+    }
+
+    public String getCbranch() {
+        return cbranch;
+    }
+
+    public void setCbranch(String cbranch) {
+        this.cbranch = cbranch;
+    }
+
+    public String getIbranch() {
+        return ibranch;
+    }
+
+    public void setIbranch(String ibranch) {
+        this.ibranch = ibranch;
+    }
+
+    public List<MsFacility> getFacilities() {
+        return facilities;
+    }
+
+    public void setFacilities(List<MsFacility> facilities) {
+        this.facilities = facilities;
+    }
+
+    public List<MsFacilityUtilize> getFacilityUtilizes() {
+        return facilityUtilizes;
+    }
+
+    public void setFacilityUtilizes(List<MsFacilityUtilize> facilityUtilizes) {
+        this.facilityUtilizes = facilityUtilizes;
     }
 }

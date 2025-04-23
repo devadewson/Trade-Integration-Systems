@@ -7,10 +7,7 @@ import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.maybank.integratorapp.component.coresystem.ProcessFacilities;
 import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.*;
-import com.maybank.integratorapp.data.service.FtiTransactionDetailService;
-import com.maybank.integratorapp.data.service.FtiTransactionService;
-import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
-import com.maybank.integratorapp.data.service.MsParameterService;
+import com.maybank.integratorapp.data.service.*;
 import com.maybank.integratorapp.model.mq.reservation.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.reservation.response.*;
 import com.maybank.integratorapp.model.soap.limit.XL01.request.SoapEnvelope;
@@ -43,6 +40,9 @@ public class LimitReservationMessageProcessor {
     MsCurrencyRepository msCurrencyRepository;
     @Autowired
     MsFacilityRepository msFacilityRepository;
+
+    @Autowired
+    MsBranchService msBranchService;
 
     @Autowired
     MsMapClsProductTypeRepository msMapClsProductTypeRepository;
@@ -422,16 +422,16 @@ public class LimitReservationMessageProcessor {
                     expireDateRes=transDateRes;
 
                 LocalDate _startDate = LocalDate.parse(startdateRes, inputFormatter);
-//            String startDate = _startDate.format(outputFormatter);
-                String startDate = "311024";
+//                String startDate = _startDate.format(outputFormatter);
+                String startDate = "011124";
 
                 LocalDate _expiryDate = LocalDate.parse(expireDateRes, inputFormatter);
                 String expiryDate = _expiryDate.format(outputFormatter);
 //            String expiryDate = "291224";
 
                 LocalDate _transDate = LocalDate.parse(transDateRes, inputFormatter);
-//            String transactionDate = _transDate.format(outputFormatter);
-                String transactionDate = "311024";
+//                String transactionDate = _transDate.format(outputFormatter);
+                String transactionDate = "011124";
 
                 // Ambil semua MsFacility dengan keyLoanAcc yang sesuai
                 MsFacility facilities = msFacilityRepository.findByKeyLoanAcc(facilityIdentifier);
@@ -483,17 +483,17 @@ public class LimitReservationMessageProcessor {
                 // Ambil Running Number dan pastikan format 3 digit
                 int runningNumber = runningNumberEntry.getRunningNumber();
                 formattedRunningNumber = String.format("%03d", runningNumber + 1);
-                System.out.println("Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber);
+//                System.out.println("Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber);
                 logger.Log(ProcessName, "Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber, "DEBUG");
 
                 // Buat keyLoanAcc baru dengan mengganti bagian draw
                 newKeyLoanAcc = buildNewKey(facilityIdentifier, formattedRunningNumber);
-                System.out.println("New KeyLoanAcc: " + newKeyLoanAcc);
+//                System.out.println("New KeyLoanAcc: " + newKeyLoanAcc);
                 logger.Log(ProcessName, "New KeyLoanAcc: " + newKeyLoanAcc, "DEBUG");
 
                 // Buat formatted key untuk sistem proses
                 acctReqXL01 = buildFormattedKey(facilityIdentifier, formattedRunningNumber);
-                System.out.println("New Formatted Key: " + acctReqXL01);
+//                System.out.println("New Formatted Key: " + acctReqXL01);
                 logger.Log(ProcessName, "New Formatted Key: " + acctReqXL01, "DEBUG");
 
                 // cek dulu di table referensi transaksinya
@@ -527,6 +527,12 @@ public class LimitReservationMessageProcessor {
                             String _dateFromReq = request.getReservationsRequest().getReservationRequestDetails().getTenorStartDate();
 
                             if(_dateFromReq != null){
+                                transactionDetails1 = transactionDetails.stream().filter(x ->
+                                                x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B")
+
+                                                ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
+                                if(transactionDetails1.getAdditionalInfo5() != null)
+                                    _dateOld = transactionDetails1.getAdditionalInfo5();
                                 if(!_dateOld.equals(_dateNew)){
                                     needXL2B = true;
                                 }
@@ -629,6 +635,7 @@ public class LimitReservationMessageProcessor {
                         ftiTransaction.setDrawNumber(formattedRunningNumber);
                         ftiTransaction.setReservationId(newKeyLoanAcc);
                         ftiTransactionService.createOrUpdateFtiTransaction(ftiTransaction);
+
                         needXL31 =true;
                     }else{
                         formattedRunningNumber="-";
@@ -643,13 +650,17 @@ public class LimitReservationMessageProcessor {
                 }
 
                 if(needXL2B){
+                    // cek dulu apakah sebelumnya masih ada XL2B yang masih gantung,
+                    // kalau masih ada, kirim XL40 untuk XL2B yang gantung, baru bikin baru
+
+
                     //req XL2B
                     com.maybank.integratorapp.model.soap.limit.XL2B.request.SoapEnvelope msgRequestXL2B=
                             mapCoreSystemXl2BRequest(masterReference,expiryDate,newKeyLoanAcc,branch);
 
                     // step 4.
                     com.maybank.integratorapp.model.soap.limit.XL2B.response.SoapEnvelope msgResponseXL2B =
-                            getXl2BMsgBodyResponse(msgRequestXL2B,masterReference,eventCode);
+                            getXl2BMsgBodyResponse(msgRequestXL2B,masterReference,eventCode,startDate,expiryDate);
 
                     String xl2BresponseCode = msgResponseXL2B
                             .getBody().getXl2BResponse().
@@ -657,7 +668,9 @@ public class LimitReservationMessageProcessor {
                     String xl2BresponseMessage = msgResponseXL2B
                             .getBody().getXl2BResponse().
                             getCmsXl2BResponse().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
-
+                    if(xl2BresponseCode.equals("00")) {
+                        processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
+                    }
                     // step 5.
                     mapExternalResponse(xl2BresponseCode,xl2BresponseMessage,facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
                 }
@@ -761,11 +774,21 @@ public class LimitReservationMessageProcessor {
 
         String currencyNumber = msCurrencyRepository.findByIsoCode(currency).getInternalCode();
 
+        MsBranch _branch = msBranchService.getByBranchCode(branch);
+
+        String clientUserId = "7755";
+        String clientSpvUserId = "7766";
+
+        if(_branch!=null){
+            clientUserId = _branch.getUserId();
+            clientSpvUserId = _branch.getSpvUserId();
+        }
+
         soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setAdditionalHeader("");
         soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setBranchCode(branch);
         soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setChannelID(clsChannelId);
-        soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setClientSupervisorID("7766");
-        soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setClientUserID("7755");
+        soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setClientSupervisorID(clientSpvUserId);
+        soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setClientUserID(clientUserId);
         soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setReference(referenceId);
 //        soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setReversalSequenceNo(correlationID);
         soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setTransactionDate(date);
@@ -1055,7 +1078,7 @@ public class LimitReservationMessageProcessor {
     }
 
     public com.maybank.integratorapp.model.soap.limit.XL2B.response.SoapEnvelope getXl2BMsgBodyResponse(
-            com.maybank.integratorapp.model.soap.limit.XL2B.request.SoapEnvelope soapReqXL2B,String referenceId,String eventCode) {
+            com.maybank.integratorapp.model.soap.limit.XL2B.request.SoapEnvelope soapReqXL2B,String referenceId,String eventCode,String startDate,String maturityDate) {
         com.maybank.integratorapp.model.soap.limit.XL2B.response.SoapEnvelope serviceResponse
                 = new com.maybank.integratorapp.model.soap.limit.XL2B.response.SoapEnvelope();
         String soapUrl = parameterService.findValueByPrmKey("XL31Request");
@@ -1126,7 +1149,8 @@ public class LimitReservationMessageProcessor {
                     ftiTransactionDetail.setAdditionalInfo2(dcType);
                     ftiTransactionDetail.setAdditionalInfo3(amount);
                     ftiTransactionDetail.setAdditionalInfo4("NRY");
-
+                    String _StartAndMaturity =startDate+"#"+maturityDate;
+                    ftiTransactionDetail.setAdditionalInfo5(_StartAndMaturity);
                     ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
 
                 }

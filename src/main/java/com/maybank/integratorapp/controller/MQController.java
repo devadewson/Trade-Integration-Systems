@@ -36,10 +36,6 @@ public class MQController {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @GetMapping("/")
-    public String home(Model model){
-        return "layouts/home/index";
-    }
     @GetMapping("/sandbox")
     public String sandboxPage(Model model) throws Exception {
         List<MsQueueConfig> listQueue = (List<MsQueueConfig>) queueConfigRepository.findAll();

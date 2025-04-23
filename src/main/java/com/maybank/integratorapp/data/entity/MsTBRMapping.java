@@ -23,7 +23,7 @@ public class MsTBRMapping {
 
     @ManyToOne
     @JoinColumn(name = "AccountType_Id", insertable = false, updatable = false)
-    private FtiAccountType accountType;
+    private MsAccountType accountType;
 
     public MsTBR getTbr() {
         return tbr;
@@ -33,11 +33,11 @@ public class MsTBRMapping {
         this.tbr = tbr;
     }
 
-    public FtiAccountType getAccountType() {
+    public MsAccountType getAccountType() {
         return accountType;
     }
 
-    public void setAccountType(FtiAccountType accountType) {
+    public void setAccountType(MsAccountType accountType) {
         this.accountType = accountType;
     }
 

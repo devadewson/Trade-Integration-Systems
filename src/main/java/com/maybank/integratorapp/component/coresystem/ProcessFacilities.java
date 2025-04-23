@@ -1,24 +1,18 @@
 package com.maybank.integratorapp.component.coresystem;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
-import com.maybank.integratorapp.data.entity.MsCompanyLimit;
 import com.maybank.integratorapp.data.entity.MsFacility;
 import com.maybank.integratorapp.data.entity.MsFacilityUtilize;
 import com.maybank.integratorapp.data.entity.MsUtilizeRunningNumber;
 import com.maybank.integratorapp.data.repository.MsFacilityRepository;
 import com.maybank.integratorapp.data.repository.MsFacilityUtilizeRepository;
 import com.maybank.integratorapp.data.repository.MsUtilizeRunningNumberRepository;
-import com.maybank.integratorapp.data.repository.MscompanylimitRepository;
 import com.maybank.integratorapp.data.service.MsParameterService;
-import com.maybank.integratorapp.model.mq.facilities.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.facilities.response.*;
-import com.maybank.integratorapp.model.soap.limit.XLBT.request.AdditionalHeader;
 import com.maybank.integratorapp.model.soap.limit.XLBT.request.SoapEnvelope;
 import com.maybank.integratorapp.model.soap.limit.XLBT.response.LoanAccounts;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
@@ -116,9 +110,9 @@ public class ProcessFacilities {
                     }
 
                     String asd = mapper.writeValueAsString(res);
-                    System.out.println("===========================asd=================================");
-                    System.out.println(asd.substring(0,100)+"...");
-                    System.out.println("============================================================\n");
+//                    System.out.println("===========================asd=================================");
+//                    System.out.println(asd.substring(0,100)+"...");
+//                    System.out.println("============================================================\n");
 
                     // Proses dan pecah key
                     List<LoanAccounts> loanAccountsList = res.getBody().getXlbtResponse().getCmsXlbtResponse().getLoanAccounts();
@@ -214,7 +208,7 @@ public class ProcessFacilities {
 //        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
         String soapUrl = parameterService.findValueByPrmKey("XLBTRequest");
         String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
-        String correlationID = "serviceRequest.getRequestHeader().getCorrelationID();";
+        String correlationID = "FTI";
         String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
 

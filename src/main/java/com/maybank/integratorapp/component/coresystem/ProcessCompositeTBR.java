@@ -6,6 +6,7 @@ import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.VwTbrMappingRepository;
 import com.maybank.integratorapp.data.service.*;
 import com.maybank.integratorapp.model.mq.batchposting.request.Posting;
+import com.maybank.integratorapp.model.restv2.CompositeTbr.response.MsgWrapper;
 import com.maybank.integratorapp.util.DynamicClassGenerator;
 import com.maybank.integratorapp.util.DynamicClassPropertyMap;
 import com.maybank.integratorapp.util.ReflectionUtils;
@@ -31,6 +32,10 @@ public class ProcessCompositeTBR {
     FtiTransactionDetailPostingGroupService ftiTransactionDetailPostingGroupService;
     @Autowired
     FtiTransactionDetailService ftiTransactionDetailService;
+    @Autowired
+    private MsCompanyLimitService msCompanyLimitService;
+    @Autowired
+    private MsBranchService msBranchService;
     @Autowired
     private MsTBRFieldService tbrFieldService;
     @Autowired
@@ -137,6 +142,30 @@ public class ProcessCompositeTBR {
 
         String referenceID = data.stream().findFirst().get().getMasterReference();
         String eventCode = data.stream().findFirst().get().getEventReference();
+        String cifno = data.stream().findFirst().get().getCustomerMnemonic();
+        String postingBranch = data.stream().findFirst().get().getPostingBranch();
+
+        String branch = "003";
+        String clientUserId = "7755";
+        String clientSpvUserId = "7766";
+
+        if(postingBranch.startsWith("9"))
+        {
+            MsCompanyLimit _company = msCompanyLimitService.searchByCIFNo(cifno);
+            if(postingBranch.equals("906"))
+                branch = _company.getCbranch();
+            else
+                branch = _company.getIbranch();
+            MsBranch _branch = msBranchService.getByBranchCode(branch);
+
+            if(_branch!=null){
+                clientUserId = _branch.getUserId();
+                clientSpvUserId = _branch.getSpvUserId();
+            }
+        }
+
+
+
 
 
         // remove the 999 vs 07 posting
@@ -149,19 +178,20 @@ public class ProcessCompositeTBR {
         logger.Log("Posting - Group Posting Data","Group posting into pair of debit credit","END");
         // condition check if there is cross valas
 
-        FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
-        ftiTransactionDetail.setTransMessageLogId(logger.getIdLogParent());
-        ftiTransactionDetail.setFtiEvent(eventCode);
-        ftiTransactionDetail.setCoreSysName("FMS-CompositeTBR");
-        ftiTransactionDetail.setTransName("Posting");
-        ftiTransactionDetail.setAdditionalInfo1("-");
-        ftiTransactionDetail.setAdditionalInfo2("-");
-        ftiTransactionDetail.setAdditionalInfo3("-");
-        ftiTransactionDetail.setAdditionalInfo4("-");
-        ftiTransactionDetail.setAdditionalInfo5("-");
-        ftiTransactionDetail = ftiTransactionDetailService.createDetailByMasterRefNo(referenceID, ftiTransactionDetail);
 
         for (PostingGroup postingGroup:finalData) {
+            FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
+            ftiTransactionDetail.setTransMessageLogId(logger.getIdLogParent());
+            ftiTransactionDetail.setFtiEvent(eventCode);
+            ftiTransactionDetail.setCoreSysName("FMS-CompositeTBR");
+            ftiTransactionDetail.setTransName("Posting");
+            ftiTransactionDetail.setAdditionalInfo1("TBR-"+postingGroup.getTbrCode());
+            ftiTransactionDetail.setAdditionalInfo2(String.valueOf(postingGroup.getGroupId()));
+            ftiTransactionDetail.setAdditionalInfo3("-");
+            ftiTransactionDetail.setAdditionalInfo4("-");
+            ftiTransactionDetail.setAdditionalInfo5("-");
+            ftiTransactionDetail = ftiTransactionDetailService.createDetailByMasterRefNo(referenceID, ftiTransactionDetail);
+
             FtiTransactionDetailPostingGroup _group = new FtiTransactionDetailPostingGroup();
             _group.setDetailId(ftiTransactionDetail.getId());
             _group.setGroupId(String.valueOf(postingGroup.getGroupId()));
@@ -193,7 +223,7 @@ public class ProcessCompositeTBR {
             if (postingGroup.getFlagCrossValas().equals("N"))
             {
                 logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "START");
-                postTbr(referenceID,postingGroup, Long.valueOf(postingGroup.getGroupId()));
+                postTbr(referenceID,branch,clientUserId,clientSpvUserId,postingGroup, Long.valueOf(postingGroup.getGroupId()),ftiTransactionDetail.getId());
                 logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "END");
 
             }
@@ -225,7 +255,7 @@ public class ProcessCompositeTBR {
 
     }
 
-    public void postTbr(String referenceID, PostingGroup data, Long groupId){
+    public void postTbr(String referenceID,String branch,String clientUserId,String clientSpvUserId, PostingGroup data, Long groupId, Long idtransactiondetail){
         try{
 
             String tbrNumber = data.TbrCode;
@@ -272,6 +302,7 @@ public class ProcessCompositeTBR {
 //            envelope.getCompositeTBR().getExecuteCompositeTransactionRequest().setTransactionName("Testing New FTI TBR");
 //            envelope.getCompositeTBR().getExecuteCompositeTransactionRequest().setTBRData(tbrData);
 
+
             // do posting to ESB
             Message _msgWrapper = new Message();
             Msg _msg = new Msg();
@@ -281,9 +312,9 @@ public class ProcessCompositeTBR {
             _msgHeader.setVer("01");
             _msgHeader.setSvcID("IDUPDACCTTRX001");
             _msgHeader.setEnv("S");
-            _msgHeader.setBranchCode("003");
-//            _msgHeader.setSpvOverride("true");
-//            _msgHeader.setClientSpvID("0000");
+            _msgHeader.setBranchCode(branch);
+            _msgHeader.setSpvOverride("true");
+            _msgHeader.setClientSpvID(clientSpvUserId);
             _msg.setMsgHeader(_msgHeader);
             _msgBody.setTbrData(tbrData);
             _msg.setMsgBody(_msgBody);
@@ -314,6 +345,20 @@ public class ProcessCompositeTBR {
             response = restTemplate.exchange(url, HttpMethod.POST, request, String.class).getBody();
             logger.Log("Posting "+groupId, "Response ESB", "DATA-RES",response);
 
+
+            com.maybank.integratorapp.model.restv2.CompositeTbr.response.MsgWrapper res = new MsgWrapper();
+            res = objectMapper.readValue(response, com.maybank.integratorapp.model.restv2.CompositeTbr.response.MsgWrapper.class);
+
+            String responseCode = res.getMsg().getMsgHeader().getStatusCode();
+            String responseMessage = res.getMsg().getMsgHeader().getStatusDesc();
+
+            String hostResponseCode = res.getMsg().getMsgHeader().getAdditionalStatusCodes()[0].getHostStatusCode();
+            String hostResponseMessage = res.getMsg().getMsgHeader().getAdditionalStatusCodes()[0].getHostStatusDesc();
+
+            FtiTransactionDetail _detail = ftiTransactionDetailService.getById(idtransactiondetail);
+            _detail.setCoreSysStatus(responseCode + " | "+hostResponseCode);
+            _detail.setCoreSysMessage(responseMessage + " | "+hostResponseMessage);
+            ftiTransactionDetailService.createDetailByMasterRefNo(referenceID,_detail);
 //            ResponseEntity<String> _response = restTemplate.postForEntity(url,_msgWrapper,String.class);
 
 //            if(_response.hasBody()){

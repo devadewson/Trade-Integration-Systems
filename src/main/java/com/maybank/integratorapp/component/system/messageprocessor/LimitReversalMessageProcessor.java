@@ -5,11 +5,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.maybank.integratorapp.data.entity.FtiTransactionDetail;
+import com.maybank.integratorapp.data.entity.MsBranch;
+import com.maybank.integratorapp.data.entity.MsCompanyLimit;
 import com.maybank.integratorapp.data.repository.MsParameterRepository;
-import com.maybank.integratorapp.data.service.FtiTransactionDetailService;
-import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
-import com.maybank.integratorapp.data.service.MsCurrencyService;
-import com.maybank.integratorapp.data.service.MsParameterService;
+import com.maybank.integratorapp.data.service.*;
 import com.maybank.integratorapp.model.mq.reservationsreversal.response.ResponseHeader;
 import com.maybank.integratorapp.model.mq.reservationsreversal.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.reservationsreversal.response.ReservationsReversalResponse;
@@ -42,10 +41,13 @@ public class LimitReversalMessageProcessor {
     private FtiTransactionDetailService ftiTransactionDetailService;
     @Autowired
     MsCurrencyService msCurrencyService;
-
+    @Autowired
+    MsBranchService msBranchService;
     ServiceResponse response = new ServiceResponse();
 
     private final String ProcessName = "LimitReversalProcess";
+    @Autowired
+    MsCompanyLimitService msCompanyLimitService;
 
 
     public String processMessage(String message,Long loggerId) {
@@ -152,10 +154,21 @@ public class LimitReversalMessageProcessor {
         String limitDraw = splittedKey[5];
         String dateNow = new SimpleDateFormat("ddMMyy").format(new Date());
 
+        MsCompanyLimit _company = msCompanyLimitService.searchByCIFNo(limitCif);
+        MsBranch _branch = msBranchService.getByBranchCode(limitBranch);
+
+        String clientUserId = "7755";
+        String clientSpvUserId = "7766";
+
+        if(_branch!=null){
+            clientUserId = _branch.getUserId();
+            clientSpvUserId = _branch.getSpvUserId();
+        }
+
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setAdditionalHeader("");
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setBranchCode(limitBranch);
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setChannelID(clsChannelId);
-        soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setClientUserID("7755");
+        soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setClientUserID(clientUserId);
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setReference(eventCode);
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setTransactionDate(date);
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setTransactionTime(time);

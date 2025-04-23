@@ -1,16 +1,12 @@
 package com.maybank.integratorapp.component.system.messageprocessor;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.*;
-import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
-import com.maybank.integratorapp.data.service.MsCurrencyService;
-import com.maybank.integratorapp.data.service.MsParameterService;
+import com.maybank.integratorapp.data.service.*;
 import com.maybank.integratorapp.model.mq.facilities.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.facilities.response.*;
 import com.maybank.integratorapp.model.soap.limit.XLBT.request.SoapEnvelope;
@@ -22,7 +18,6 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -41,9 +36,15 @@ public class LimitFacilitiesMessageProcessor {
     @Autowired
     MsCurrencyRepository msCurrencyRepository;
     @Autowired
-    MscompanylimitRepository mscompanylimitRepository;
+    MsCompanyLimitRepository mscompanylimitRepository;
     @Autowired
     MsFacilityRepository msFacilityRepository;
+
+    @Autowired
+    MsCompanyLimitService msCompanyLimitService;
+
+    @Autowired
+    MsBranchService msBranchService;
 
     @Autowired
     MsFacilityUtilizeRepository msFacilityUtilizeRepository;
@@ -78,12 +79,13 @@ public class LimitFacilitiesMessageProcessor {
                 // step 2.
                 setInitialResponseHeader(request);
                 String cifno = request.getFacilitiesRequest().getFacilityRequestDetails().getCustomer().trim();
+                String branch = request.getFacilitiesRequest().getFacilityRequestDetails().getBranch().trim();
                 String islamicFlag = request.getFacilitiesRequest().getFacilityRequestDetails().getProductSubType().trim().equals("ISL")?"Y":"N";
                 String currency = request.getFacilitiesRequest().getFacilityRequestDetails().getPostingAmount().getCurrency();
                 //                String cifno = "0002794045";
 
                 // step 3.
-                SoapEnvelope msgRequest = mapCoreSystemRequest(cifno);
+                SoapEnvelope msgRequest = mapCoreSystemRequest(cifno,branch);
 
                 //
 
@@ -93,11 +95,23 @@ public class LimitFacilitiesMessageProcessor {
                     MsCompanyLimit newLimit = new MsCompanyLimit();
                     // set nilai CIF
                     newLimit.setCifno(cifno);
+                    if(branch.startsWith("7"))
+                        newLimit.setIbranch(branch);
+                    else
+                        newLimit.setCbranch(branch);
                     MsCompanyLimit savedcompanyLimit = mscompanylimitRepository.save(newLimit);
 
                     // step 4.
                     ServiceResponse msgResponse = getMsgBodyResponse(msgRequest, savedcompanyLimit.getId());
 
+                }else{
+                    MsCompanyLimit _companyLimit = mscompanylimitRepository.findByCifno(cifno);
+
+                    if(branch.startsWith("7"))
+                        _companyLimit.setIbranch(branch);
+                    else
+                        _companyLimit.setCbranch(branch);
+                    MsCompanyLimit savedcompanyLimit = mscompanylimitRepository.save(_companyLimit);
                 }
 
                 // Ambil data pada database MsFacility
@@ -161,19 +175,29 @@ public class LimitFacilitiesMessageProcessor {
     }
 
     // step 3. Map external request to core system request
-    public SoapEnvelope mapCoreSystemRequest(String cifno) {
+    public SoapEnvelope mapCoreSystemRequest(String cifno,String branch) {
 
         String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
         String correlationID = "FTI";
         String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
+//        MsCompanyLimit _company = msCompanyLimitService.searchByCIFNo(cifno);
+        MsBranch _branch = msBranchService.getByBranchCode(branch);
+
+        String clientUserId = "7755";
+        String clientSpvUserId = "7766";
+
+        if(_branch!=null){
+            clientUserId = _branch.getUserId();
+            clientSpvUserId = _branch.getSpvUserId();
+        }
 //        String cifno = externalRequest.getFacilitiesRequest().getFacilityRequestDetails().getCustomer();
         // Buat request CustomerInformation
         SoapEnvelope soapReq = new SoapEnvelope();
-        soapReq.getBody().getxLBT().getChannelHeader().setBranchCode("003");
+        soapReq.getBody().getxLBT().getChannelHeader().setBranchCode(branch);
         soapReq.getBody().getxLBT().getChannelHeader().setChannelID(clsChannelId);
-        soapReq.getBody().getxLBT().getChannelHeader().setClientSupervisorID("7766");
-        soapReq.getBody().getxLBT().getChannelHeader().setClientUserID("7755");
+        soapReq.getBody().getxLBT().getChannelHeader().setClientSupervisorID(clientSpvUserId);
+        soapReq.getBody().getxLBT().getChannelHeader().setClientUserID(clientUserId);
         soapReq.getBody().getxLBT().getChannelHeader().setReference("FTI");
         soapReq.getBody().getxLBT().getChannelHeader().setTransactionDate(date);
         soapReq.getBody().getxLBT().getChannelHeader().setTransactionTime(time);
@@ -206,6 +230,7 @@ public class LimitFacilitiesMessageProcessor {
                 throw new RuntimeException(e);
             }
 
+            logger.Log(ProcessName, "ESB-REQUEST ","DEBUG", xml);
 
             ResponseHeader responseHeaderMq = new ResponseHeader();
             FacilitiesResponse facilitiesResponseMq = new FacilitiesResponse();
@@ -224,6 +249,7 @@ public class LimitFacilitiesMessageProcessor {
                         var _resStream = _res.getContent();
 
                         var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
+                        logger.Log(ProcessName, "ESB-RESPONSE ","DEBUG", outputResponse);
 
                         _response = outputResponse;
                         res = mapper.readValue(_response, com.maybank.integratorapp.model.soap.
@@ -389,9 +415,9 @@ public class LimitFacilitiesMessageProcessor {
                             limit.XLBT.response.SoapEnvelope.class);
 
                     String asd = mapper.writeValueAsString(res);
-                    System.out.println("===========================XLBT=================================");
-                    System.out.println(asd.substring(0,100)+"...");
-                    System.out.println("============================================================\n");
+//                    System.out.println("===========================XLBT=================================");
+//                    System.out.println(asd.substring(0,100)+"...");
+//                    System.out.println("============================================================\n");
 
                     // Proses dan pecah key
                     List<LoanAccounts> loanAccountsList = res.getBody().getXlbtResponse().getCmsXlbtResponse().getLoanAccounts();
@@ -637,8 +663,8 @@ public class LimitFacilitiesMessageProcessor {
                 ));
 
         // Print result
-        highestByGroup.forEach((id, facility) ->
-                System.out.println("Facility ID: " + id + ", Highest KeyLoanAcc: " + facility.getKeyLoanAcc()));
+//        highestByGroup.forEach((id, facility) ->
+//                System.out.println("Facility ID: " + id + ", Highest KeyLoanAcc: " + facility.getKeyLoanAcc()));
 
         facilityGroupedById.forEach((facilityId, utilizes) -> {
             MsFacilityUtilize latestDraw = utilizes.stream()

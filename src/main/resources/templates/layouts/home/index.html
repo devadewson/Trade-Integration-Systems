@@ -1,16 +1,44 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
 <body>
 <main>
     <div class="row">
-        <div class="col">
-            Column
-        </div>
-        <div class="col">
-            Column
-        </div>
-        <div class="col">
-            Column
+        <div class="container mt-4">
+            <div class="card">
+                <div class="card-header">
+                    Cron Logs Monitoring
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Last checked:
+                        <span th:text="${#temporals.format(lastChecked, 'yyyy-MM-dd HH:mm:ss')}"></span>
+                        <a href="#" onclick="location.reload()" class="ms-2">⟳ Refresh</a>
+                    </p>
+
+                    <div class="row">
+                        <div class="col-md-6 col-lg-3 mb-4" th:each="logFile : ${logFiles}">
+                            <div class="card" th:classappend="${!logFile.exists} ? 'bg-light'">
+                                <div class="card-header" th:text="${logFile.name}">Log Name</div>
+                                <div class="card-body">
+                                    <div th:if="${logFile.exists}">
+                                        <p class="card-text">
+                                            <strong>Last Modified:</strong>
+                                            <span th:text="${#temporals.format(logFile.lastModified, 'yyyy-MM-dd HH:mm:ss')}"></span>
+                                        </p>
+                                        <p class="card-text">
+                                            <strong>Size:</strong>
+                                            <span th:text="${#numbers.formatDecimal(logFile.size/1024, 1, 2)} + ' KB'"></span>
+                                        </p>
+                                        <a th:href="@{'/logs/view?id=' + ${logFile.id}}" class="btn btn-primary btn-sm">View Log</a>
+                                    </div>
+                                    <div th:unless="${logFile.exists}" class="text-danger">
+                                        File not found
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </main>

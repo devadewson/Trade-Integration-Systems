@@ -6,6 +6,8 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.maybank.integratorapp.data.entity.FtiTransaction;
 import com.maybank.integratorapp.data.entity.FtiTransactionDetail;
+import com.maybank.integratorapp.data.entity.MsBranch;
+import com.maybank.integratorapp.data.entity.MsCompanyLimit;
 import com.maybank.integratorapp.data.repository.MsParameterRepository;
 import com.maybank.integratorapp.data.service.*;
 import com.maybank.integratorapp.model.mq.limitutilization.request.ServiceRequest;
@@ -47,6 +49,10 @@ public class LimitUtilizationMessageProcessor {
 //    ServiceResponse response = new ServiceResponse();
 
     private final String ProcessName = "LimitUtilizationProcess";
+    @Autowired
+    private MsCompanyLimitService msCompanyLimitService;
+    @Autowired
+    private MsBranchService msBranchService;
 
 
     public String processMessage(String message,Long loggerId) {
@@ -191,10 +197,21 @@ public class LimitUtilizationMessageProcessor {
         String limitDraw = splittedKey[5];
         String dateNow = new SimpleDateFormat("ddMMyy").format(new Date());
 
+        MsCompanyLimit _company = msCompanyLimitService.searchByCIFNo(limitCif);
+        MsBranch _branch = msBranchService.getByBranchCode(limitBranch);
+
+        String clientUserId = "7755";
+        String clientSpvUserId = "7766";
+
+        if(_branch!=null){
+            clientUserId = _branch.getUserId();
+            clientSpvUserId = _branch.getSpvUserId();
+        }
+
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setAdditionalHeader("");
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setBranchCode(limitBranch);
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setChannelID(clsChannelId);
-        soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setClientUserID("7755");
+        soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setClientUserID(clientUserId);
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setReference(correlationID);
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setTransactionDate(date);
         soapEnvelopeXL41.getBody().getXl41().getChannelHeader().setTransactionTime(time);
@@ -226,10 +243,21 @@ public class LimitUtilizationMessageProcessor {
         String limitDraw = splittedKey[5];
         String dateNow = new SimpleDateFormat("ddMMyy").format(new Date());
 
+        MsCompanyLimit _company = msCompanyLimitService.searchByCIFNo(limitCif);
+        MsBranch _branch = msBranchService.getByBranchCode(limitBranch);
+
+        String clientUserId = "7755";
+        String clientSpvUserId = "7766";
+
+        if(_branch!=null){
+            clientUserId = _branch.getUserId();
+            clientSpvUserId = _branch.getSpvUserId();
+        }
+
         soapEnvelope.getBody().getXl40().getChannelHeader().setAdditionalHeader("");
         soapEnvelope.getBody().getXl40().getChannelHeader().setBranchCode(limitBranch);
         soapEnvelope.getBody().getXl40().getChannelHeader().setChannelID(clsChannelId);
-        soapEnvelope.getBody().getXl40().getChannelHeader().setClientUserID("7755");
+        soapEnvelope.getBody().getXl40().getChannelHeader().setClientUserID(clientSpvUserId);
         soapEnvelope.getBody().getXl40().getChannelHeader().setReference(correlationID);
         soapEnvelope.getBody().getXl40().getChannelHeader().setTransactionDate(date);
         soapEnvelope.getBody().getXl40().getChannelHeader().setTransactionTime(time);
@@ -405,7 +433,7 @@ public class LimitUtilizationMessageProcessor {
                     ftiTransactionDetail.setCoreSysName("CLS-XL40");
                     ftiTransactionDetail.setTransName("Utilization");
                     ftiTransactionDetail.setCoreSysStatus(responseCode);
-                    ftiTransactionDetail.setCoreSysMessage(responseMessage2);
+                    ftiTransactionDetail.setCoreSysMessage(responseMessage);
                     ftiTransactionDetail.setAdditionalInfo1(noteNumber);
                     ftiTransactionDetail.setAdditionalInfo2(dcType);
                     ftiTransactionDetail.setAdditionalInfo3(amount);

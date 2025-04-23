@@ -3,7 +3,6 @@ package com.maybank.integratorapp.component.listener;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.coresystem.ProcessFacilities;
@@ -12,8 +11,7 @@ import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.data.repository.MsCurrencyRepository;
 import com.maybank.integratorapp.data.repository.MsFacilityRepository;
-import com.maybank.integratorapp.data.repository.MscompanylimitRepository;
-import com.maybank.integratorapp.data.service.MsCurrencyService;
+import com.maybank.integratorapp.data.repository.MsCompanyLimitRepository;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.model.mq.facilities.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.facilities.response.*;
@@ -28,8 +26,6 @@ import org.springframework.stereotype.Component;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -43,7 +39,7 @@ public class FacilitiesMessageListener implements CustomMessageListener {
     @Autowired
     MsQueueConfigService queueConfigService;
     @Autowired
-    MscompanylimitRepository mscompanylimitRepository;
+    MsCompanyLimitRepository mscompanylimitRepository;
     @Autowired
     private Environment env;
     public void setPublisher(MessagePublisher publisher) {
@@ -99,7 +95,7 @@ public class FacilitiesMessageListener implements CustomMessageListener {
                     return;
                 }
                 System.out.println("Facility Enquiry Listener Received : "+message.getJMSCorrelationID());
-                System.out.println(_message);
+//                System.out.println(_message);
                 correlationId = message.getJMSCorrelationID();
                 if(dataDTO.findByCorrelationId(correlationId)!= null){
                     message.acknowledge();
