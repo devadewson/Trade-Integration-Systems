@@ -142,27 +142,7 @@ public class ProcessCompositeTBR {
 
         String referenceID = data.stream().findFirst().get().getMasterReference();
         String eventCode = data.stream().findFirst().get().getEventReference();
-        String cifno = data.stream().findFirst().get().getCustomerMnemonic();
-        String postingBranch = data.stream().findFirst().get().getPostingBranch();
 
-        String branch = "003";
-        String clientUserId = "7755";
-        String clientSpvUserId = "7766";
-
-        if(postingBranch.startsWith("9"))
-        {
-            MsCompanyLimit _company = msCompanyLimitService.searchByCIFNo(cifno);
-            if(postingBranch.equals("906"))
-                branch = _company.getCbranch();
-            else
-                branch = _company.getIbranch();
-            MsBranch _branch = msBranchService.getByBranchCode(branch);
-
-            if(_branch!=null){
-                clientUserId = _branch.getUserId();
-                clientSpvUserId = _branch.getSpvUserId();
-            }
-        }
 
 
 
@@ -223,7 +203,7 @@ public class ProcessCompositeTBR {
             if (postingGroup.getFlagCrossValas().equals("N"))
             {
                 logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "START");
-                postTbr(referenceID,branch,clientUserId,clientSpvUserId,postingGroup, Long.valueOf(postingGroup.getGroupId()),ftiTransactionDetail.getId());
+                postTbr(referenceID,postingGroup, Long.valueOf(postingGroup.getGroupId()),ftiTransactionDetail.getId());
                 logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "END");
 
             }
@@ -255,8 +235,29 @@ public class ProcessCompositeTBR {
 
     }
 
-    public void postTbr(String referenceID,String branch,String clientUserId,String clientSpvUserId, PostingGroup data, Long groupId, Long idtransactiondetail){
+    public void postTbr(String referenceID,PostingGroup data, Long groupId, Long idtransactiondetail){
         try{
+            String cifno = data.getPostings().stream().findFirst().get().getCustomerMnemonic();
+            String postingBranch = data.getPostings().stream().findFirst().get().getPostingBranch();
+
+            String branch = "003";
+            String clientUserId = "7755";
+            String clientSpvUserId = "7766";
+
+            if(postingBranch.startsWith("9"))
+            {
+                MsCompanyLimit _company = msCompanyLimitService.searchByCIFNo(cifno);
+                if(postingBranch.equals("906"))
+                    branch = _company.getCbranch();
+                else
+                    branch = _company.getIbranch();
+                MsBranch _branch = msBranchService.getByBranchCode(branch);
+
+                if(_branch!=null){
+                    clientUserId = _branch.getUserId();
+                    clientSpvUserId = _branch.getSpvUserId();
+                }
+            }
 
             String tbrNumber = data.TbrCode;
             List<PostingExtender> postings = data.getPostings();

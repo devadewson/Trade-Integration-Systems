@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.maybank.integratorapp.component.coresystem.ProcessFacilities;
+import com.maybank.integratorapp.component.system.messageprocessor.LimitFacilitiesMessageProcessor;
 import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.MsCurrencyRepository;
 import com.maybank.integratorapp.data.repository.MsFacilityRepository;
@@ -42,7 +43,7 @@ public class LimitController {
     private MsCurrencyRepository msCurrencyRepository;
 
     @Autowired
-    ProcessFacilities processFacilities;
+    LimitFacilitiesMessageProcessor processFacilities;
 
     @Operation(
             summary = "Limit Facility",
@@ -79,16 +80,18 @@ public class LimitController {
             // Cek apakah cifno ada di MsCompanyLimit
             if (!mscompanylimitRepository.existsByCifno(cifno)) {
                 // Jika CIF tidak ada, insert data ke tabel MsCompanyLimit
-                System.out.println("CIF " + cifno + " tidak ditemukan di tabel MsCompanyLimit. Menambahkan data baru.");
+//                System.out.println("CIF " + cifno + " tidak ditemukan di tabel MsCompanyLimit. Menambahkan data baru.");
                 MsCompanyLimit newLimit = new MsCompanyLimit();
                 // set nilai CIF
                 newLimit.setCifno(cifno);
                 MsCompanyLimit savedcompanyLimit = mscompanylimitRepository.save(newLimit);
-                System.out.println("Data disimpan dengan ID: " + savedcompanyLimit.getId() + "CifNo" + savedcompanyLimit.getCifno());
+//                System.out.println("Data disimpan dengan ID: " + savedcompanyLimit.getId() + "CifNo" + savedcompanyLimit.getCifno());
 
                 //melakukan Process Crate data facility pada database
-                var resultSoap = processFacilities.getFacilities(cifno, savedcompanyLimit.getId());
+                processFacilities.refreshFacilities(cifno, savedcompanyLimit.getId());
             }
+
+
 
             // Ambil data pada database MsFacility
             List<MsFacility> facilities = msFacilityRepository.findByCompanyLimitId(

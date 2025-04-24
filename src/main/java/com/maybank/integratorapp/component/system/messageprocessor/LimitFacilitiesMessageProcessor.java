@@ -118,11 +118,13 @@ public class LimitFacilitiesMessageProcessor {
                 List<MsFacility> facilities = msFacilityRepository.findByCompanyLimitId(
                         mscompanylimitRepository.findByCifno(cifno).getId());
 
-                // filter islamic facilities
-                if(islamicFlag.equals("Y"))
-                    facilities = facilities.stream().filter(x->x.getNoteType().startsWith("7")).toList();
-                else
-                    facilities = facilities.stream().filter(x->!x.getNoteType().startsWith("7")).toList();
+//                // filter islamic facilities
+//                if(islamicFlag.equals("Y"))
+//                    facilities = facilities.stream().filter(x->x.getNoteType().startsWith("7")).toList();
+//                else
+//                    facilities = facilities.stream().filter(x->!x.getNoteType().startsWith("7")).toList();
+                // filter branch facilities
+                facilities = facilities.stream().filter(x->x.getBranchCode().equals(branch)).toList();
 
                 // filter currency
                 facilities = facilities.stream().filter(x->x.getLoanCurrencyCode().equals(currency)).toList();
@@ -225,7 +227,7 @@ public class LimitFacilitiesMessageProcessor {
             try {
                 xml = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapReq);
 
-                System.out.println(xml);
+//                System.out.println(xml);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }

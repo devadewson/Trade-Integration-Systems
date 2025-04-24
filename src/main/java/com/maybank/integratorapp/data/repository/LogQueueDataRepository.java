@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -29,5 +30,18 @@ public interface LogQueueDataRepository extends CrudRepository<LogQueueData, Lon
 
     @Query("SELECT t FROM LogQueueData t WHERE t.reqMessage LIKE LOWER(CONCAT('%', :transref, '%'))")
     Page<LogQueueData> findByTransactionIdContainingIgnoreCase(@Param("transref") String transref, Pageable pageable);
+
+    @Query(value = "SELECT " +
+            "REPLACE(origin,'MQ_queue:///',''), " +
+            "DATEPART(HOUR, created_date) as hour, " +
+            "COUNT(*) as messageCount " +
+            "FROM log_queue_data " +
+            "WHERE created_date >= :startDate AND created_date <= :endDate " +
+            "and origin != 'Integrator Scheduler'" +
+            "GROUP BY origin, DATEPART(HOUR, created_date) " +
+            "ORDER BY origin, DATEPART(HOUR, created_date)",
+            nativeQuery = true)
+    List<Object[]> countMessagesByOriginAndHour(@Param("startDate") String startDate,
+                                                @Param("endDate") String endDate);
 
 }

@@ -113,7 +113,7 @@ public class LimitUtilizationMessageProcessor {
                 }
                 if(needXL40){
                     // step 3.
-                    com.maybank.integratorapp.model.soap.limit.XL40.request.SoapEnvelope msgRequest = mapXL40Request(utilizationID,correlationID);
+                    com.maybank.integratorapp.model.soap.limit.XL40.request.SoapEnvelope msgRequest = mapXL40Request(utilizationID,masterReference);
 
                     // step 4.
                     com.maybank.integratorapp.model.soap.limit.XL40.response.SoapEnvelope msgResponse = getXL40Response(msgRequest,eventCode,masterReference,utilizationID);
@@ -122,7 +122,7 @@ public class LimitUtilizationMessageProcessor {
 
                 if(needXL41){
                     // step 3.
-                    com.maybank.integratorapp.model.soap.limit.XL41.request.SoapEnvelope msgRequest = mapXL41Request(utilizationID,correlationID);
+                    com.maybank.integratorapp.model.soap.limit.XL41.request.SoapEnvelope msgRequest = mapXL41Request(utilizationID,masterReference);
 
                     // step 4.
                     com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope msgResponse = getXL41Response(msgRequest,eventCode,masterReference,utilizationID);
@@ -335,6 +335,7 @@ public class LimitUtilizationMessageProcessor {
                     logger.Log(ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
 
                     cmsResponseXL41 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope.class);
+                    res = cmsResponseXL41;
                     String responseCode = cmsResponseXL41
                             .getBody().getXl41Response().
                             getCmsXl41Response().getResponsecode();
@@ -417,6 +418,7 @@ public class LimitUtilizationMessageProcessor {
                     logger.Log(ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
 
                     cmsResponseXL40 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL40.response.SoapEnvelope.class);
+                    res = cmsResponseXL40;
                     String responseCode = cmsResponseXL40
                             .getBody().getXl40Response().
                             getCmsXl40Response().getResponsecode();

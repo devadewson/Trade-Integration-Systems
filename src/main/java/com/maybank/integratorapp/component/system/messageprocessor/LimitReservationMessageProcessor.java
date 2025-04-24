@@ -58,7 +58,7 @@ public class LimitReservationMessageProcessor {
     @Autowired
     FtiTransactionService ftiTransactionService;
     @Autowired
-    private ProcessFacilities processFacilities;
+    private LimitFacilitiesMessageProcessor processFacilities;
 
     @Autowired
     private LimitFacilitiesMessageProcessor facilitiesMessageProcessor;
@@ -500,7 +500,7 @@ public class LimitReservationMessageProcessor {
                 // timpa & pakai yang lama jika ada
                 Optional<FtiTransaction> ftiTransactionData = ftiTransactionService.findByMasterRefNo(masterReference);
 
-                if(!ftiTransactionData.isEmpty()){
+                if(ftiTransactionData.isPresent()){
                     FtiTransaction transaction = ftiTransactionData.get();
                     String _facNew = splitKey(facilityIdentifier)[4];
                     List<FtiTransactionDetail> transactionDetails = ftiTransactionDetailService.getDetailsByHeaderId(transaction.getId());
@@ -651,8 +651,47 @@ public class LimitReservationMessageProcessor {
 
                 if(needXL2B){
                     // cek dulu apakah sebelumnya masih ada XL2B yang masih gantung,
-                    // kalau masih ada, kirim XL40 untuk XL2B yang gantung, baru bikin baru
 
+                    FtiTransaction transaction = ftiTransactionData.get();
+                    List<FtiTransactionDetail> transactionDetails = ftiTransactionDetailService.getDetailsByHeaderId(transaction.getId());
+                    Optional<FtiTransactionDetail> lastXL2B = transactionDetails.stream().filter(x ->
+                            x.getCoreSysName().equals("CLS-XL2B") && x.getCoreSysStatus().equals("00")
+                    ).max(Comparator.comparing(FtiTransactionDetail::getId));
+
+                    if(lastXL2B.isPresent()){
+                        FtiTransactionDetail _lastXL2B = lastXL2B.get();
+
+                        Optional<FtiTransactionDetail> lastXL40 = transactionDetails.stream().filter(x ->
+                                x.getCoreSysName().equals("CLS-XL40") && x.getCoreSysStatus().equals("00") && x.getId()>_lastXL2B.getId()
+                        ).max(Comparator.comparing(FtiTransactionDetail::getId));
+                        // kalau masih ada XL2B gantung, kirim XL40 untuk XL2B yang gantung, next bikin baru
+
+                        if(lastXL40.isEmpty()){
+                            // req XL40
+                            utilizationMessageProcessor.logger = logger;
+
+                            com.maybank.integratorapp.model.soap.limit.XL40.request.SoapEnvelope msgRequest =
+                                    utilizationMessageProcessor.mapXL40Request(newKeyLoanAcc,masterReference);
+
+                            // step 4.
+                            com.maybank.integratorapp.model.soap.limit.XL40.response.SoapEnvelope msgResponse =
+                                    utilizationMessageProcessor.getXL40Response(msgRequest,eventCode,masterReference,newKeyLoanAcc);
+
+                            String xl40responseCode = msgResponse
+                                    .getBody().getXl40Response().
+                                    getCmsXl40Response().getResponsecode();
+                            String xl40responseMessage = msgResponse
+                                    .getBody().getXl40Response().
+                                    getCmsXl40Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+                            if(xl40responseCode.equals("00")) {
+                                processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
+                            }
+                            // step 5.
+                            mapExternalResponse(xl40responseCode,xl40responseMessage,facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
+
+                        }
+
+                    }
 
                     //req XL2B
                     com.maybank.integratorapp.model.soap.limit.XL2B.request.SoapEnvelope msgRequestXL2B=

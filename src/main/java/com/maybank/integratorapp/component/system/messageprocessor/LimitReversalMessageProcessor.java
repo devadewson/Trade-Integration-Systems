@@ -80,10 +80,11 @@ public class LimitReversalMessageProcessor {
                 String masterReference= request.getReservationsReversalRequest().getMasterReference();
                 String utilizationID  = request.getReservationsReversalRequest().getReservationIdentifier();
                 String eventCode = request.getReservationsReversalRequest().getEventReference();
+                String branch = request.getReservationsReversalRequest().getBranch();
 
 
                 // step 3.
-                SoapEnvelope msgRequest = mapCoreSystemRequest(utilizationID,correlationID,eventCode);
+                SoapEnvelope msgRequest = mapCoreSystemRequest(utilizationID,correlationID,eventCode,branch);
 
                 // step 4.
                 com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope msgResponse = getMsgBodyResponse(msgRequest,eventCode,masterReference,utilizationID);
@@ -138,7 +139,7 @@ public class LimitReversalMessageProcessor {
     }
 
     // step 3. Map external request to core system request
-    public SoapEnvelope mapCoreSystemRequest(String utilizationID,String correlationID,String eventCode) {
+    public SoapEnvelope mapCoreSystemRequest(String utilizationID,String correlationID,String eventCode,String branch) {
         String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
 //        String soapUrl = "http://10.230.83.57:65085/services/CMSService";
 //        String correlationID = "ServiceRequest.getRequestHeader().getCorrelationID();";
@@ -154,8 +155,8 @@ public class LimitReversalMessageProcessor {
         String limitDraw = splittedKey[5];
         String dateNow = new SimpleDateFormat("ddMMyy").format(new Date());
 
-        MsCompanyLimit _company = msCompanyLimitService.searchByCIFNo(limitCif);
-        MsBranch _branch = msBranchService.getByBranchCode(limitBranch);
+//        MsCompanyLimit _company = msCompanyLimitService.searchByCIFNo(limitCif);
+        MsBranch _branch = msBranchService.getByBranchCode(branch);
 
         String clientUserId = "7755";
         String clientSpvUserId = "7766";

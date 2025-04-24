@@ -82,7 +82,7 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
                 _data = dataDTO.save(_data);
 
                 message.acknowledge();
-                responseXml = accountInquiryMessageProcessor.processMessage(_message, Math.toIntExact(_data.getId()));
+                responseXml = accountInquiryMessageProcessor.processMessage(_message, _data.getId());
 //                System.out.println("===========================xmlResponse=================================");
 //                System.out.println(responseXml);
 //                System.out.println("============================================================\n");

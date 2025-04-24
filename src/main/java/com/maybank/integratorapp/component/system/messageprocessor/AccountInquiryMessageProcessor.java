@@ -53,7 +53,7 @@ public class AccountInquiryMessageProcessor {
     private final String ProcessName = "AccountInquiryProcess";
 
 
-    public String processMessage(String message,int loggerId) {
+    public String processMessage(String message,long loggerId) {
         String responseXml = "";
         logger.SetLogParent(loggerId);
 
