@@ -36,6 +36,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.logging.Logger;
 
 @Component
 public class AccountInquiryMessageProcessor {
@@ -52,10 +53,12 @@ public class AccountInquiryMessageProcessor {
 
     private final String ProcessName = "AccountInquiryProcess";
 
+    private long LoggerId;
 
     public String processMessage(String message,long loggerId) {
         String responseXml = "";
-        logger.SetLogParent(loggerId);
+        this.LoggerId = loggerId;
+//        logger.SetLogParent(loggerId);
 
         try {
             // step 1. Parse request message
@@ -90,7 +93,7 @@ public class AccountInquiryMessageProcessor {
             responseXml = xmlMapper.writeValueAsString(response);
 
         } catch (Exception e) {
-            logger.Log(ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
+            logger.Log(LoggerId,ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
 
         }
         return responseXml;
@@ -108,7 +111,7 @@ public class AccountInquiryMessageProcessor {
         try {
             request = xmlMapper.readValue(message, ServiceRequest.class);
         } catch (JsonProcessingException e) {
-            logger.Log(ProcessName, "Error Json Processing", "ERROR-JSON-PROCESS", e.getMessage());
+            logger.Log(LoggerId,ProcessName, "Error Json Processing", "ERROR-JSON-PROCESS", e.getMessage());
             handleExceptionResponse(e.getMessage());
             request = null;
         }
@@ -171,7 +174,7 @@ public class AccountInquiryMessageProcessor {
 
             // String Reqjson = objectMapper.writeValueAsString(body);
             String json = objectMapper.writeValueAsString(wraperRequest);
-            logger.Log(ProcessName, "Request Message", "ESB-MESSAGE", json);
+            logger.Log(LoggerId,ProcessName, "Request Message", "ESB-MESSAGE", json);
 
 
             // Kirim request ke API eksternal
@@ -182,19 +185,19 @@ public class AccountInquiryMessageProcessor {
 
                 try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
                     String responseString = EntityUtils.toString(response.getEntity());
-                    logger.Log(ProcessName, "Response Message", "ESB-MESSAGE", responseString);
+                    logger.Log(LoggerId,ProcessName, "Response Message", "ESB-MESSAGE", responseString);
 
                     res = objectMapper.readValue(responseString, com.maybank.integratorapp.model.restv2.AccountInquiry.response.MsgWraper.class);
 
 
                 } catch (Exception e) {
-                    logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+                    logger.Log(LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
                 }
             } catch (IOException e) {
-                logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+                logger.Log(LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
             }
         } catch (IOException e) {
-            logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+            logger.Log(LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
         }
         return res;

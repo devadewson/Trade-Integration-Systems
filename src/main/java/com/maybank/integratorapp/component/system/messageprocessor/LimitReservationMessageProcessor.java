@@ -59,7 +59,7 @@ public class LimitReservationMessageProcessor {
     FtiTransactionService ftiTransactionService;
     @Autowired
     private LimitFacilitiesMessageProcessor processFacilities;
-
+    private long LoggerId;
     @Autowired
     private LimitFacilitiesMessageProcessor facilitiesMessageProcessor;
 
@@ -191,10 +191,10 @@ public class LimitReservationMessageProcessor {
 //                    cls001ProductType = msMapClsProductTypeRepository.findDraw001Product(productType, lineOfBusiness,_eventCode);
 //
 //                }
-//                logger.Log(ProcessName, "CLS Product Type search criteria "+productType+"|"+lineOfBusiness+"|"+_eventCode, "DEBUG");
+//                logger.Log(this.LoggerId,ProcessName, "CLS Product Type search criteria "+productType+"|"+lineOfBusiness+"|"+_eventCode, "DEBUG");
 //
 //                System.out.println("CLS Product Type : " + cls001ProductType);
-//                logger.Log(ProcessName, "CLS Product Type : "+cls001ProductType, "DEBUG");
+//                logger.Log(this.LoggerId,ProcessName, "CLS Product Type : "+cls001ProductType, "DEBUG");
 //
 //                String xl01responseCode = "";
 //                String xl31responseCode = "";
@@ -370,7 +370,7 @@ public class LimitReservationMessageProcessor {
 //            responseXml = xmlMapper.writeValueAsString(response);
 //
 //        } catch (Exception e) {
-//            logger.Log(ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
+//            logger.Log(this.LoggerId,ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
 //
 //        }
 //        return responseXml;
@@ -378,7 +378,8 @@ public class LimitReservationMessageProcessor {
 
     public String processMessage(String message,Long loggerId) {
         String responseXml = "";
-        logger.SetLogParent(loggerId);
+        this.LoggerId = loggerId;
+//        logger.SetLogParent(loggerId);
 
         try {
             // step 1. Parse request message
@@ -484,17 +485,17 @@ public class LimitReservationMessageProcessor {
                 int runningNumber = runningNumberEntry.getRunningNumber();
                 formattedRunningNumber = String.format("%03d", runningNumber + 1);
 //                System.out.println("Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber);
-                logger.Log(ProcessName, "Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber, "DEBUG");
+                logger.Log(this.LoggerId,ProcessName, "Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber, "DEBUG");
 
                 // Buat keyLoanAcc baru dengan mengganti bagian draw
                 newKeyLoanAcc = buildNewKey(facilityIdentifier, formattedRunningNumber);
 //                System.out.println("New KeyLoanAcc: " + newKeyLoanAcc);
-                logger.Log(ProcessName, "New KeyLoanAcc: " + newKeyLoanAcc, "DEBUG");
+                logger.Log(this.LoggerId,ProcessName, "New KeyLoanAcc: " + newKeyLoanAcc, "DEBUG");
 
                 // Buat formatted key untuk sistem proses
                 acctReqXL01 = buildFormattedKey(facilityIdentifier, formattedRunningNumber);
 //                System.out.println("New Formatted Key: " + acctReqXL01);
-                logger.Log(ProcessName, "New Formatted Key: " + acctReqXL01, "DEBUG");
+                logger.Log(this.LoggerId,ProcessName, "New Formatted Key: " + acctReqXL01, "DEBUG");
 
                 // cek dulu di table referensi transaksinya
                 // timpa & pakai yang lama jika ada
@@ -507,13 +508,13 @@ public class LimitReservationMessageProcessor {
                     if(transactionDetails.stream().anyMatch(x->x.getFtiEvent().equals("ISS001"))){
 
                         FtiTransactionDetail transactionDetails1 = transactionDetails.stream().filter(x -> x.getFtiEvent().equals("ISS001") && x.getAdditionalInfo4().equals("DRW")).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
-                        logger.Log(ProcessName, "Get Old : " + transactionDetails1.getId(), "DEBUG");
+                        logger.Log(this.LoggerId,ProcessName, "Get Old : " + transactionDetails1.getId(), "DEBUG");
 
 //                        check whether its the same facility
                         String _facOld = splitKey(transactionDetails1.getAdditionalInfo1())[4];
 
                         if(_facOld.equals(_facNew)){
-                            logger.Log(ProcessName, "Previous KeyLoanAcc: " + transactionDetails1.getAdditionalInfo1(), "DEBUG");
+                            logger.Log(this.LoggerId,ProcessName, "Previous KeyLoanAcc: " + transactionDetails1.getAdditionalInfo1(), "DEBUG");
 
                             newKeyLoanAcc = transactionDetails1.getAdditionalInfo1();
 //                            xl01responseCode = "00";
@@ -555,7 +556,7 @@ public class LimitReservationMessageProcessor {
                 }
 
                 // treat amend as issue for mapping purpose
-                if(_eventCode.equals("AMD") || _eventCode.equals("ADJ"))
+                if(!_eventCode.equals("CLM"))
                     _eventCode = "ISS";
 
                 if(!lineOfBusiness.equals("01"))
@@ -581,10 +582,10 @@ public class LimitReservationMessageProcessor {
                     cls001ProductType = msMapClsProductTypeRepository.findDraw001Product(productType, lineOfBusiness,_eventCode);
 
                 }
-                logger.Log(ProcessName, "CLS Product Type search criteria "+productType+"|"+lineOfBusiness+"|"+_eventCode, "DEBUG");
+                logger.Log(this.LoggerId,ProcessName, "CLS Product Type search criteria "+productType+"|"+lineOfBusiness+"|"+_eventCode, "DEBUG");
 
                 System.out.println("CLS Product Type : " + cls001ProductType);
-                logger.Log(ProcessName, "CLS Product Type : "+cls001ProductType, "DEBUG");
+                logger.Log(this.LoggerId,ProcessName, "CLS Product Type : "+cls001ProductType, "DEBUG");
 
 
                 // new reservation logic
@@ -602,20 +603,24 @@ public class LimitReservationMessageProcessor {
 
                 FtiTransactionDetail _lastLimitAction = null;
                 if(_listTransactionDetail.stream().count()>0){
-//                    logger.Log(ProcessName, "Transaction Detail Count : "+_listTransactionDetail.stream().count(), "DEBUG");
+//                    logger.Log(this.LoggerId,ProcessName, "Transaction Detail Count : "+_listTransactionDetail.stream().count(), "DEBUG");
 
                     _lastLimitAction = _listTransactionDetail.get((int) (_listTransactionDetail.stream().count()-1));
                 }
 
-                if((eventCode.startsWith("ISS") && _lastLimitAction==null) || needXL01){
+                if(_lastLimitAction==null){
+                    needXL01=true;
+                }
+
+                if(needXL01){
                     //draw 001
                     // step 3.
                     SoapEnvelope msgRequestXL01 = mapCoreSystemXl01Request(masterReference,acctReqXL01,newKeyLoanAcc,currency,startDate,expiryDate,transactionDate,cls001ProductType,branch);
 
                     // step 4.
-//                    logger.Log(ProcessName, "CLS BEFORE HIT XL01", "DEBUG");
+//                    logger.Log(this.LoggerId,ProcessName, "CLS BEFORE HIT XL01", "DEBUG");
                     com.maybank.integratorapp.model.soap.limit.XL01.responseComplete.SoapEnvelope msgResponseXL01 = getXl01MsgBodyResponse(msgRequestXL01,masterReference,eventCode,formattedRunningNumber,newKeyLoanAcc);
-//                    logger.Log(ProcessName, "CLS AFTER HIT XL01", "DEBUG");
+//                    logger.Log(this.LoggerId,ProcessName, "CLS AFTER HIT XL01", "DEBUG");
 
                     xl01responseCode = msgResponseXL01
                             .getBody().getXl01Draw001Response().
@@ -623,13 +628,13 @@ public class LimitReservationMessageProcessor {
                     xl01responseMessage = msgResponseXL01
                             .getBody().getXl01Draw001Response().
                             getCmsXL01Draw001Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
-//                    logger.Log(ProcessName, "CLS AFTER HIT XL01 RESPONSE CODE :"+xl01responseCode, "DEBUG");
+//                    logger.Log(this.LoggerId,ProcessName, "CLS AFTER HIT XL01 RESPONSE CODE :"+xl01responseCode, "DEBUG");
 
-//                    logger.Log(ProcessName, "CLS AFTER HIT XL01 RESPONSE MESSAGE :"+xl01responseMessage, "DEBUG");
+//                    logger.Log(this.LoggerId,ProcessName, "CLS AFTER HIT XL01 RESPONSE MESSAGE :"+xl01responseMessage, "DEBUG");
                     if(xl01responseCode.equals("00")){
-//                        logger.Log(ProcessName, "CLS BEFORE REFRESH FACILITIES", "DEBUG");
+//                        logger.Log(this.LoggerId,ProcessName, "CLS BEFORE REFRESH FACILITIES", "DEBUG");
                         facilitiesMessageProcessor.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
-//                        logger.Log(ProcessName, "CLS AFTER REFRESH FACILITIES", "DEBUG");
+//                        logger.Log(this.LoggerId,ProcessName, "CLS AFTER REFRESH FACILITIES", "DEBUG");
                         FtiTransaction ftiTransaction = new FtiTransaction();
                         ftiTransaction.setMasterRefNo(masterReference);
                         ftiTransaction.setDrawNumber(formattedRunningNumber);
@@ -744,6 +749,7 @@ public class LimitReservationMessageProcessor {
 
 
 
+
             }
 
             // step 6.
@@ -752,7 +758,7 @@ public class LimitReservationMessageProcessor {
             responseXml = xmlMapper.writeValueAsString(response);
 
         } catch (Exception e) {
-            logger.Log(ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
 
         }
         return responseXml;
@@ -770,7 +776,7 @@ public class LimitReservationMessageProcessor {
         try {
             request = xmlMapper.readValue(message, ServiceRequest.class);
         } catch (JsonProcessingException e) {
-            logger.Log(ProcessName, "Error Json Processing", "ERROR-JSON-PROCESS", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Json Processing", "ERROR-JSON-PROCESS", e.getMessage());
             handleExceptionResponse(e.getMessage());
             request = null;
         }
@@ -884,7 +890,7 @@ public class LimitReservationMessageProcessor {
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-            logger.Log(ProcessName, "Hit ESB Message", "ESB-MESSAGE", xmlString);
+            logger.Log(this.LoggerId,ProcessName, "Hit ESB Message", "ESB-MESSAGE", xmlString);
 
 //            com.maybank.integratorapp.model.soap.limit.XL01.responseComplete.SoapEnvelope cmsResponseXL01 = null;
 
@@ -901,7 +907,7 @@ public class LimitReservationMessageProcessor {
                     var _resStream = _res.getContent();
                     var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
                     _response = outputResponse;
-                    logger.Log(ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
+                    logger.Log(this.LoggerId,ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
 
                     if (_response.contains("Fault")) {
                         System.out.println(_response);
@@ -921,7 +927,7 @@ public class LimitReservationMessageProcessor {
                             .getBody().getXl01Draw001Response().
                             getCmsXL01Draw001Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
                     FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
-                    ftiTransactionDetail.setTransMessageLogId(logger.getIdLogParent());
+                    ftiTransactionDetail.setTransMessageLogId(LoggerId);
                     ftiTransactionDetail.setFtiEvent(eventCode);
                     ftiTransactionDetail.setCoreSysName("CLS-XL01Draw001");
                     ftiTransactionDetail.setTransName("Reservation");
@@ -941,12 +947,12 @@ public class LimitReservationMessageProcessor {
                 }
             } catch (Exception e) {
 
-                logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+                logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
             }
 
         } catch (Exception e) {
-            logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
         }
         return cmsResponseXL01;
@@ -978,7 +984,7 @@ public class LimitReservationMessageProcessor {
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-            logger.Log(ProcessName, "Hit ESB Message", "ESB-MESSAGE", xmlString);
+            logger.Log(this.LoggerId,ProcessName, "Hit ESB Message", "ESB-MESSAGE", xmlString);
 
 //            com.maybank.integratorapp.model.soap.limit.XL31.response.SoapEnvelope cmsResponseXL31 = null;
 
@@ -995,7 +1001,7 @@ public class LimitReservationMessageProcessor {
                     var _resStream = _res.getContent();
                     var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
                     _response = outputResponse;
-                    logger.Log(ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
+                    logger.Log(this.LoggerId,ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
                     if (_response.contains("Fault")) {
                         System.out.println(_response);
                     }
@@ -1013,7 +1019,7 @@ public class LimitReservationMessageProcessor {
                             .getBody().getXl31Response().
                             getCmsXl31Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
                     FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
-                    ftiTransactionDetail.setTransMessageLogId(logger.getIdLogParent());
+                    ftiTransactionDetail.setTransMessageLogId(LoggerId);
                     ftiTransactionDetail.setFtiEvent(eventCode);
                     ftiTransactionDetail.setCoreSysName("CLS-XL31");
                     ftiTransactionDetail.setTransName("Reservation");
@@ -1029,12 +1035,12 @@ public class LimitReservationMessageProcessor {
                 }
             } catch (Exception e) {
 
-                logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+                logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
             }
 
         } catch (Exception e) {
-            logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
         }
         return serviceResponse;
@@ -1143,7 +1149,7 @@ public class LimitReservationMessageProcessor {
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-            logger.Log(ProcessName, "Hit ESB Message", "ESB-MESSAGE", xmlString);
+            logger.Log(this.LoggerId,ProcessName, "Hit ESB Message", "ESB-MESSAGE", xmlString);
 
 //            com.maybank.integratorapp.model.soap.limit.XL31.response.SoapEnvelope cmsResponseXL31 = null;
 
@@ -1160,7 +1166,7 @@ public class LimitReservationMessageProcessor {
                     var _resStream = _res.getContent();
                     var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
                     _response = outputResponse;
-                    logger.Log(ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
+                    logger.Log(this.LoggerId,ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
                     if (_response.contains("Fault")) {
                         System.out.println(_response);
                     }
@@ -1178,7 +1184,7 @@ public class LimitReservationMessageProcessor {
                             .getBody().getXl2BResponse().
                             getCmsXl2BResponse().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
                     FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
-                    ftiTransactionDetail.setTransMessageLogId(logger.getIdLogParent());
+                    ftiTransactionDetail.setTransMessageLogId(LoggerId);
                     ftiTransactionDetail.setFtiEvent(eventCode);
                     ftiTransactionDetail.setCoreSysName("CLS-XL2B");
                     ftiTransactionDetail.setTransName("Reservation");
@@ -1195,12 +1201,12 @@ public class LimitReservationMessageProcessor {
                 }
             } catch (Exception e) {
 
-                logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+                logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
             }
 
         } catch (Exception e) {
-            logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
         }
         return serviceResponse;

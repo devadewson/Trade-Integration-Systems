@@ -136,9 +136,11 @@ public class ProcessCompositeTBR {
         return listPosting;
     }
 
+    private Long LoggerId;
     public void doPosting(List<Posting> data, Long idLogParent){
 
-        this.logger.SetLogParent(idLogParent);
+        this.LoggerId =idLogParent;
+//        this.logger.SetLogParent(idLogParent);
 
         String referenceID = data.stream().findFirst().get().getMasterReference();
         String eventCode = data.stream().findFirst().get().getEventReference();
@@ -153,15 +155,15 @@ public class ProcessCompositeTBR {
         data.removeAll(removed);
 
         // group the posting
-        logger.Log("Posting - Group Posting Data","Group posting into pair of debit credit","START");
+        logger.Log(this.LoggerId,"Posting - Group Posting Data","Group posting into pair of debit credit","START");
         List<PostingGroup> finalData = groupPosting(data);
-        logger.Log("Posting - Group Posting Data","Group posting into pair of debit credit","END");
+        logger.Log(this.LoggerId,"Posting - Group Posting Data","Group posting into pair of debit credit","END");
         // condition check if there is cross valas
 
 
         for (PostingGroup postingGroup:finalData) {
             FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
-            ftiTransactionDetail.setTransMessageLogId(logger.getIdLogParent());
+            ftiTransactionDetail.setTransMessageLogId(LoggerId);
             ftiTransactionDetail.setFtiEvent(eventCode);
             ftiTransactionDetail.setCoreSysName("FMS-CompositeTBR");
             ftiTransactionDetail.setTransName("Posting");
@@ -202,15 +204,15 @@ public class ProcessCompositeTBR {
             // check if its cross valas
             if (postingGroup.getFlagCrossValas().equals("N"))
             {
-                logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "START");
+                logger.Log(this.LoggerId,"Posting - Posting Data to ESB", "Map and Posting the data into ESB", "START");
                 postTbr(referenceID,postingGroup, Long.valueOf(postingGroup.getGroupId()),ftiTransactionDetail.getId());
-                logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "END");
+                logger.Log(this.LoggerId,"Posting - Posting Data to ESB", "Map and Posting the data into ESB", "END");
 
             }
             else{
                 // do cross valas logic here
-                logger.Log("Posting - Posting Data to ESB", "Map and Posting Cross Valas Data the data into ESB", "START");
-                logger.Log("Posting - Posting Data to ESB", "Map and Posting Cross Valas Data the data into ESB", "END");
+                logger.Log(this.LoggerId,"Posting - Posting Data to ESB", "Map and Posting Cross Valas Data the data into ESB", "START");
+                logger.Log(this.LoggerId,"Posting - Posting Data to ESB", "Map and Posting Cross Valas Data the data into ESB", "END");
 
             }
 
@@ -337,14 +339,14 @@ public class ProcessCompositeTBR {
 //                                    .writeValueAsString(envelope);
             String jsonPayload = objectMapper.writerWithDefaultPrettyPrinter() // enable pretty print
                     .writeValueAsString(_msgWrapper);
-            logger.Log("Posting "+groupId, "Request ESB", "DATA-REQ",jsonPayload);
+            logger.Log(this.LoggerId,"Posting "+groupId, "Request ESB", "DATA-REQ",jsonPayload);
 
             System.out.println("Serialized JSON Payload: " + jsonPayload);
 
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
             String response = "";
             response = restTemplate.exchange(url, HttpMethod.POST, request, String.class).getBody();
-            logger.Log("Posting "+groupId, "Response ESB", "DATA-RES",response);
+            logger.Log(this.LoggerId,"Posting "+groupId, "Response ESB", "DATA-RES",response);
 
 
             com.maybank.integratorapp.model.restv2.CompositeTbr.response.MsgWrapper res = new MsgWrapper();
@@ -364,13 +366,13 @@ public class ProcessCompositeTBR {
 
 //            if(_response.hasBody()){
 //                response = _response.getBody();
-//                logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "DATA-RES",response);
+//                logger.Log(this.LoggerId,"Posting - Posting Data to ESB", "Map and Posting the data into ESB", "DATA-RES",response);
 //
 //            }
 
             System.out.println("Response from API: " + response);
         }catch (Exception e){
-            logger.Log("Posting - Posting Data to ESB", "Map and Posting the data into ESB", "ERROR",e.getMessage());
+            logger.Log(this.LoggerId,"Posting - Posting Data to ESB", "Map and Posting the data into ESB", "ERROR",e.getMessage());
 
 //            throw e;
         }
@@ -561,12 +563,12 @@ public class ProcessCompositeTBR {
             }
 
             for (PostingGroup group : groupedPostings) {
-                logger.Log("Posting - Group Posting Data", "TbrCode: " + group.getTbrCode(), "PROCESS");
-                logger.Log("Posting - Group Posting Data", "MappingType: " + group.getMappingType(), "PROCESS");
-                logger.Log("Posting - Group Posting Data", "MDMC: " + group.getFlagMdmc(), "PROCESS");
+                logger.Log(this.LoggerId,"Posting - Group Posting Data", "TbrCode: " + group.getTbrCode(), "PROCESS");
+                logger.Log(this.LoggerId,"Posting - Group Posting Data", "MappingType: " + group.getMappingType(), "PROCESS");
+                logger.Log(this.LoggerId,"Posting - Group Posting Data", "MDMC: " + group.getFlagMdmc(), "PROCESS");
 
                 for (PostingExtender posting : group.getPostings()) {
-                    logger.Log("Posting - Group Posting Data", " - Sequence: " + posting.getPostingSeqNo() +
+                    logger.Log(this.LoggerId,"Posting - Group Posting Data", " - Sequence: " + posting.getPostingSeqNo() +
                             ", Account: " + posting.getBackOfficeAccountNo() +
                             ", Type: " + posting.getAccountTypeAlias() +
                             ", Currency: " + posting.getPostingCcy() +
@@ -576,7 +578,7 @@ public class ProcessCompositeTBR {
 
             }
         } catch (Exception e){
-            logger.Log("Posting - Group Posting Data","Grouped posting into pair of debit credit","ERROR",e.getMessage());
+            logger.Log(this.LoggerId,"Posting - Group Posting Data","Grouped posting into pair of debit credit","ERROR",e.getMessage());
         }
 
 
@@ -749,12 +751,12 @@ public class ProcessCompositeTBR {
             }
 
             for (PostingGroup group : groupedPostings) {
-                logger.Log("Posting - Group Posting Data", "TbrCode: " + group.getTbrCode(), "PROCESS");
-                logger.Log("Posting - Group Posting Data", "MappingType: " + group.getMappingType(), "PROCESS");
-                logger.Log("Posting - Group Posting Data", "MDMC: " + group.getFlagMdmc(), "PROCESS");
+                logger.Log(this.LoggerId,"Posting - Group Posting Data", "TbrCode: " + group.getTbrCode(), "PROCESS");
+                logger.Log(this.LoggerId,"Posting - Group Posting Data", "MappingType: " + group.getMappingType(), "PROCESS");
+                logger.Log(this.LoggerId,"Posting - Group Posting Data", "MDMC: " + group.getFlagMdmc(), "PROCESS");
 
                 for (PostingExtender posting : group.getPostings()) {
-                    logger.Log("Posting - Group Posting Data", " - Sequence: " + posting.getPostingSeqNo() +
+                    logger.Log(this.LoggerId,"Posting - Group Posting Data", " - Sequence: " + posting.getPostingSeqNo() +
                             ", Account: " + posting.getBackOfficeAccountNo() +
                             ", Type: " + posting.getAccountTypeAlias() +
                             ", Currency: " + posting.getPostingCcy() +
@@ -764,7 +766,7 @@ public class ProcessCompositeTBR {
 
             }
         } catch (Exception e){
-            logger.Log("Posting - Group Posting Data","Grouped posting into pair of debit credit","ERROR",e.getMessage());
+            logger.Log(this.LoggerId,"Posting - Group Posting Data","Grouped posting into pair of debit credit","ERROR",e.getMessage());
         }
 
 
@@ -787,7 +789,7 @@ public class ProcessCompositeTBR {
                 PostingExtender post = filteredPostings.get(i);
                 // find all fields for this posting
                 int finalSeq = seq;
-                logger.Log("Posting - Map Data to ESB", "Map seq "+String.valueOf(finalSeq), "DEBUG");
+                logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Map seq "+String.valueOf(finalSeq), "DEBUG");
 
                 List<MsTBRField> listField = listMapping.stream().filter(x->
                         x.getMappingDebitCredit().equals(post.getDebitCreditFlag())
@@ -806,7 +808,7 @@ public class ProcessCompositeTBR {
                     if(field.getDefaultValue() != null && !field.getDefaultValue().isEmpty()){
 
                         Object value = field.getDefaultValue();
-                        logger.Log("Posting - Map Data to ESB", "Map default value "+String.valueOf(value)+" into "+destinationPropertyName+" ESB", "DEBUG");
+                        logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Map default value "+String.valueOf(value)+" into "+destinationPropertyName+" ESB", "DEBUG");
 
                         if((field.getDestinationFieldDataType() != null && !field.getDestinationFieldDataType().isEmpty())){
                             if(field.getDestinationFieldDataType().equals("Integer")){
@@ -819,7 +821,7 @@ public class ProcessCompositeTBR {
                         }
                         continue;
                     }
-                    logger.Log("Posting - Map Data to ESB", "Map "+sourcePropertyName+" data into "+destinationPropertyName+" ESB", "DEBUG");
+                    logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Map "+sourcePropertyName+" data into "+destinationPropertyName+" ESB", "DEBUG");
                     Class<?> sourceClass = post.getClass();
                     Class<?> destinationClass = dynamicClass;
 
@@ -858,7 +860,7 @@ public class ProcessCompositeTBR {
                 PostingExtender post = filteredPostings.get(i);
                 // find all fields for this posting
                 int finalSeq = seq;
-                logger.Log("Posting - Map Data to ESB", "Map seq "+String.valueOf(finalSeq), "DEBUG");
+                logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Map seq "+String.valueOf(finalSeq), "DEBUG");
 
                 List<MsTBRField> listField = listMapping.stream().filter(x->
                         x.getMappingDebitCredit().equals(post.getDebitCreditFlag())
@@ -878,7 +880,7 @@ public class ProcessCompositeTBR {
                     if(field.getDefaultValue() != null && !field.getDefaultValue().isEmpty()){
 
                         Object value = field.getDefaultValue();
-                        logger.Log("Posting - Map Data to ESB", "Map default value "+String.valueOf(value)+" into "+destinationPropertyName+" ESB", "DEBUG");
+                        logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Map default value "+String.valueOf(value)+" into "+destinationPropertyName+" ESB", "DEBUG");
 
                         if((field.getDestinationFieldDataType() != null && !field.getDestinationFieldDataType().isEmpty())){
                             if(field.getDestinationFieldDataType().equals("Integer")){
@@ -891,7 +893,7 @@ public class ProcessCompositeTBR {
                         }
                         continue;
                     }
-                    logger.Log("Posting - Map Data to ESB", "Map "+sourcePropertyName+" data into "+destinationPropertyName+" ESB", "DEBUG");
+                    logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Map "+sourcePropertyName+" data into "+destinationPropertyName+" ESB", "DEBUG");
                     Class<?> sourceClass = post.getClass();
                     Class<?> destinationClass = dynamicClass;
 
@@ -926,7 +928,7 @@ public class ProcessCompositeTBR {
                 String destinationPropertyName = field.getDestinationField();
                 String destinationSetterName = "set" + capitalize(destinationPropertyName);
                 if(!mappedFields.contains(destinationPropertyName)){
-                    logger.Log("Posting - Map Data to ESB", "Map empty data into "+destinationPropertyName+" ESB", "DEBUG");
+                    logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Map empty data into "+destinationPropertyName+" ESB", "DEBUG");
 
                     dynamicClass.getMethod(destinationSetterName, String.class).invoke(instance, "");
                 }
@@ -952,7 +954,7 @@ public class ProcessCompositeTBR {
                 // Get source property name and destination property name from mapping
                 if(mapping.getSourceField() != null && !mapping.getSourceField().isEmpty()){
                     String sourcePropertyName = mapping.getSourceField();
-                    logger.Log("Posting - Map Data to ESB", "Map "+sourcePropertyName+" data into "+destinationPropertyName+" ESB", "PROCESS");
+                    logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Map "+sourcePropertyName+" data into "+destinationPropertyName+" ESB", "PROCESS");
 
                     // Generate method names for the source's getter and the destination's setter
                     String sourceGetterName = "get" + capitalize(sourcePropertyName);
@@ -983,7 +985,7 @@ public class ProcessCompositeTBR {
 ////                            && p.getPostingCcy().equals(mapping.getMappingCurrency())
 //                            && p.getDebitCreditFlag().equals(mapping.getMappingDebitCredit())
 //                            ).toList();
-//                    logger.Log("Posting - Map Data to ESB", "Map Posting data count : "+posting.stream().count(), "PROCESS");
+//                    logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Map Posting data count : "+posting.stream().count(), "PROCESS");
 //
 //                    // jika multiple debit/credit found
 //                    if(posting.stream().count() > 0){
@@ -1003,7 +1005,7 @@ public class ProcessCompositeTBR {
 
 
                     if(_postingData!= null){
-                        logger.Log("Posting - Map Data to ESB", destinationPropertyName +" mapped to Posting Data :"
+                        logger.Log(this.LoggerId,"Posting - Map Data to ESB", destinationPropertyName +" mapped to Posting Data :"
                                         +_postingData.getPostingSeqNo()+"|"
                                         +_postingData.getPostingCcyAlias()+"|"
                                         +_postingData.getDebitCreditFlag()+"|"
@@ -1029,7 +1031,7 @@ public class ProcessCompositeTBR {
 
                         }
                     }else{
-                        logger.Log("Posting - Map Data to ESB", "Posting data not found for "+destinationPropertyName, "PROCESS");
+                        logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Posting data not found for "+destinationPropertyName, "PROCESS");
                         dynamicClass.getMethod(destinationSetterName, String.class).invoke(instance, "");
 
                     }

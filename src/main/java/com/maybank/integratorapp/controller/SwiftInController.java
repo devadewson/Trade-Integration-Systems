@@ -41,19 +41,23 @@ public class SwiftInController {
 
     @GetMapping("/GetSwiftIn")
     public ResponseEntity<String> GetSwiftIn(){
+        long LoggerID = 0;
+
         try{
 
             MsQueueConfig config = queueConfigService.findByServiceName("SwiftIn");
             if(config != null && config.getEnableStatus() == 1){
                 LogQueueData _data = new LogQueueData();
                 _data.setMessageUID(new MQUtil().getMessageUID());
-                _data.setOrigin("Integrator Scheduler");
+                _data.setOrigin("SwiftIn Integrator Scheduler");
                 _data.setCreated_date(new Date());
-                dataDTO.save(_data);
-                logger.SetLogParent(_data.getId());
-                logger.Log("SwiftIn - SwiftIn Scheduler","Begin","START");
 
-                Map<String, List<String>> fileContents = swiftIn.getFileContent(logger);
+                _data = dataDTO.save(_data);
+                LoggerID = _data.getId();
+//                logger.SetLogParent(_data.getId());
+                logger.Log(_data.getId(),"SwiftIn - SwiftIn Scheduler","Begin","START");
+
+                Map<String, List<String>> fileContents = swiftIn.getFileContent(LoggerID);
 //            ProcessFXRate fxRate = new ProcessFXRate();
 //            List<FxRateListData> data = fxRate.getAllFxRate();
 
@@ -70,7 +74,7 @@ public class SwiftInController {
                     data.setUpdated_date(new Date());
                     data = dataDTO.save(data);
 
-                    logger.SetLogParent(data.getId());
+//                    logger.SetLogParent(data.getId());
 //                    System.out.println("File: " + fileName);
 //                    content.forEach(System.out::println);
 //                    System.out.println();
@@ -89,7 +93,7 @@ public class SwiftInController {
 
                     String date = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date());
                     String correlationId = "SwiftIn_"+date+"_"+MQUtil.generateRandomString(6);
-                    logger.Log("SwiftIn - Sending Swift Messages","Sending to FTI Queues","START");
+                    logger.Log(data.getId(),"SwiftIn - Sending Swift Messages","Sending to FTI Queues","START");
                     // logging
 
                     data.setCorrelationID(correlationId);
@@ -108,15 +112,15 @@ public class SwiftInController {
                             config.getResponse_Queue_Name());
                     publisher.PublishMessage(xml, correlationId);
                     publisher.close();
-                    logger.Log("SwiftIn - Sending Swift Messages","Sending to FTI Queues","END");
+                    logger.Log(data.getId(),"SwiftIn - Sending Swift Messages","Sending to FTI Queues","END");
 
+                    swiftIn.moveToBackup(data.getId());
 
+                    logger.Log(data.getId(),"SwiftIn - SwiftIn Scheduler","End","END");
                 });
 
-                logger.SetLogParent(_data.getId());
-                swiftIn.moveToBackup(logger);
+//                logger.SetLogParent(_data.getId());
 
-                logger.Log("SwiftIn - SwiftIn Scheduler","End","END");
 
                 return new ResponseEntity<>("SwiftIn Success", HttpStatus.OK);
             }else{
@@ -127,23 +131,25 @@ public class SwiftInController {
 
         }
         catch (Exception e){
-            logger.Log("SwiftIn - SwiftIn Scheduler","Error","ERROR",e.getMessage());
+            logger.Log(LoggerID,"SwiftIn - SwiftIn Scheduler","Error","ERROR",e.getMessage());
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     @GetMapping("/DuplicateSwiftIn")
     public ResponseEntity<String> DuplicateSwiftIn(){
+        long LoggerId = 0;
         try{
             LogQueueData _data = new LogQueueData();
             _data.setMessageUID(new MQUtil().getMessageUID());
             _data.setOrigin("Integrator Scheduler");
             _data.setCreated_date(new Date());
-            dataDTO.save(_data);
-            logger.SetLogParent(_data.getId());
-            logger.Log("Duplicator - SwiftIn Duplicator Scheduler","Start","START");
+            _data = dataDTO.save(_data);
+            LoggerId = _data.getId();
+//            logger.SetLogParent(_data.getId());
+            logger.Log(_data.getId(),"Duplicator - SwiftIn Duplicator Scheduler","Start","START");
 
-            swiftIn.duplicateSwift(logger);
-            logger.Log("Duplicator - SwiftIn Duplicator Scheduler","End","END");
+            swiftIn.duplicateSwift(LoggerId);
+            logger.Log(_data.getId(),"Duplicator - SwiftIn Duplicator Scheduler","End","END");
 
 
         return new ResponseEntity<>("Duplicate SwiftIn Success", HttpStatus.OK);
@@ -151,7 +157,7 @@ public class SwiftInController {
 
         }
         catch (Exception e){
-            logger.Log("SwiftIn - SwiftIn Scheduler","Error","ERROR",e.getMessage());
+            logger.Log(LoggerId,"SwiftIn - SwiftIn Scheduler","Error","ERROR",e.getMessage());
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

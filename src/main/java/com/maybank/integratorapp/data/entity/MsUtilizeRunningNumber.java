@@ -15,15 +15,15 @@ public class MsUtilizeRunningNumber {
     private Long companyLimitId;
     @ManyToOne
     @JoinColumn(name = "companyLimitId", insertable = false, updatable = false)
-    private MsFacility facility;
+    private MsCompanyLimit msCompanyLimit;
     private int runningNumber;
 
-    public MsFacility getFacility() {
-        return facility;
+    public MsCompanyLimit getMsCompanyLimit() {
+        return msCompanyLimit;
     }
 
-    public void setFacility(MsFacility facility) {
-        this.facility = facility;
+    public void setMsCompanyLimit(MsCompanyLimit msCompanyLimit) {
+        this.msCompanyLimit = msCompanyLimit;
     }
 
     public Long getId() {

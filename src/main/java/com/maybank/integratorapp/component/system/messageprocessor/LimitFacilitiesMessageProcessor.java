@@ -58,10 +58,11 @@ public class LimitFacilitiesMessageProcessor {
 
     private final String ProcessName = "LimitFacilitiesProcess";
 
-
+    private long LoggerId;
     public String processMessage(String message,Long loggerId) {
         String responseXml = "";
-        logger.SetLogParent(loggerId);
+        this.LoggerId = loggerId;
+//        logger.SetLogParent(loggerId);
 
         try {
             // step 1. Parse request message
@@ -140,7 +141,7 @@ public class LimitFacilitiesMessageProcessor {
             responseXml = xmlMapper.writeValueAsString(response);
 
         } catch (Exception e) {
-            logger.Log(ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
 
         }
         return responseXml;
@@ -158,7 +159,7 @@ public class LimitFacilitiesMessageProcessor {
         try {
             request = xmlMapper.readValue(message, ServiceRequest.class);
         } catch (JsonProcessingException e) {
-            logger.Log(ProcessName, "Error Json Processing", "ERROR-JSON-PROCESS", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Json Processing", "ERROR-JSON-PROCESS", e.getMessage());
             handleExceptionResponse(e.getMessage());
             request = null;
         }
@@ -232,7 +233,7 @@ public class LimitFacilitiesMessageProcessor {
                 throw new RuntimeException(e);
             }
 
-            logger.Log(ProcessName, "ESB-REQUEST ","DEBUG", xml);
+            logger.Log(this.LoggerId,ProcessName, "ESB-REQUEST ","DEBUG", xml);
 
             ResponseHeader responseHeaderMq = new ResponseHeader();
             FacilitiesResponse facilitiesResponseMq = new FacilitiesResponse();
@@ -251,7 +252,7 @@ public class LimitFacilitiesMessageProcessor {
                         var _resStream = _res.getContent();
 
                         var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
-                        logger.Log(ProcessName, "ESB-RESPONSE ","DEBUG", outputResponse);
+                        logger.Log(this.LoggerId,ProcessName, "ESB-RESPONSE ","DEBUG", outputResponse);
 
                         _response = outputResponse;
                         res = mapper.readValue(_response, com.maybank.integratorapp.model.soap.
@@ -349,7 +350,7 @@ public class LimitFacilitiesMessageProcessor {
                 e.printStackTrace();
             }
         } catch (Exception e) {
-            logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
         }
         return serviceResponseMq;
@@ -388,7 +389,7 @@ public class LimitFacilitiesMessageProcessor {
         try {
             xml = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapReq);
 
-            System.out.println(xml);
+//            System.out.println(xml);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

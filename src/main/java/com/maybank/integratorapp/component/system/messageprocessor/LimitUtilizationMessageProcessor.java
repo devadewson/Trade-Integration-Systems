@@ -54,10 +54,12 @@ public class LimitUtilizationMessageProcessor {
     @Autowired
     private MsBranchService msBranchService;
 
+    private Long LoggerId;
 
     public String processMessage(String message,Long loggerId) {
         String responseXml = "";
-        logger.SetLogParent(loggerId);
+        this.LoggerId = loggerId;
+//        logger.SetLogParent(loggerId);
 
         try {
             // step 1. Parse request message
@@ -95,7 +97,7 @@ public class LimitUtilizationMessageProcessor {
 
                 FtiTransactionDetail _lastLimitAction = null;
                 if(_listTransactionDetail.stream().count()>0){
-//                    logger.Log(ProcessName, "Transaction Detail Count : "+_listTransactionDetail.stream().count(), "DEBUG");
+//                    logger.Log(this.LoggerId,ProcessName, "Transaction Detail Count : "+_listTransactionDetail.stream().count(), "DEBUG");
 
                     _lastLimitAction = _listTransactionDetail.get((int) (_listTransactionDetail.stream().count()-1));
                     if(_lastLimitAction.getCoreSysName().contains("XL2B")){
@@ -144,7 +146,7 @@ public class LimitUtilizationMessageProcessor {
             responseXml = xmlMapper.writeValueAsString("");
 
         } catch (Exception e) {
-            logger.Log(ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
 
         }
         return responseXml;
@@ -162,7 +164,7 @@ public class LimitUtilizationMessageProcessor {
         try {
             request = xmlMapper.readValue(message, ServiceRequest.class);
         } catch (JsonProcessingException e) {
-            logger.Log(ProcessName, "Error Json Processing", "ERROR-JSON-PROCESS", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Json Processing", "ERROR-JSON-PROCESS", e.getMessage());
             handleExceptionResponse(e.getMessage());
             request = null;
         }
@@ -314,7 +316,7 @@ public class LimitUtilizationMessageProcessor {
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-            logger.Log(ProcessName, "Hit ESB Message", "ESB-MESSAGE", xmlString);
+            logger.Log(this.LoggerId,ProcessName, "Hit ESB Message", "ESB-MESSAGE", xmlString);
 
             com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope cmsResponseXL41 = null;
 
@@ -332,7 +334,7 @@ public class LimitUtilizationMessageProcessor {
                     var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
 
                     _response = outputResponse;
-                    logger.Log(ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
+                    logger.Log(this.LoggerId,ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
 
                     cmsResponseXL41 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope.class);
                     res = cmsResponseXL41;
@@ -347,7 +349,7 @@ public class LimitUtilizationMessageProcessor {
                             getCmsXl41Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("status1")).findFirst().get().getValue();
 
                     FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
-                    ftiTransactionDetail.setTransMessageLogId(logger.getIdLogParent());
+                    ftiTransactionDetail.setTransMessageLogId(LoggerId);
                     ftiTransactionDetail.setFtiEvent(eventCode);
                     ftiTransactionDetail.setCoreSysName("CLS-XL41");
                     ftiTransactionDetail.setTransName("Utilization");
@@ -364,11 +366,11 @@ public class LimitUtilizationMessageProcessor {
 
                 }
             } catch (Exception e) {
-                logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+                logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
             }
         } catch (Exception e) {
-            logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
         }
         return res;
@@ -397,7 +399,7 @@ public class LimitUtilizationMessageProcessor {
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-            logger.Log(ProcessName, "Hit ESB Message", "ESB-MESSAGE", xmlString);
+            logger.Log(this.LoggerId,ProcessName, "Hit ESB Message", "ESB-MESSAGE", xmlString);
 
             com.maybank.integratorapp.model.soap.limit.XL40.response.SoapEnvelope cmsResponseXL40 = null;
 
@@ -415,7 +417,7 @@ public class LimitUtilizationMessageProcessor {
                     var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
 
                     _response = outputResponse;
-                    logger.Log(ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
+                    logger.Log(this.LoggerId,ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
 
                     cmsResponseXL40 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL40.response.SoapEnvelope.class);
                     res = cmsResponseXL40;
@@ -430,7 +432,7 @@ public class LimitUtilizationMessageProcessor {
                             getCmsXl40Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message_1")).findFirst().get().getValue();
 
                     FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
-                    ftiTransactionDetail.setTransMessageLogId(logger.getIdLogParent());
+                    ftiTransactionDetail.setTransMessageLogId(LoggerId);
                     ftiTransactionDetail.setFtiEvent(eventCode);
                     ftiTransactionDetail.setCoreSysName("CLS-XL40");
                     ftiTransactionDetail.setTransName("Utilization");
@@ -447,11 +449,11 @@ public class LimitUtilizationMessageProcessor {
 
                 }
             } catch (Exception e) {
-                logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+                logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
             }
         } catch (Exception e) {
-            logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
         }
         return res;

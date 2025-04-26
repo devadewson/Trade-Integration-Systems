@@ -48,11 +48,12 @@ public class LimitReversalMessageProcessor {
     private final String ProcessName = "LimitReversalProcess";
     @Autowired
     MsCompanyLimitService msCompanyLimitService;
-
+    private long LoggerId;
 
     public String processMessage(String message,Long loggerId) {
         String responseXml = "";
-        logger.SetLogParent(loggerId);
+        this.LoggerId = loggerId;
+//        logger.SetLogParent(loggerId);
 
         try {
             // step 1. Parse request message
@@ -100,7 +101,7 @@ public class LimitReversalMessageProcessor {
             responseXml = xmlMapper.writeValueAsString(response);
 
         } catch (Exception e) {
-            logger.Log(ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
 
         }
         return responseXml;
@@ -118,7 +119,7 @@ public class LimitReversalMessageProcessor {
         try {
             request = xmlMapper.readValue(message, ServiceRequest.class);
         } catch (JsonProcessingException e) {
-            logger.Log(ProcessName, "Error Json Processing", "ERROR-JSON-PROCESS", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Json Processing", "ERROR-JSON-PROCESS", e.getMessage());
             handleExceptionResponse(e.getMessage());
             request = null;
         }
@@ -219,7 +220,7 @@ public class LimitReversalMessageProcessor {
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-            logger.Log(ProcessName, "Hit ESB Message", "ESB-MESSAGE", xmlString);
+            logger.Log(this.LoggerId,ProcessName, "Hit ESB Message", "ESB-MESSAGE", xmlString);
 
             com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope cmsResponseXL41 = null;
 
@@ -237,7 +238,7 @@ public class LimitReversalMessageProcessor {
                     var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
 
                     _response = outputResponse;
-                    logger.Log(ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
+                    logger.Log(this.LoggerId,ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
 
                     cmsResponseXL41 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope.class);
                     String responseCode = cmsResponseXL41
@@ -251,7 +252,7 @@ public class LimitReversalMessageProcessor {
                             getCmsXl41Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("status1")).findFirst().get().getValue();
 
                     FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
-                    ftiTransactionDetail.setTransMessageLogId(logger.getIdLogParent());
+                    ftiTransactionDetail.setTransMessageLogId(LoggerId);
                     ftiTransactionDetail.setFtiEvent(eventCode);
                     ftiTransactionDetail.setCoreSysName("CLS-XL41");
                     ftiTransactionDetail.setTransName("Reversal");
@@ -268,11 +269,11 @@ public class LimitReversalMessageProcessor {
 
                 }
             } catch (Exception e) {
-                logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+                logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
             }
         } catch (Exception e) {
-            logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
         }
         return res;

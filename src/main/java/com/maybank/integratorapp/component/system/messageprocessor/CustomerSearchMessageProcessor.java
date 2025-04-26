@@ -48,10 +48,12 @@ public class CustomerSearchMessageProcessor {
 
     private final String ProcessName = "CustomerSearchProcess";
 
+    private Long LoggerId;
 
     public String processMessage(String message,Long loggerId) {
         String responseXml = "";
-        logger.SetLogParent(loggerId);
+        this.LoggerId = loggerId;
+//        logger.SetLogParent(loggerId);
 
         try {
             // step 1. Parse request message
@@ -118,7 +120,7 @@ public class CustomerSearchMessageProcessor {
                     accountList_responseMessage = msgResponse.getMsg().getMsgHeader().getStatusDesc();
                     accountList_add_responseStatus = msgResponse.getMsg().getMsgHeader().getAdditionalStatusCodes().get(0).getHostStatusCode();
                     accountList_add_responseMessage = msgResponse.getMsg().getMsgHeader().getAdditionalStatusCodes().get(0).getHostStatusDesc();
-                    logger.Log(ProcessName, "Response ESB Account Info", "ESB-MESSAGE", accountList_responseStatus+"|"+accountList_responseMessage+";"+accountList_add_responseStatus+"|"+accountList_add_responseMessage);
+                    logger.Log(this.LoggerId,ProcessName, "Response ESB Account Info", "ESB-MESSAGE", accountList_responseStatus+"|"+accountList_responseMessage+";"+accountList_add_responseStatus+"|"+accountList_add_responseMessage);
 
                 }
 
@@ -131,7 +133,7 @@ public class CustomerSearchMessageProcessor {
                         customerInfo_responseMessage = msgResponse2.getMsg().getMsgHeader().getStatusDesc();
                         customerInfo_add_responseStatus = msgResponse2.getMsg().getMsgHeader().getAdditionalStatusCodes().get(0).getHostStatusCode();
                         customerInfo_add_responseMessage = msgResponse2.getMsg().getMsgHeader().getAdditionalStatusCodes().get(0).getHostStatusDesc();
-                        logger.Log(ProcessName, "Response ESB Customer Info", "ESB-MESSAGE", customerInfo_responseStatus+"|"+customerInfo_responseMessage+";"+customerInfo_add_responseStatus+"|"+customerInfo_add_responseMessage);
+                        logger.Log(this.LoggerId,ProcessName, "Response ESB Customer Info", "ESB-MESSAGE", customerInfo_responseStatus+"|"+customerInfo_responseMessage+";"+customerInfo_add_responseStatus+"|"+customerInfo_add_responseMessage);
 
                     }
 
@@ -148,7 +150,7 @@ public class CustomerSearchMessageProcessor {
             responseXml = xmlMapper.writeValueAsString(response);
 
         } catch (Exception e) {
-            logger.Log(ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Processing Message", "ERROR-PROCESS-MESSAGE", e.getMessage());
 
         }
         return responseXml;
@@ -166,7 +168,7 @@ public class CustomerSearchMessageProcessor {
         try {
             request = xmlMapper.readValue(message, ServiceRequest.class);
         } catch (JsonProcessingException e) {
-            logger.Log(ProcessName, "Error Json Processing", "ERROR-JSON-PROCESS", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Json Processing", "ERROR-JSON-PROCESS", e.getMessage());
             handleExceptionResponse(e.getMessage());
             request = null;
         }
@@ -242,7 +244,7 @@ public class CustomerSearchMessageProcessor {
 
             // String Reqjson = objectMapper.writeValueAsString(body);
             String json = objectMapper.writeValueAsString(wraperRequest);
-            logger.Log(ProcessName, "Hit ESB Message", "ESB-MESSAGE", json);
+            logger.Log(this.LoggerId,ProcessName, "Hit ESB Message", "ESB-MESSAGE", json);
             // Kirim request ke API eksternal
             try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
                 HttpPost httpPost = new HttpPost(api);
@@ -251,7 +253,7 @@ public class CustomerSearchMessageProcessor {
 
                 try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
                     String responseString = EntityUtils.toString(response.getEntity());
-                    logger.Log(ProcessName, "Response ESB Message", "ESB-MESSAGE", responseString);
+                    logger.Log(this.LoggerId,ProcessName, "Response ESB Message", "ESB-MESSAGE", responseString);
                     res = objectMapper.readValue(responseString, com.maybank.integratorapp.model.restv2.AccountList.response.MsgWraper.class);
 
                     if(res.getMsg().getMsgHeader().getStatusCode().equals("0")){
@@ -281,13 +283,13 @@ public class CustomerSearchMessageProcessor {
 
 
                 } catch (Exception e) {
-                    logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+                    logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
                 }
             } catch (IOException e) {
-                logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+                logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
             }
         } catch (IOException e) {
-            logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
         }
         return res;
@@ -313,7 +315,7 @@ public class CustomerSearchMessageProcessor {
 
             // String Reqjson = objectMapper.writeValueAsString(body);
             String json = objectMapper.writeValueAsString(wraperRequest);
-            logger.Log(ProcessName, "Hit ESB Message", "ESB-MESSAGE", json);
+            logger.Log(this.LoggerId,ProcessName, "Hit ESB Message", "ESB-MESSAGE", json);
 
             // Kirim request ke API eksternal
             try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
@@ -323,7 +325,7 @@ public class CustomerSearchMessageProcessor {
 
                 try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
                     String responseString = EntityUtils.toString(response.getEntity());
-                    logger.Log(ProcessName, "Response ESB Message", "ESB-MESSAGE", responseString);
+                    logger.Log(this.LoggerId,ProcessName, "Response ESB Message", "ESB-MESSAGE", responseString);
 
                     res = objectMapper.readValue(responseString, com.maybank.integratorapp.model.restv2.CustomerInformation.response.MsgWraper.class);
                     String gcifNo = request.getCustomerSearchRequest().getCustomerNumber();
@@ -345,13 +347,13 @@ public class CustomerSearchMessageProcessor {
 
 
                 } catch (Exception e) {
-                    logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+                    logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
                 }
             } catch (IOException e) {
-                logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+                logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
             }
         } catch (IOException e) {
-            logger.Log(ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+            logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
 
         }
         return res;

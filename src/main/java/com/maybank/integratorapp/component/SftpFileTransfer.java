@@ -43,7 +43,8 @@ public class SftpFileTransfer {
             String destination2SftpUser,
             String destination2SftpPassword,
             String destination2SftpPath,
-            LogInterfaceProcessService logger) {
+            LogInterfaceProcessService logger,
+            long loggerId) {
 //        String remoteFilePath = "/path/on/remote/server/file.txt";
 
         List<String> fileProcessed = new ArrayList<>();
@@ -74,7 +75,7 @@ public class SftpFileTransfer {
             destination2ChannelSftp.connect();
 
 
-            logger.Log("SwiftIn - Forward Swift File","Forward swift file from SwiftSAA","CONNECTED");
+            logger.Log(loggerId,"SwiftIn - Forward Swift File","Forward swift file from SwiftSAA","CONNECTED");
 
             // Download file from the SFTP server
             Vector<ChannelSftp.LsEntry> fileList = sourceChannelSftp.ls(remoteDirectoryPath);
@@ -98,14 +99,14 @@ public class SftpFileTransfer {
                     // Delete the temporary file
                     tempFile.delete();
 //                        System.out.println("Downloaded SWIFT file: " + entry.getFilename());
-                    logger.Log("SwiftIn - Forward Swift File","Forward swift file from SwiftSAA","FORWARDED",entry.getFilename());
+                    logger.Log(loggerId,"SwiftIn - Forward Swift File","Forward swift file from SwiftSAA","FORWARDED",entry.getFilename());
 
                 }
             }
 
         } catch (Exception e) {
 //            e.printStackTrace();
-            logger.Log("SwiftIn - Forward Swift File","Forward swift file from SwiftSAA","ERROR",e.getMessage());
+            logger.Log(loggerId,"SwiftIn - Forward Swift File","Forward swift file from SwiftSAA","ERROR",e.getMessage());
 
         } finally {
             // Close SFTP channel and session
@@ -132,7 +133,7 @@ public class SftpFileTransfer {
 
         }
     }
-    public List<String> getSwiftFile(String localDirectoryPath, LogInterfaceProcessService logger) {
+    public List<String> getSwiftFile(String localDirectoryPath, LogInterfaceProcessService logger,long loggerId) {
 //        String remoteFilePath = "/path/on/remote/server/file.txt";
 
         List<String> fileProcessed = new ArrayList<>();
@@ -154,7 +155,7 @@ public class SftpFileTransfer {
             // Open SFTP channel
             channelSftp = (ChannelSftp) session.openChannel("sftp");
             channelSftp.connect();
-            logger.Log("SwiftIn - Downloading Swift File","Download swift file from SwiftSAA","CONNECTED");
+            logger.Log(loggerId,"SwiftIn - Downloading Swift File","Download swift file from SwiftSAA","CONNECTED");
 
             // Upload all files from the local directory to the remote directory
 //            File localDirectory = new File(localDirectoryPath);
@@ -180,7 +181,7 @@ public class SftpFileTransfer {
                     try (OutputStream outputStream = new FileOutputStream(localFilePath)) {
                         channelSftp.get(remoteFilePath, outputStream);
 //                        System.out.println("Downloaded SWIFT file: " + entry.getFilename());
-                        logger.Log("SwiftIn - Downloading Swift File","Download swift file from SwiftSAA","DOWNLOADED",entry.getFilename());
+                        logger.Log(loggerId,"SwiftIn - Downloading Swift File","Download swift file from SwiftSAA","DOWNLOADED",entry.getFilename());
 
                         channelSftp.rm(remoteFilePath);
                         fileProcessed.add(localFilePath);
@@ -190,7 +191,7 @@ public class SftpFileTransfer {
 
         } catch (Exception e) {
 //            e.printStackTrace();
-            logger.Log("SwiftIn - Downloading Swift File","Download swift file from SwiftSAA","ERROR",e.getMessage());
+            logger.Log(loggerId,"SwiftIn - Downloading Swift File","Download swift file from SwiftSAA","ERROR",e.getMessage());
 
         } finally {
             // Close SFTP channel and session
@@ -204,7 +205,7 @@ public class SftpFileTransfer {
             return fileProcessed;
         }
     }
-    public void putSwiftFile(String localDirectoryPath, LogInterfaceProcessService logger) {
+    public void putSwiftFile(String localDirectoryPath, LogInterfaceProcessService logger,long loggerId) {
 //        String remoteFilePath = "/path/on/remote/server/file.txt";
 
         JSch jsch = new JSch();
@@ -227,7 +228,7 @@ public class SftpFileTransfer {
             // Open SFTP channel
             channelSftp = (ChannelSftp) session.openChannel("sftp");
             channelSftp.connect();
-            logger.Log("SwiftOut - Sending Swift File","Sending swift file from local","CONNECTED");
+            logger.Log(loggerId,"SwiftOut - Sending Swift File","Sending swift file from local","CONNECTED");
 
             // Upload all files from the local directory to the remote directory
             File localDirectory = new File(localDirectoryPath);
@@ -237,7 +238,7 @@ public class SftpFileTransfer {
                         try (InputStream inputStream = new FileInputStream(file)) {
                             channelSftp.put(inputStream, remoteDirectoryPath + file.getName());
 //                            System.out.println("Uploaded SWIFT file: " + file.getName());
-                            logger.Log("SwiftOut - Sending Swift File","Sending swift file from local","UPLOADED",file.getName());
+                            logger.Log(loggerId,"SwiftOut - Sending Swift File","Sending swift file from local","UPLOADED",file.getName());
 
                         }
                     }
@@ -261,7 +262,7 @@ public class SftpFileTransfer {
 
         } catch (Exception e) {
 //            e.printStackTrace();
-            logger.Log("SwiftOut - Sending Swift File","Sending swift file from local","ERROR",e.getMessage());
+            logger.Log(loggerId,"SwiftOut - Sending Swift File","Sending swift file from local","ERROR",e.getMessage());
 
         } finally {
             // Close SFTP channel and session

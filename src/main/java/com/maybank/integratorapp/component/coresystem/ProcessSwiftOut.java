@@ -32,7 +32,7 @@ public class ProcessSwiftOut {
 
         try {
 
-            this.logger.SetLogParent(idLogParent);
+//            this.logger.SetLogParent(idLogParent);
             // Sftp Config
             String sftpHost = repo.findValueByPrmKey("SwiftOutSftpAddress");
             String sftpUsername = repo.findValueByPrmKey("SwiftOutSftpUsername");
@@ -63,7 +63,7 @@ public class ProcessSwiftOut {
 //                    if (!updatedContent.endsWith("\r\n")) {
 //                        out.print("\r\n");
 //                    }
-                    logger.Log("SwiftOut - Creating Swift File","Creating swift file from data","DATA-LOCAL",str);
+                    logger.Log(idLogParent,"SwiftOut - Creating Swift File","Creating swift file from data","DATA-LOCAL",str);
 
                 }
                 i++;
@@ -71,11 +71,11 @@ public class ProcessSwiftOut {
 
             // Transfer all file
             SftpFileTransfer sftp = new SftpFileTransfer(sftpHost,sftpUsername,sftpPassword,sftpPath);
-            sftp.putSwiftFile(specificPath,logger);
+            sftp.putSwiftFile(specificPath,logger,idLogParent);
 
 
         } catch (Exception e) {
-            logger.Log("SwiftOut - Creating Swift File","Creating swift file from data","ERROR",e.getMessage());
+            logger.Log(idLogParent,"SwiftOut - Creating Swift File","Creating swift file from data","ERROR",e.getMessage());
 
         }
 

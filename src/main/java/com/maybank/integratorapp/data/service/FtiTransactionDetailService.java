@@ -59,7 +59,10 @@ public class FtiTransactionDetailService {
         ftiTransaction.setUpdateDate(new Date());
         ftiTransactionService.createOrUpdateFtiTransaction(ftiTransaction);
 
-        emailService.sendTransactionNotification(savedDetail);
+        if(savedDetail.getCoreSysStatus() != null){
+            emailService.sendTransactionNotification(savedDetail);
+
+        }
 
         return savedDetail;
     }
