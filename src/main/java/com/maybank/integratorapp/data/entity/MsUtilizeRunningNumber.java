@@ -14,6 +14,9 @@ public class MsUtilizeRunningNumber {
     private Long facilityId;
     private Long companyLimitId;
     @ManyToOne
+    @JoinColumn(name = "facilityId", insertable = false, updatable = false)
+    private MsFacility facility;
+    @ManyToOne
     @JoinColumn(name = "companyLimitId", insertable = false, updatable = false)
     private MsCompanyLimit msCompanyLimit;
     private int runningNumber;
@@ -24,6 +27,14 @@ public class MsUtilizeRunningNumber {
 
     public void setMsCompanyLimit(MsCompanyLimit msCompanyLimit) {
         this.msCompanyLimit = msCompanyLimit;
+    }
+
+    public MsFacility getFacility() {
+        return facility;
+    }
+
+    public void setFacility(MsFacility facility) {
+        this.facility = facility;
     }
 
     public Long getId() {

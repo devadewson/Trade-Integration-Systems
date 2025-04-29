@@ -25,10 +25,7 @@ import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
@@ -95,7 +92,7 @@ public class LimitUtilizationMessageProcessor {
                 boolean needXL40 = false;
                 boolean needXL41 = false;
 
-                FtiTransactionDetail _lastLimitAction = null;
+                FtiTransactionDetail _lastLimitAction;
                 if(_listTransactionDetail.stream().count()>0){
 //                    logger.Log(this.LoggerId,ProcessName, "Transaction Detail Count : "+_listTransactionDetail.stream().count(), "DEBUG");
 
@@ -105,13 +102,19 @@ public class LimitUtilizationMessageProcessor {
                     }else if(_lastLimitAction.getCoreSysName().contains("XL31")){
                         needXL41 = true;
                         // check whether before XL31 there is XL2B
-                        FtiTransactionDetail _beforeLastLimitAction = ftiTransactionDetailService.getById(_lastLimitAction.getId()-1);
-                        if(_beforeLastLimitAction.getCoreSysName().contains("XL2B")){
+                        List<FtiTransactionDetail> _listTransaction = ftiTransactionDetailService.getDetailsByHeaderId(_lastLimitAction.getHeaderId());
+                        Optional<FtiTransactionDetail> _beforeLastLimitAction = _listTransaction.stream().filter(x ->
+                                x.getCoreSysName().equals("CLS-XL2B") && x.getCoreSysStatus().equals("00") && x.getFtiEvent().equals(_lastLimitAction.getFtiEvent()) && x.getId()< _lastLimitAction.getId()
+                        ).max(Comparator.comparing(FtiTransactionDetail::getId));
+//                        FtiTransactionDetail _beforeLastLimitAction = ftiTransactionDetailService.getById(_lastLimitAction.getId()-1);
+                        if(_beforeLastLimitAction.isPresent()){
                             needXL40 = true;
                         }
                     }
 
 
+                } else {
+                    _lastLimitAction = null;
                 }
                 if(needXL40){
                     // step 3.

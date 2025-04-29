@@ -240,6 +240,9 @@ public class ProcessCompositeTBR {
     public void postTbr(String referenceID,PostingGroup data, Long groupId, Long idtransactiondetail){
         try{
             String cifno = data.getPostings().stream().findFirst().get().getCustomerMnemonic();
+            if (data.getPostings().stream().findFirst().get().getCustomerMnemonic() == null){
+                cifno = data.getPostings().stream().findFirst().get().getRelatedParty();
+            }
             String postingBranch = data.getPostings().stream().findFirst().get().getPostingBranch();
 
             String branch = "003";
