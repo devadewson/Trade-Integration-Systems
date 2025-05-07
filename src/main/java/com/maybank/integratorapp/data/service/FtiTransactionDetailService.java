@@ -28,6 +28,9 @@ public class FtiTransactionDetailService {
     public List<FtiTransactionDetail> getDetailsByHeaderId(Long headerId) {
         return ftiTransactionDetailRepository.findByHeaderId(headerId);
     }
+    public List<FtiTransactionDetail> getDetailsByTransMessageLogId(Long transMessageLogId) {
+        return ftiTransactionDetailRepository.findByHeaderId(transMessageLogId);
+    }
     public FtiTransactionDetail createDetailByMasterRefNo(String masterRefNo, FtiTransactionDetail detail) {
         // Find the FtiTransaction by masterRefNo
         FtiTransaction ftiTransaction = ftiTransactionService.findByMasterRefNo(masterRefNo)

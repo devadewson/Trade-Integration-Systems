@@ -18,6 +18,8 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -29,6 +31,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 @Component
 public class LimitFacilitiesMessageProcessor {
+    private static Logger log = LoggerFactory.getLogger(LimitFacilitiesMessageProcessor.class);
     @Autowired
     LogInterfaceProcessService logger;
     @Autowired
@@ -228,7 +231,7 @@ public class LimitFacilitiesMessageProcessor {
             try {
                 xml = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapReq);
 
-//                System.out.println(xml);
+//                log.info(xml);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
@@ -338,10 +341,10 @@ public class LimitFacilitiesMessageProcessor {
 
                                 listFacilityUtilize.add(utilize);
                             });
-                            msFacilityUtilizeRepository.saveAll(listFacilityUtilize);
+                            List<MsFacilityUtilize> _listFacilityUtilize = (List<MsFacilityUtilize>) msFacilityUtilizeRepository.saveAll(listFacilityUtilize);
 
                             // Simpan draw terakhir ke MsRunningNumber
-                            saveLatestDrawNumber(listFacilityUtilize);
+                            saveLatestDrawNumber(_listFacilityUtilize);
 
                         }
                     }
@@ -389,7 +392,7 @@ public class LimitFacilitiesMessageProcessor {
         try {
             xml = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapReq);
 
-//            System.out.println(xml);
+//            log.info(xml);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -418,9 +421,9 @@ public class LimitFacilitiesMessageProcessor {
                             limit.XLBT.response.SoapEnvelope.class);
 
                     String asd = mapper.writeValueAsString(res);
-//                    System.out.println("===========================XLBT=================================");
-//                    System.out.println(asd.substring(0,100)+"...");
-//                    System.out.println("============================================================\n");
+//                    log.info("===========================XLBT=================================");
+//                    log.info(asd.substring(0,100)+"...");
+//                    log.info("============================================================\n");
 
                     // Proses dan pecah key
                     List<LoanAccounts> loanAccountsList = res.getBody().getXlbtResponse().getCmsXlbtResponse().getLoanAccounts();
@@ -465,7 +468,7 @@ public class LimitFacilitiesMessageProcessor {
                                 _existing.setCommitmentBalance(facility.getCommitmentBalance());
                                 _existing.setCommitmentBalanceSign(facility.getCommitmentBalanceSign());
                                 _existing.setStatus(facility.getStatus());
-                                msFacilityRepository.save(_existing);
+                                _existing =msFacilityRepository.save(_existing);
 
                             }
 
@@ -519,7 +522,7 @@ public class LimitFacilitiesMessageProcessor {
                         // Simpan draw terakhir ke MsRunningNumber
                         updateLatestDrawNumber(existingUtilized);
 
-                        System.out.println("Successfully Refreshing Limit : "+cifno);
+                        log.info("Successfully Refreshing Limit : "+cifno);
 
 
                     }
@@ -527,7 +530,7 @@ public class LimitFacilitiesMessageProcessor {
             }
         } catch (IOException e) {
             e.printStackTrace();
-            System.out.println(e.getMessage());
+            log.error(e.getMessage());
         }
 
 //        return serviceResponseMq;
@@ -594,7 +597,7 @@ public class LimitFacilitiesMessageProcessor {
 
         } else {
 //                        responseXml = "<response>Data fasilitas tidak ditemukan</response>";
-//                        System.out.println("Tidak ada data fasilitas untuk CIF " + cifno);
+//                        log.info("Tidak ada data fasilitas untuk CIF " + cifno);
             responseHeader.setStatus("FAILED");
             responseHeader.setDetails(new Details());
             responseHeader.getDetails().setError("Facilities Not Found For CIF: "+cifno);
@@ -667,7 +670,7 @@ public class LimitFacilitiesMessageProcessor {
 
         // Print result
 //        highestByGroup.forEach((id, facility) ->
-//                System.out.println("Facility ID: " + id + ", Highest KeyLoanAcc: " + facility.getKeyLoanAcc()));
+//                log.info("Facility ID: " + id + ", Highest KeyLoanAcc: " + facility.getKeyLoanAcc()));
 
         facilityGroupedById.forEach((facilityId, utilizes) -> {
             MsFacilityUtilize latestDraw = utilizes.stream()

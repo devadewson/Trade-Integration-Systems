@@ -11,6 +11,7 @@ import com.maybank.integratorapp.data.service.*;
 import com.maybank.integratorapp.model.mq.reservation.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.reservation.response.*;
 import com.maybank.integratorapp.model.soap.limit.XL01.request.SoapEnvelope;
+import com.maybank.integratorapp.service.EmailService;
 import jakarta.jms.JMSException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -18,6 +19,8 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +33,7 @@ import java.util.stream.Collectors;
 
 @Component
 public class LimitReservationMessageProcessor {
+    private static Logger log = LoggerFactory.getLogger(LimitReservationMessageProcessor.class);
     @Autowired
     LimitUtilizationMessageProcessor utilizationMessageProcessor;
     @Autowired
@@ -41,6 +45,8 @@ public class LimitReservationMessageProcessor {
     @Autowired
     MsFacilityRepository msFacilityRepository;
 
+    @Autowired
+    EmailService emailService;
     @Autowired
     MsBranchService msBranchService;
 
@@ -130,8 +136,8 @@ public class LimitReservationMessageProcessor {
 //                String newKeyLoanAcc = null;
 //                String acctReqXL01 = null;
 //
-//                System.out.println("Facility ID: " + facilityId);
-//                System.out.println("LineOfBusiness: " + lineOfBusiness);
+//                log.info("Facility ID: " + facilityId);
+//                log.info("LineOfBusiness: " + lineOfBusiness);
 //
 //                // cek dulu di table referensi transaksinya
 //
@@ -145,24 +151,24 @@ public class LimitReservationMessageProcessor {
 //                    newRunning.setRunningNumber(0);
 //                    msUtilizeRunningNumberRepository.save(newRunning);
 //                    runningNumberEntry = newRunning;
-//                    System.out.println("No Running Number found for Facility ID: " + facilityId);
+//                    log.info("No Running Number found for Facility ID: " + facilityId);
 //                }
 //                // Ambil Running Number dan pastikan format 3 digit
 //                int runningNumber = runningNumberEntry.getRunningNumber();
 //                String formattedRunningNumber = String.format("%03d", runningNumber + 1);
-//                System.out.println("Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber);
+//                log.info("Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber);
 //
 //                // Buat keyLoanAcc baru dengan mengganti bagian draw
 //                String customFacilityIdentifier = buildCustomFacilityIdentifier(facilityIdentifier);
-//                System.out.println("Facility Identifier: " + customFacilityIdentifier);
+//                log.info("Facility Identifier: " + customFacilityIdentifier);
 //
 //                // Buat keyLoanAcc baru dengan mengganti bagian draw
 //                newKeyLoanAcc = buildNewKey(facilityIdentifier, formattedRunningNumber);
-//                System.out.println("New KeyLoanAcc: " + newKeyLoanAcc);
+//                log.info("New KeyLoanAcc: " + newKeyLoanAcc);
 //
 //                // Buat formatted key untuk sistem proses
 //                acctReqXL01 = buildFormattedKey(facilityIdentifier, formattedRunningNumber);
-//                System.out.println("New Formatted Key: " + acctReqXL01);
+//                log.info("New Formatted Key: " + acctReqXL01);
 //
 //                // treat amend as issue for mapping purpose
 //                if(_eventCode.equals("AMD") || _eventCode.equals("ADJ"))
@@ -193,7 +199,7 @@ public class LimitReservationMessageProcessor {
 //                }
 //                logger.Log(this.LoggerId,ProcessName, "CLS Product Type search criteria "+productType+"|"+lineOfBusiness+"|"+_eventCode, "DEBUG");
 //
-//                System.out.println("CLS Product Type : " + cls001ProductType);
+//                log.info("CLS Product Type : " + cls001ProductType);
 //                logger.Log(this.LoggerId,ProcessName, "CLS Product Type : "+cls001ProductType, "DEBUG");
 //
 //                String xl01responseCode = "";
@@ -424,7 +430,7 @@ public class LimitReservationMessageProcessor {
 
                 LocalDate _startDate = LocalDate.parse(startdateRes, inputFormatter);
 //                String startDate = _startDate.format(outputFormatter);
-                String startDate = "011124";
+                String startDate = "041124";
 
                 LocalDate _expiryDate = LocalDate.parse(expireDateRes, inputFormatter);
                 String expiryDate = _expiryDate.format(outputFormatter);
@@ -432,7 +438,7 @@ public class LimitReservationMessageProcessor {
 
                 LocalDate _transDate = LocalDate.parse(transDateRes, inputFormatter);
 //                String transactionDate = _transDate.format(outputFormatter);
-                String transactionDate = "011124";
+                String transactionDate = "041124";
 
                 // Ambil semua MsFacility dengan keyLoanAcc yang sesuai
                 MsFacility facilities = msFacilityRepository.findByKeyLoanAcc(facilityIdentifier);
@@ -460,8 +466,8 @@ public class LimitReservationMessageProcessor {
                 boolean needXL2B = false;
                 boolean needXL31 = false;
 
-                System.out.println("Facility ID: " + facilityId);
-                System.out.println("LineOfBusiness: " + lineOfBusiness);
+//                log.info("Facility ID: " + facilityId);
+//                log.info("LineOfBusiness: " + lineOfBusiness);
 
 
 
@@ -479,22 +485,22 @@ public class LimitReservationMessageProcessor {
                     newRunning.setRunningNumber(0);
                     msUtilizeRunningNumberRepository.save(newRunning);
                     runningNumberEntry = newRunning;
-                    System.out.println("No Running Number found for Facility ID: " + facilityId);
+                    log.info("No Running Number found for Facility ID: " + facilityId);
                 }
                 // Ambil Running Number dan pastikan format 3 digit
                 int runningNumber = runningNumberEntry.getRunningNumber();
                 formattedRunningNumber = String.format("%03d", runningNumber + 1);
-//                System.out.println("Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber);
+//                log.info("Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber);
                 logger.Log(this.LoggerId,ProcessName, "Running Number for Facility ID " + facilityId + ": " + formattedRunningNumber, "DEBUG");
 
                 // Buat keyLoanAcc baru dengan mengganti bagian draw
                 newKeyLoanAcc = buildNewKey(facilityIdentifier, formattedRunningNumber);
-//                System.out.println("New KeyLoanAcc: " + newKeyLoanAcc);
+//                log.info("New KeyLoanAcc: " + newKeyLoanAcc);
                 logger.Log(this.LoggerId,ProcessName, "New KeyLoanAcc: " + newKeyLoanAcc, "DEBUG");
 
                 // Buat formatted key untuk sistem proses
                 acctReqXL01 = buildFormattedKey(facilityIdentifier, formattedRunningNumber);
-//                System.out.println("New Formatted Key: " + acctReqXL01);
+//                log.info("New Formatted Key: " + acctReqXL01);
                 logger.Log(this.LoggerId,ProcessName, "New Formatted Key: " + acctReqXL01, "DEBUG");
 
                 // cek dulu di table referensi transaksinya
@@ -542,8 +548,7 @@ public class LimitReservationMessageProcessor {
                             // jika cancel, bikin XL2B jadiin maturitydate nya jadi tanggal event cancel
                             if(_eventCode.equals("CAN") || _eventCode.equals("BCR")){
                                 _transDate = LocalDate.parse(transDateRes, inputFormatter);
-                                String _transactionDate = _transDate.format(outputFormatter);
-                                expiryDate = _transactionDate;
+                                expiryDate = _transDate.format(outputFormatter);
                                 needXL2B = true;
                             }
 
@@ -593,7 +598,7 @@ public class LimitReservationMessageProcessor {
                 }
                 logger.Log(this.LoggerId,ProcessName, "CLS Product Type search criteria "+productType+"|"+lineOfBusiness+"|"+_eventCode, "DEBUG");
 
-                System.out.println("CLS Product Type : " + cls001ProductType);
+//                log.info("CLS Product Type : " + cls001ProductType);
                 logger.Log(this.LoggerId,ProcessName, "CLS Product Type : "+cls001ProductType, "DEBUG");
 
 
@@ -757,12 +762,18 @@ public class LimitReservationMessageProcessor {
                     mapExternalResponse(xl31responseCode,xl31responseMessage,facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
                 }
 
+                // ketika tedeteksi tidak mengubah apa-apa
+                if(!needXL01 && !needXL2B && !needXL31){
 
 
+                    mapExternalResponse("00","Nothing Changed",facilityIdentifier,facilitySequence
+                    ,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
 
+                }
             }
 
             // step 6.
+//            sendEmailNotif();
             XmlMapper xmlMapper = new XmlMapper();
             xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             responseXml = xmlMapper.writeValueAsString(response);
@@ -837,6 +848,8 @@ public class LimitReservationMessageProcessor {
         if(_branch!=null){
             clientUserId = _branch.getUserId();
             clientSpvUserId = _branch.getSpvUserId();
+            if(clientSpvUserId.equals("-"))
+                clientSpvUserId = clientUserId;
         }
 
         soapReqXL01.getBody().getXl01Draw001().getChannelHeader().setAdditionalHeader("");
@@ -871,7 +884,7 @@ public class LimitReservationMessageProcessor {
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setRelCd("01");
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setStatus("A");
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setUseAcct1("2");
-        soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setUserCode("7755");
+        soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setUserCode(clientUserId);
 
 
         return soapReqXL01;
@@ -895,7 +908,7 @@ public class LimitReservationMessageProcessor {
             try {
                 xmlString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapReqXL01);
 
-                System.out.println(xmlString);
+//                log.info(xmlString);
 
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
@@ -920,14 +933,14 @@ public class LimitReservationMessageProcessor {
                     logger.Log(this.LoggerId,ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
 
                     if (_response.contains("Fault")) {
-                        System.out.println(_response);
+                        log.info(_response);
 
                     }
                     cmsResponseXL01 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL01.responseComplete.SoapEnvelope.class);
 
 
                     String xmlResponseXL01 = mapper.writeValueAsString(cmsResponseXL01);
-                    System.out.println(xmlResponseXL01);
+//                    log.info(xmlResponseXL01);
 
                     // Extract  response code
                     String responseCode = cmsResponseXL01
@@ -989,7 +1002,7 @@ public class LimitReservationMessageProcessor {
             try {
                 xmlString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapReqXL31);
 
-                System.out.println(xmlString);
+//                log.info(xmlString);
 
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
@@ -1013,13 +1026,13 @@ public class LimitReservationMessageProcessor {
                     _response = outputResponse;
                     logger.Log(this.LoggerId,ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
                     if (_response.contains("Fault")) {
-                        System.out.println(_response);
+                        log.info(_response);
                     }
                     serviceResponse = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL31.response.SoapEnvelope.class);
 
 
                     String xmlResponseXL01 = mapper.writeValueAsString(serviceResponse);
-                    System.out.println(xmlResponseXL01);
+//                    log.info(xmlResponseXL01);
 
                     // Extract  response code
                     String responseCode = serviceResponse
@@ -1076,11 +1089,23 @@ public class LimitReservationMessageProcessor {
         String[] splittedKey = splitKey(newKeyloanAcc);
         String limitBranch = splittedKey[2];
 
+        MsBranch _branch = msBranchService.getByBranchCode(branch);
+
+        String clientUserId = "7755";
+        String clientSpvUserId = "7766";
+
+        if(_branch!=null){
+            clientUserId = _branch.getUserId();
+            clientSpvUserId = _branch.getSpvUserId();
+            if(clientSpvUserId.equals("-"))
+                clientSpvUserId = clientUserId;
+        }
+
         soapReqXL31.getBody().getXl31().getChannelHeader().setAdditionalHeader("");
         soapReqXL31.getBody().getXl31().getChannelHeader().setBranchCode(branch);
         soapReqXL31.getBody().getXl31().getChannelHeader().setChannelID(clsChannelId);
-        soapReqXL31.getBody().getXl31().getChannelHeader().setClientSupervisorID("7766");
-        soapReqXL31.getBody().getXl31().getChannelHeader().setClientUserID("7755");
+        soapReqXL31.getBody().getXl31().getChannelHeader().setClientSupervisorID(clientSpvUserId);
+        soapReqXL31.getBody().getXl31().getChannelHeader().setClientUserID(clientUserId);
         soapReqXL31.getBody().getXl31().getChannelHeader().setReference(referenceId);
         soapReqXL31.getBody().getXl31().getChannelHeader().setTransactionDate(date);
         soapReqXL31.getBody().getXl31().getChannelHeader().setTransactionTime(time);
@@ -1115,11 +1140,23 @@ public class LimitReservationMessageProcessor {
         String[] splittedKey = splitKey(newKeyloanAcc);
         String limitBranch = splittedKey[2];
 
+        MsBranch _branch = msBranchService.getByBranchCode(branch);
+
+        String clientUserId = "7755";
+        String clientSpvUserId = "7766";
+
+        if(_branch!=null){
+            clientUserId = _branch.getUserId();
+            clientSpvUserId = _branch.getSpvUserId();
+            if(clientSpvUserId.equals("-"))
+                clientSpvUserId = clientUserId;
+        }
+
         soapReqXL2B.getBody().getXl2B().getChannelHeader().setAdditionalHeader("");
         soapReqXL2B.getBody().getXl2B().getChannelHeader().setBranchCode(branch);
         soapReqXL2B.getBody().getXl2B().getChannelHeader().setChannelID(clsChannelId);
-        soapReqXL2B.getBody().getXl2B().getChannelHeader().setClientSupervisorID("7766");
-        soapReqXL2B.getBody().getXl2B().getChannelHeader().setClientUserID("7755");
+        soapReqXL2B.getBody().getXl2B().getChannelHeader().setClientSupervisorID(clientSpvUserId);
+        soapReqXL2B.getBody().getXl2B().getChannelHeader().setClientUserID(clientUserId);
         soapReqXL2B.getBody().getXl2B().getChannelHeader().setReference(referenceId);
         soapReqXL2B.getBody().getXl2B().getChannelHeader().setTransactionDate(date);
         soapReqXL2B.getBody().getXl2B().getChannelHeader().setTransactionTime(time);
@@ -1154,7 +1191,7 @@ public class LimitReservationMessageProcessor {
             try {
                 xmlString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapReqXL2B);
 
-                System.out.println(xmlString);
+//                log.info(xmlString);
 
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
@@ -1178,13 +1215,13 @@ public class LimitReservationMessageProcessor {
                     _response = outputResponse;
                     logger.Log(this.LoggerId,ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
                     if (_response.contains("Fault")) {
-                        System.out.println(_response);
+                        log.info(_response);
                     }
                     serviceResponse = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL2B.response.SoapEnvelope.class);
 
 
-                    String xmlResponseXL01 = mapper.writeValueAsString(serviceResponse);
-                    System.out.println(xmlResponseXL01);
+                    String xmlResponseXL2B = mapper.writeValueAsString(serviceResponse);
+//                    log.info(xmlResponseXL2B);
 
                     // Extract  response code
                     String responseCode = serviceResponse
@@ -1333,5 +1370,11 @@ public class LimitReservationMessageProcessor {
         return cif + "." + note + "." + formattedDraw + "." + seq;
     }
 
+    private void sendEmailNotif(){
+        List<FtiTransactionDetail> _transDetail = ftiTransactionDetailService.getDetailsByTransMessageLogId(LoggerId);
+        FtiTransaction _transaction = ftiTransactionService.getFtiTransactionById(_transDetail.get(0).getHeaderId());
+
+        emailService.sendTransactionNotification(_transaction,_transDetail);
+    }
 
 }

@@ -23,6 +23,7 @@ import com.maybank.integratorapp.model.rest.CustomerSearchh.response.CustomerInf
 import com.maybank.integratorapp.model.restv2.AccountInquiry.request.Msg;
 import com.maybank.integratorapp.model.restv2.AccountInquiry.request.MsgBody;
 import com.maybank.integratorapp.model.restv2.AccountInquiry.request.MsgWraper;
+import com.maybank.integratorapp.service.EmailService;
 import com.maybank.integratorapp.util.MQUtil;
 import jakarta.jms.JMSException;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -31,16 +32,17 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.logging.Logger;
 
 @Component
 public class AccountInquiryMessageProcessor {
-
+    private static Logger log = LoggerFactory.getLogger(AccountInquiryMessageProcessor.class);
     @Autowired
     LogInterfaceProcessService logger;
     @Autowired

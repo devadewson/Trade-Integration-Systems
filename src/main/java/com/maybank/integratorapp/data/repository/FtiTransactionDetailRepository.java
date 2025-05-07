@@ -8,4 +8,5 @@ import java.util.List;
 @Repository
 public interface FtiTransactionDetailRepository extends CrudRepository<FtiTransactionDetail, Long> {
     List<FtiTransactionDetail> findByHeaderId(Long headerId);
+    List<FtiTransactionDetail> findByTransMessageLogId(Long transMessageLogId);
 }

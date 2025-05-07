@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.maybank.integratorapp.component.coresystem.ProcessFacilities;
+import com.maybank.integratorapp.component.system.messageprocessor.AccountInquiryMessageProcessor;
 import com.maybank.integratorapp.component.system.messageprocessor.LimitFacilitiesMessageProcessor;
 import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.MsCurrencyRepository;
@@ -18,6 +19,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -37,7 +40,7 @@ public class LimitController {
     MsFacilityRepository msFacilityRepository;
     @Autowired
     MsCompanyLimitRepository mscompanylimitRepository;
-
+    private static Logger log = LoggerFactory.getLogger(LimitController.class);
 
     @Autowired
     private MsCurrencyRepository msCurrencyRepository;
@@ -76,16 +79,16 @@ public class LimitController {
 
             String cifno = requestData.getRequest().getCifNo();
 //            String cifno = "0002794045";
-
+            log.info("FCC Request Limit for :"+limitResponse);
             // Cek apakah cifno ada di MsCompanyLimit
             if (!mscompanylimitRepository.existsByCifno(cifno)) {
                 // Jika CIF tidak ada, insert data ke tabel MsCompanyLimit
-//                System.out.println("CIF " + cifno + " tidak ditemukan di tabel MsCompanyLimit. Menambahkan data baru.");
+//                log.info("CIF " + cifno + " tidak ditemukan di tabel MsCompanyLimit. Menambahkan data baru.");
                 MsCompanyLimit newLimit = new MsCompanyLimit();
                 // set nilai CIF
                 newLimit.setCifno(cifno);
                 MsCompanyLimit savedcompanyLimit = mscompanylimitRepository.save(newLimit);
-//                System.out.println("Data disimpan dengan ID: " + savedcompanyLimit.getId() + "CifNo" + savedcompanyLimit.getCifno());
+//                log.info("Data disimpan dengan ID: " + savedcompanyLimit.getId() + "CifNo" + savedcompanyLimit.getCifno());
 
                 //melakukan Process Crate data facility pada database
                 processFacilities.refreshFacilities(cifno, savedcompanyLimit.getId());
@@ -155,7 +158,7 @@ public class LimitController {
                 xmlMapper.enable(ToXmlGenerator.Feature.WRITE_XML_DECLARATION);
 
                 limitResponse = xmlMapper.writeValueAsString(response);
-                System.out.println(limitResponse);
+                log.info(limitResponse);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
@@ -202,7 +205,7 @@ public class LimitController {
             allCompany = allCompany.stream().filter(s->s.getCifno().equals(cif)).toList();
 
             allCompany.forEach(x->{
-                System.out.println("Refresh Limit for "+cif);
+                log.info("Refresh Limit for "+cif);
                 processFacilities.refreshFacilities(x.getCifno(),x.getId());
 
             });

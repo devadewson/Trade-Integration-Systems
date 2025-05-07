@@ -13,6 +13,7 @@ import com.maybank.integratorapp.data.service.*;
 import com.maybank.integratorapp.model.mq.limitutilization.request.ServiceRequest;
 
 import com.maybank.integratorapp.model.soap.limit.XL41.request.SoapEnvelope;
+import com.maybank.integratorapp.service.EmailService;
 import jakarta.jms.JMSException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -20,6 +21,8 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +33,7 @@ import java.util.stream.Collectors;
 
 @Component
 public class LimitUtilizationMessageProcessor {
-
+    private static Logger log = LoggerFactory.getLogger(LimitUtilizationMessageProcessor.class);
     @Autowired
     LogInterfaceProcessService logger;
     @Autowired
@@ -51,6 +54,8 @@ public class LimitUtilizationMessageProcessor {
     @Autowired
     private MsBranchService msBranchService;
 
+    @Autowired
+    EmailService emailService;
     private Long LoggerId;
 
     public String processMessage(String message,Long loggerId) {
@@ -144,6 +149,7 @@ public class LimitUtilizationMessageProcessor {
             }
 
             // step 6.
+//            sendEmailNotif();
             XmlMapper xmlMapper = new XmlMapper();
             xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             responseXml = xmlMapper.writeValueAsString("");
@@ -257,6 +263,8 @@ public class LimitUtilizationMessageProcessor {
         if(_branch!=null){
             clientUserId = _branch.getUserId();
             clientSpvUserId = _branch.getSpvUserId();
+            if(clientSpvUserId.equals("-"))
+                clientSpvUserId = clientUserId;
         }
 
         soapEnvelope.getBody().getXl40().getChannelHeader().setAdditionalHeader("");
@@ -314,7 +322,7 @@ public class LimitUtilizationMessageProcessor {
             try {
                 xmlString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapEnvelopeXL41);
 
-                System.out.println(xmlString);
+//                log.info(xmlString);
 
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
@@ -365,7 +373,7 @@ public class LimitUtilizationMessageProcessor {
                     ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
 
                     String xmlResponseXL41 = mapper.writeValueAsString(cmsResponseXL41);
-                    System.out.println(xmlResponseXL41);
+//                    log.info(xmlResponseXL41);
 
                 }
             } catch (Exception e) {
@@ -397,7 +405,7 @@ public class LimitUtilizationMessageProcessor {
             try {
                 xmlString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(soapEnvelopeXL40);
 
-                System.out.println(xmlString);
+//                log.info(xmlString);
 
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
@@ -448,7 +456,7 @@ public class LimitUtilizationMessageProcessor {
                     ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
 
                     String xmlResponseXL40 = mapper.writeValueAsString(cmsResponseXL40);
-                    System.out.println(xmlResponseXL40);
+//                    log.info(xmlResponseXL40);
 
                 }
             } catch (Exception e) {
@@ -461,7 +469,12 @@ public class LimitUtilizationMessageProcessor {
         }
         return res;
     }
+    private void sendEmailNotif(){
+        List<FtiTransactionDetail> _transDetail = ftiTransactionDetailService.getDetailsByTransMessageLogId(LoggerId);
+        FtiTransaction _transaction = ftiTransactionService.getFtiTransactionById(_transDetail.get(0).getHeaderId());
 
+        emailService.sendTransactionNotification(_transaction,_transDetail);
+    }
     // step 5. Map core system data to external Response
 //    private void mapExternalResponse(com.maybank.integratorapp.model.restv2.AccountInquiry.response.MsgWraper res,MsgWraper req) {
 //        AccountInquiryResponse accountInquiryResponse = new AccountInquiryResponse();

@@ -2,6 +2,7 @@ package com.maybank.integratorapp.component.coresystem;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maybank.integratorapp.component.system.messageprocessor.LimitUtilizationMessageProcessor;
 import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.VwTbrMappingRepository;
 import com.maybank.integratorapp.data.service.*;
@@ -10,6 +11,8 @@ import com.maybank.integratorapp.model.restv2.CompositeTbr.response.MsgWrapper;
 import com.maybank.integratorapp.util.DynamicClassGenerator;
 import com.maybank.integratorapp.util.DynamicClassPropertyMap;
 import com.maybank.integratorapp.util.ReflectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -25,7 +28,7 @@ import static org.springframework.util.StringUtils.capitalize;
 
 @Component
 public class ProcessCompositeTBR {
-
+    private static Logger log = LoggerFactory.getLogger(ProcessCompositeTBR.class);
     @Autowired
     FtiTransactionDetailPostingService ftiTransactionDetailPostingService;
     @Autowired
@@ -256,12 +259,14 @@ public class ProcessCompositeTBR {
                     branch = _company.getCbranch();
                 else
                     branch = _company.getIbranch();
-                MsBranch _branch = msBranchService.getByBranchCode(branch);
 
-                if(_branch!=null){
-                    clientUserId = _branch.getUserId();
-                    clientSpvUserId = _branch.getSpvUserId();
-                }
+            }
+
+            MsBranch _branch = msBranchService.getByBranchCode(branch);
+
+            if(_branch!=null){
+                clientUserId = _branch.getUserId();
+                clientSpvUserId = _branch.getSpvUserId();
             }
 
             String tbrNumber = data.TbrCode;
@@ -319,8 +324,12 @@ public class ProcessCompositeTBR {
             _msgHeader.setSvcID("IDUPDACCTTRX001");
             _msgHeader.setEnv("S");
             _msgHeader.setBranchCode(branch);
-            _msgHeader.setSpvOverride("true");
-            _msgHeader.setClientSpvID(clientSpvUserId);
+            if(!clientSpvUserId.isEmpty()){
+                if(!clientSpvUserId.equals("-")){
+                    _msgHeader.setSpvOverride("true");
+                    _msgHeader.setClientSpvID(clientSpvUserId);
+                }
+            }
             _msg.setMsgHeader(_msgHeader);
             _msgBody.setTbrData(tbrData);
             _msg.setMsgBody(_msgBody);
@@ -344,7 +353,7 @@ public class ProcessCompositeTBR {
                     .writeValueAsString(_msgWrapper);
             logger.Log(this.LoggerId,"Posting "+groupId, "Request ESB", "DATA-REQ",jsonPayload);
 
-            System.out.println("Serialized JSON Payload: " + jsonPayload);
+//            log.info("Serialized JSON Payload: " + jsonPayload);
 
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
             String response = "";
@@ -373,7 +382,7 @@ public class ProcessCompositeTBR {
 //
 //            }
 
-            System.out.println("Response from API: " + response);
+//            log.info("Response from API: " + response);
         }catch (Exception e){
             logger.Log(this.LoggerId,"Posting - Posting Data to ESB", "Map and Posting the data into ESB", "ERROR",e.getMessage());
 
