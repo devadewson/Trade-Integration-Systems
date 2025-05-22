@@ -16,6 +16,8 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,7 @@ public class ProcessSwiftOut {
     @Autowired
     LogInterfaceProcessService logger;
 
+
     public void putFileContent(List<String> fileContent, String correlationId, Long idLogParent) {
 
         try {
@@ -39,6 +42,8 @@ public class ProcessSwiftOut {
             String sftpPassword = repo.findValueByPrmKey("SwiftOutSftpPassword");
             String sftpPath = repo.findValueByPrmKey("SwiftOutSftpPath");
             String localpath = repo.findValueByPrmKey("SwiftOutLocalPath");
+            String sftpPort = repo.findValueByPrmKey("SwiftOutSftpPort");
+            String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
             String additionalPath = "FTI_"+correlationId+"_"+ MQUtil.generateRandomString(4).toUpperCase();
             String specificPath = localpath+File.separator+additionalPath;
 
@@ -71,7 +76,10 @@ public class ProcessSwiftOut {
 
             // Transfer all file
             SftpFileTransfer sftp = new SftpFileTransfer(sftpHost,sftpUsername,sftpPassword,sftpPath);
-            sftp.putSwiftFile(specificPath,logger,idLogParent);
+            if(sftpPort.equals("22"))
+                sftp.putSwiftFile(specificPath,logger,idLogParent);
+            else
+                sftp.putSwiftFileFTP(specificPath,logger,idLogParent);
 
 
         } catch (Exception e) {

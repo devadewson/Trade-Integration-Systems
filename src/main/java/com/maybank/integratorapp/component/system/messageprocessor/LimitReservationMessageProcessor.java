@@ -429,16 +429,16 @@ public class LimitReservationMessageProcessor {
                     expireDateRes=transDateRes;
 
                 LocalDate _startDate = LocalDate.parse(startdateRes, inputFormatter);
-//                String startDate = _startDate.format(outputFormatter);
-                String startDate = "041124";
+                String startDate = _startDate.format(outputFormatter);
+//                String startDate = "051124";
 
                 LocalDate _expiryDate = LocalDate.parse(expireDateRes, inputFormatter);
                 String expiryDate = _expiryDate.format(outputFormatter);
 //            String expiryDate = "291224";
 
                 LocalDate _transDate = LocalDate.parse(transDateRes, inputFormatter);
-//                String transactionDate = _transDate.format(outputFormatter);
-                String transactionDate = "041124";
+                String transactionDate = _transDate.format(outputFormatter);
+//                String transactionDate = "051124";
 
                 // Ambil semua MsFacility dengan keyLoanAcc yang sesuai
                 MsFacility facilities = msFacilityRepository.findByKeyLoanAcc(facilityIdentifier);
@@ -516,55 +516,61 @@ public class LimitReservationMessageProcessor {
                         FtiTransactionDetail transactionDetails1 = transactionDetails.stream().filter(x -> x.getAdditionalInfo4().equals("DRW")).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
                         logger.Log(this.LoggerId,ProcessName, "Get Old : " + transactionDetails1.getId(), "DEBUG");
 
-//                        check whether its the same facility
-                        String _facOld = splitKey(transactionDetails1.getAdditionalInfo1())[4];
+                        if(transactionDetails1.getCoreSysStatus().equals("00")){
+                            String _facOld = splitKey(transactionDetails1.getAdditionalInfo1())[4];
 
-                        if(_facOld.equals(_facNew)){
-                            logger.Log(this.LoggerId,ProcessName, "Previous KeyLoanAcc: " + transactionDetails1.getAdditionalInfo1(), "DEBUG");
+                            if(_facOld.equals(_facNew)){
+                                logger.Log(this.LoggerId,ProcessName, "Previous KeyLoanAcc: " + transactionDetails1.getAdditionalInfo1(), "DEBUG");
 
-                            newKeyLoanAcc = transactionDetails1.getAdditionalInfo1();
+                                newKeyLoanAcc = transactionDetails1.getAdditionalInfo1();
 //                            xl01responseCode = "00";
-                            needXL31 = true;
-                            formattedRunningNumber = splitKey(newKeyLoanAcc)[5];
-                            acctReqXL01 = buildFormattedKey(facilityIdentifier, formattedRunningNumber);
+                                needXL31 = true;
+                                formattedRunningNumber = splitKey(newKeyLoanAcc)[5];
+                                acctReqXL01 = buildFormattedKey(facilityIdentifier, formattedRunningNumber);
 
-                            // check for XL2B
-                            String _dateOld = transactionDetails1.getAdditionalInfo5();
-                            String _dateNew = startDate+"#"+expiryDate;
-                            String _dateFromReq = request.getReservationsRequest().getReservationRequestDetails().getTenorStartDate();
+                                // check for XL2B
+                                String _dateOld = transactionDetails1.getAdditionalInfo5();
+                                String _dateNew = startDate+"#"+expiryDate;
+                                String _dateFromReq = request.getReservationsRequest().getReservationRequestDetails().getTenorStartDate();
 
-                            if(_dateFromReq != null){
-                                transactionDetails1 = transactionDetails.stream().filter(x ->
-                                                x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B")
-                                                        && x.getFtiEvent().equals(eventCode)
-                                                ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
-                                if(transactionDetails1.getAdditionalInfo5() != null)
-                                    _dateOld = transactionDetails1.getAdditionalInfo5();
-                                if(!_dateOld.equals(_dateNew)){
+                                if(_dateFromReq != null){
+                                    transactionDetails1 = transactionDetails.stream().filter(x ->
+                                            x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B")
+                                                    && x.getFtiEvent().equals(eventCode)
+                                    ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
+                                    if(transactionDetails1.getAdditionalInfo5() != null)
+                                        _dateOld = transactionDetails1.getAdditionalInfo5();
+                                    if(!_dateOld.equals(_dateNew)){
+                                        needXL2B = true;
+                                    }
+                                }
+
+                                // jika cancel, bikin XL2B jadiin maturitydate nya jadi tanggal event cancel
+                                if(_eventCode.equals("CAN") || _eventCode.equals("BCR")){
+                                    _transDate = LocalDate.parse(transDateRes, inputFormatter);
+                                    expiryDate = _transDate.format(outputFormatter);
                                     needXL2B = true;
                                 }
-                            }
 
-                            // jika cancel, bikin XL2B jadiin maturitydate nya jadi tanggal event cancel
-                            if(_eventCode.equals("CAN") || _eventCode.equals("BCR")){
-                                _transDate = LocalDate.parse(transDateRes, inputFormatter);
-                                expiryDate = _transDate.format(outputFormatter);
-                                needXL2B = true;
-                            }
-
-                            if(exposureAmmount.equals("0")){
-                                needXL31 = false;
-                            }
+                                if(exposureAmmount.equals("0")){
+                                    needXL31 = false;
+                                }
 //                            String _amountOld = transactionDetails1.getAdditionalInfo2();
 //                            if(!_amountOld.equals(exposureAmmount)){
 //                                needXL31 = true;
 //                            }
 
-                        }else {
-                            // handle facility change
-                            // need to make new draw on new facility
-                            needXL01 = true;
+                            }else {
+                                // handle facility change
+                                // need to make new draw on new facility
+                                needXL01 = true;
+                            }
+//                        check whether its the same facility
                         }
+                        else{
+                            needXL01= true;
+                        }
+
                     }
                 }
 
@@ -639,12 +645,14 @@ public class LimitReservationMessageProcessor {
                     xl01responseCode = msgResponseXL01
                             .getBody().getXl01Draw001Response().
                             getCmsXL01Draw001Response().getResponsecode();
+
                     xl01responseMessage = msgResponseXL01
                             .getBody().getXl01Draw001Response().
                             getCmsXL01Draw001Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
 //                    logger.Log(this.LoggerId,ProcessName, "CLS AFTER HIT XL01 RESPONSE CODE :"+xl01responseCode, "DEBUG");
 
 //                    logger.Log(this.LoggerId,ProcessName, "CLS AFTER HIT XL01 RESPONSE MESSAGE :"+xl01responseMessage, "DEBUG");
+
                     if(xl01responseCode.equals("00")){
 //                        logger.Log(this.LoggerId,ProcessName, "CLS BEFORE REFRESH FACILITIES", "DEBUG");
                         facilitiesMessageProcessor.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
@@ -703,6 +711,8 @@ public class LimitReservationMessageProcessor {
                             String xl40responseMessage = msgResponse
                                     .getBody().getXl40Response().
                                     getCmsXl40Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+
+
                             if(xl40responseCode.equals("00")) {
                                 processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
                             }
@@ -727,6 +737,8 @@ public class LimitReservationMessageProcessor {
                     String xl2BresponseMessage = msgResponseXL2B
                             .getBody().getXl2BResponse().
                             getCmsXl2BResponse().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+
+
                     if(xl2BresponseCode.equals("00")) {
                         processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
                     }
@@ -755,6 +767,8 @@ public class LimitReservationMessageProcessor {
                             getCmsXl31Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
 
                     formattedRunningNumber = splitKey(newKeyLoanAcc)[5];
+                    if(xl31responseMessage.contains("exception") && xl31responseCode == null)
+                        xl31responseCode= "99";
                     if(xl31responseCode.equals("00")) {
                         processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
                     }
@@ -949,6 +963,9 @@ public class LimitReservationMessageProcessor {
                     String responseMessage = cmsResponseXL01
                             .getBody().getXl01Draw001Response().
                             getCmsXL01Draw001Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+                    if(responseMessage.contains("exception") && responseCode == null)
+                        responseCode= "99";
+
                     FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
                     ftiTransactionDetail.setTransMessageLogId(LoggerId);
                     ftiTransactionDetail.setFtiEvent(eventCode);
@@ -1035,12 +1052,17 @@ public class LimitReservationMessageProcessor {
 //                    log.info(xmlResponseXL01);
 
                     // Extract  response code
-                    String responseCode = serviceResponse
-                            .getBody().getXl31Response().
-                            getCmsXl31Response().getResponsecode();
+
                     String responseMessage = serviceResponse
                             .getBody().getXl31Response().
                             getCmsXl31Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+                    String responseCode = serviceResponse
+                            .getBody().getXl31Response().
+                            getCmsXl31Response().getResponsecode() ;
+
+                    if(responseMessage.contains("exception") && responseCode == null)
+                        responseCode= "99";
+
                     FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
                     ftiTransactionDetail.setTransMessageLogId(LoggerId);
                     ftiTransactionDetail.setFtiEvent(eventCode);
@@ -1089,6 +1111,19 @@ public class LimitReservationMessageProcessor {
         String[] splittedKey = splitKey(newKeyloanAcc);
         String limitBranch = splittedKey[2];
 
+
+//                REQUEST REF NO DI CLS SCREEN (XL41). MAX 11 DIGIT
+//                        - REF BARU 16 DIGIT (UID906C1234567ID-AMD001 >>> D1234567AMD)
+//                        - REF LAMA 13 DIGIT (PYBB123456000-ISS001 >>> B123456ISS)
+        String clsCustomReference = "";
+        if(referenceId.length() == 16){
+            clsCustomReference = referenceId.substring(2,3) +referenceId.substring(7,13)+eventCode.substring(0,3);
+        }
+        if(referenceId.length() == 13){
+            clsCustomReference = referenceId.substring(3,4) +referenceId.substring(4,9)+eventCode.substring(0,3);
+
+        }
+
         MsBranch _branch = msBranchService.getByBranchCode(branch);
 
         String clientUserId = "7755";
@@ -1115,7 +1150,7 @@ public class LimitReservationMessageProcessor {
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setBd("");
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setCurrency(currency);
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setDepartement(limitBranch);
-        soapReqXL31.getBody().getXl31().getCmsXl31Request().setDescription("FTI");
+        soapReqXL31.getBody().getXl31().getCmsXl31Request().setDescription(clsCustomReference);
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setNotenumber(newKeyloanAcc);
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setQual("0");
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setTran(debit_credit);
@@ -1230,6 +1265,9 @@ public class LimitReservationMessageProcessor {
                     String responseMessage = serviceResponse
                             .getBody().getXl2BResponse().
                             getCmsXl2BResponse().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+
+                    if(responseMessage.contains("exception") && responseCode == null)
+                        responseCode= "99";
                     FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
                     ftiTransactionDetail.setTransMessageLogId(LoggerId);
                     ftiTransactionDetail.setFtiEvent(eventCode);
@@ -1287,20 +1325,24 @@ public class LimitReservationMessageProcessor {
         reservationsResponse.setCustomer(customerRes);
         reservationsResponse.setFacilityExposureIdentifier(newKeyLoanAcc);
 
-        limitAmount = limitAmount.replaceAll("\\.","");
+//        limitAmount = limitAmount.replaceAll("\\.","");
         exposureAmount = exposureAmount.replaceAll("\\.","");
-        reservedAmount = reservedAmount.replaceAll("\\.","");
-        availableAmount = availableAmount.replaceAll("\\.","");
+//        reservedAmount = reservedAmount.replaceAll("\\.","");
+//        availableAmount = availableAmount.replaceAll("\\.","");
+        String balance = limitAmount.split("\\.")[0];
+        String utilizedBalance = reservedAmount.split("\\.")[0];
 
         //set Reservation Details
         ReservationResponseDetails reservationResponseDetails = new ReservationResponseDetails();
         reservationResponseDetails.setStartDate(startdateRes);
         reservationResponseDetails.setExpiryDate(expireDateRes);
         reservationResponseDetails.setCurrency(currency);
-        reservationResponseDetails.setLimitAmount(limitAmount);
+        reservationResponseDetails.setLimitAmount(balance+"00");
+        reservationResponseDetails.setAvailableAmount(utilizedBalance+"00");
+//        reservationResponseDetails.setLimitAmount(limitAmount);
         reservationResponseDetails.setExposureAmount(exposureAmount);
-        reservationResponseDetails.setReservedAmount(reservedAmount);
-        reservationResponseDetails.setAvailableAmount(availableAmount);
+//        reservationResponseDetails.setReservedAmount(reservedAmount);
+//        reservationResponseDetails.setAvailableAmount(availableAmount);
         reservationResponseDetails.setLimitCheckStatus("S");
 
         if(!clsResponseCode.equals("00")){

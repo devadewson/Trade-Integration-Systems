@@ -1,11 +1,16 @@
 package com.maybank.integratorapp.component;
 
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
+import com.jcraft.jsch.*;
 import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
+import com.maybank.integratorapp.util.FileTransferManager;
+import org.apache.commons.net.ftp.FTP;
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPReply;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
@@ -17,6 +22,10 @@ public class SftpFileTransfer {
     private String sftpUser;
     private String sftpPassword;
     private String remoteDirectoryPath;
+    private String protocol;
+    private Session sftpSession;
+    private ChannelSftp sftpChannel;
+    private FTPClient ftpClient;
 
     public SftpFileTransfer(String address,String user,String password,String remotePath){
         this.sftpHost = address;
@@ -24,6 +33,7 @@ public class SftpFileTransfer {
         this.sftpPassword = password;
         this.remoteDirectoryPath = remotePath;
     }
+
     private Session connectToSftp(String host, String user, String password) throws Exception {
         JSch jsch = new JSch();
         Session session = jsch.getSession(user, host, 22);
@@ -33,6 +43,87 @@ public class SftpFileTransfer {
         session.connect();
         return session;
     }
+    public void forwardSwiftFileNew(
+            String destination1SftpHost,
+            int destination1SftpPort,
+            String destination1SftpUser,
+            String destination1SftpPassword,
+            String destination1SftpPath,
+
+            String destination2SftpHost,
+            int destination2SftpPort,
+            String destination2SftpUser,
+            String destination2SftpPassword,
+            String destination2SftpPath,
+            LogInterfaceProcessService logger,
+            long loggerId){
+
+        List<String> fileProcessed = new ArrayList<>();
+        JSch jsch = new JSch();
+        Session sourceSession = null;
+
+        ChannelSftp sourceChannelSftp = null;
+        FileTransferManager dest1 = new FileTransferManager(
+                destination1SftpHost, destination1SftpPort, destination1SftpUser, destination1SftpPassword);
+        FileTransferManager dest2 = new FileTransferManager(
+                destination2SftpHost, destination2SftpPort, destination2SftpUser, destination2SftpPassword);
+
+        try {
+            // Create session and connect to the SFTP server
+            sourceSession = connectToSftp(sftpHost,sftpUser,sftpPassword);
+            // Open SFTP channel
+            sourceChannelSftp = (ChannelSftp) sourceSession.openChannel("sftp");
+            sourceChannelSftp.connect();
+
+
+            // Open connections once
+            dest1.openConnection();
+            dest2.openConnection();
+
+            logger.Log(loggerId,"SwiftIn - Forward Swift File","Forward swift file from SwiftSAA","CONNECTED");
+
+            // Download file from the SFTP server
+            Vector<ChannelSftp.LsEntry> fileList = sourceChannelSftp.ls(remoteDirectoryPath);
+            for (ChannelSftp.LsEntry entry : fileList) {
+                if (!entry.getAttrs().isDir()) { // Only process files, skip directories
+                    String fileName = entry.getFilename();
+                    String sourceFilePath = remoteDirectoryPath + "/" + fileName;
+                    String destination1FilePath = destination1SftpPath + "/" + fileName;
+                    String destination2FilePath = destination2SftpPath + "/" + fileName;
+
+                    File tempFile = File.createTempFile("sftp-", ".tmp");
+                    try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                        sourceChannelSftp.get(sourceFilePath, fos);
+                    }
+                    dest1.transferFile(tempFile.getAbsoluteFile().toPath(), destination1FilePath);
+                    dest2.transferFile(tempFile.getAbsoluteFile().toPath(), destination2FilePath);
+
+                    // Delete the temporary file
+                    tempFile.delete();
+//                        System.out.println("Downloaded SWIFT file: " + entry.getFilename());
+                    logger.Log(loggerId,"SwiftIn - Forward Swift File","Forward swift file from SwiftSAA","FORWARDED",entry.getFilename());
+
+                }
+            }
+
+        } catch (Exception e) {
+//            e.printStackTrace();
+            logger.Log(loggerId,"SwiftIn - Forward Swift File","Forward swift file from SwiftSAA","ERROR",e.getMessage());
+
+        } finally {
+            // Close SFTP channel and session
+            if (sourceChannelSftp != null && sourceChannelSftp.isConnected()) {
+                sourceChannelSftp.disconnect();
+            }
+            if (sourceSession != null && sourceSession.isConnected()) {
+                sourceSession.disconnect();
+            }
+
+            dest1.closeConnection();
+            dest2.closeConnection();
+        }
+    }
+
     public void forwardSwiftFile(
             String destination1SftpHost,
             String destination1SftpUser,
@@ -205,6 +296,61 @@ public class SftpFileTransfer {
             return fileProcessed;
         }
     }
+    public void putSwiftFileFTP(String localDirectoryPath, LogInterfaceProcessService logger,long loggerId){
+        FTPClient ftpClient = new FTPClient();
+        try {
+            // Connect to the server
+            ftpClient.connect(sftpHost);
+            ftpClient.login(sftpUser, sftpPassword);
+
+            // Set binary file type for reliable transfer
+            ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
+
+            // Enable passive mode if behind firewall
+            ftpClient.enterLocalPassiveMode();
+
+            File localFile = new File(localDirectoryPath);
+//            FileInputStream inputStream = new FileInputStream(localFile);
+
+            logger.Log(loggerId,"SwiftOut - Sending Swift File","Sending swift file from local to FTP","CONNECTED");
+
+
+            // Upload file to server
+            File localDirectory = new File(localDirectoryPath);
+            if (localDirectory.isDirectory()) {
+                for (File file : localDirectory.listFiles()) {
+                    if (file.isFile()) { // Only process files, skip directories
+                        try (InputStream inputStream = new FileInputStream(file)) {
+                            ftpClient.storeFile(remoteDirectoryPath + localFile.getName(), inputStream);
+
+//                            channelSftp.put(inputStream, remoteDirectoryPath + file.getName());
+//                            System.out.println("Uploaded SWIFT file: " + file.getName());
+                            logger.Log(loggerId,"SwiftOut - Sending Swift File","Sending swift file from local","UPLOADED",file.getName());
+
+                        }
+                    }
+                }
+            } else {
+                System.out.println(localDirectoryPath + " is not a directory.");
+            }
+
+        } catch (IOException e) {
+
+            logger.Log(loggerId,"SwiftOut - Sending Swift File","Sending swift file from local","ERROR",e.getMessage());
+
+        } finally {
+            try {
+                if (ftpClient.isConnected()) {
+                    ftpClient.logout();
+                    ftpClient.disconnect();
+                }
+            } catch (IOException e) {
+
+                logger.Log(loggerId,"SwiftOut - Sending Swift File","Sending swift file from local","ERROR",e.getMessage());
+
+            }
+        }
+    }
     public void putSwiftFile(String localDirectoryPath, LogInterfaceProcessService logger,long loggerId) {
 //        String remoteFilePath = "/path/on/remote/server/file.txt";
 
@@ -228,7 +374,7 @@ public class SftpFileTransfer {
             // Open SFTP channel
             channelSftp = (ChannelSftp) session.openChannel("sftp");
             channelSftp.connect();
-            logger.Log(loggerId,"SwiftOut - Sending Swift File","Sending swift file from local","CONNECTED");
+            logger.Log(loggerId,"SwiftOut - Sending Swift File","Sending swift file from local to SFTP","CONNECTED");
 
             // Upload all files from the local directory to the remote directory
             File localDirectory = new File(localDirectoryPath);

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.coresystem.ProcessSwiftIn;
+import com.maybank.integratorapp.component.coresystem.ProcessSwiftOut;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +40,8 @@ public class SwiftInController {
     
     @Autowired
     ProcessSwiftIn swiftIn;
+    @Autowired
+    ProcessSwiftOut swiftOut;
 
     @GetMapping("/GetSwiftIn")
     public ResponseEntity<String> GetSwiftIn(){
@@ -141,8 +145,11 @@ public class SwiftInController {
         try{
             LogQueueData _data = new LogQueueData();
             _data.setMessageUID(new MQUtil().getMessageUID());
-            _data.setOrigin("Integrator Scheduler");
+            _data.setOrigin("Duplicate SwiftSAA");
             _data.setCreated_date(new Date());
+            _data.setStatus("Success");
+            _data.setDelivery_date(new Date());
+            _data.setUpdated_date(new Date());
             _data = dataDTO.save(_data);
             LoggerId = _data.getId();
 //            logger.SetLogParent(_data.getId());
@@ -158,6 +165,38 @@ public class SwiftInController {
         }
         catch (Exception e){
             logger.Log(LoggerId,"SwiftIn - SwiftIn Scheduler","Error","ERROR",e.getMessage());
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/TestSwiftOutFTP")
+    public ResponseEntity<String> testSwiftOutFTP(){
+        long LoggerId = 0;
+        try{
+            LogQueueData _data = new LogQueueData();
+            _data.setMessageUID(new MQUtil().getMessageUID());
+            _data.setOrigin("TestSwiftOutFTP SwiftSAA");
+            _data.setCreated_date(new Date());
+            _data.setStatus("Success");
+            _data.setDelivery_date(new Date());
+            _data.setUpdated_date(new Date());
+            _data = dataDTO.save(_data);
+            LoggerId = _data.getId();
+//            logger.SetLogParent(_data.getId());
+            logger.Log(_data.getId(),"TestSwiftOutFTP","Start","START");
+
+            List<String> _listContent = new ArrayList<>();
+            _listContent.add("Test");
+            swiftOut.putFileContent(_listContent,"Testing",_data.getId());
+            logger.Log(_data.getId(),"TestSwiftOutFTP","End","END");
+
+
+            return new ResponseEntity<>("TestSwiftOutFTP", HttpStatus.OK);
+
+
+        }
+        catch (Exception e){
+            logger.Log(LoggerId,"TestSwiftOutFTP","Error","ERROR",e.getMessage());
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

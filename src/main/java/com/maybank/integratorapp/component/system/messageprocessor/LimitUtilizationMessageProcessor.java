@@ -441,7 +441,8 @@ public class LimitUtilizationMessageProcessor {
                     String responseMessage2 = cmsResponseXL40
                             .getBody().getXl40Response().
                             getCmsXl40Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message_1")).findFirst().get().getValue();
-
+                    if(responseMessage.contains("exception") && responseCode == null)
+                        responseCode= "99";
                     FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
                     ftiTransactionDetail.setTransMessageLogId(LoggerId);
                     ftiTransactionDetail.setFtiEvent(eventCode);

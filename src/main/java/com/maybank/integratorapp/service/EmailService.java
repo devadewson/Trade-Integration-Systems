@@ -172,7 +172,20 @@ public class EmailService {
             MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
         //        mimeMessageHelper.addAttachment("logo.png", new ClassPathResource("maybank_logo.png"));
 
-            mimeMessageHelper.setTo(to);
+            List<String> toAddress = new ArrayList<>();
+            if(to.contains(";")){
+                for (String _toAddress:
+                     to.split(";")) {
+                    toAddress.add(_toAddress);
+                }
+            }else{
+                toAddress.add(to);
+            }
+
+            String[] addr = toAddress.toArray(new String[toAddress.size()]);
+
+//            mimeMessageHelper.setTo(to);
+            mimeMessageHelper.setTo(addr);
             mimeMessageHelper.setText(body, true);
             mimeMessageHelper.setSubject(subject);
             mimeMessageHelper.setFrom(from);
