@@ -321,7 +321,7 @@ public class SftpFileTransfer {
                 for (File file : localDirectory.listFiles()) {
                     if (file.isFile()) { // Only process files, skip directories
                         try (InputStream inputStream = new FileInputStream(file)) {
-                            ftpClient.storeFile(remoteDirectoryPath + localFile.getName(), inputStream);
+                            ftpClient.storeFile(remoteDirectoryPath + file.getName(), inputStream);
 
 //                            channelSftp.put(inputStream, remoteDirectoryPath + file.getName());
 //                            System.out.println("Uploaded SWIFT file: " + file.getName());
