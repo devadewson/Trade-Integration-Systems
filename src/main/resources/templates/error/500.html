@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
+<body>
+
+<main>
+    <style>
+ h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+        .error-icon {
+            font-size: 5em;
+            margin: 20px 0;
+
+        }
+
+        .home-button {
+            display: inline-block;
+            background-color: #ff6b88;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: transform 0.3s;
+        }
+        .home-button:hover {
+            transform: scale(1.1);
+        }
+        .tools {
+            font-size: 2em;
+            margin: 20px 0;
+            letter-spacing: 5px;
+        }
+        .progress-container {
+            width: 100%;
+            background-color: #ffe6eb;
+            border-radius: 10px;
+            margin: 30px 0;
+            padding: 15px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .progress-message {
+            font-size: 1.1em;
+            font-weight: bold;
+            opacity: 0;
+            position: absolute;
+            animation: fadeInOut 12s infinite;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            20% { opacity: 1; }
+            30% { opacity: 0; }
+            100% { opacity: 0; }
+        }
+        .progress-message:nth-child(1) { animation-delay: 0s; }
+        .progress-message:nth-child(2) { animation-delay: 3s; }
+        .progress-message:nth-child(3) { animation-delay: 6s; }
+        .progress-message:nth-child(4) { animation-delay: 9s; }
+
+        .error-details {
+            background-color: #ffebee;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+        .error-details summary {
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+            color: #d32f2f;
+        }
+    </style>
+    <div class="container">
+        <div class="error-icon">💥</div>
+        <h1>Oops! Server Trouble</h1>
+        <p>Our hamsters stopped running on their wheels!</p>
+        <p>Don't worry, our team of highly trained kittens is on the case.</p>
+
+        <div class="tools">
+            🛠️ 🔧 🔨 💻
+        </div>
+
+        <div class="error-details">
+            <summary>Technical Details (for internal use)</summary>
+            <div th:if="${error}">
+                <p><strong>Error:</strong> <span th:text="${error}"></span></p>
+            </div>
+            <div th:if="${message}">
+                <p><strong>Message:</strong> <span th:text="${message}"></span></p>
+            </div>
+            <div th:if="${path}">
+                <p><strong>Path:</strong> <span th:text="${path}"></span></p>
+            </div>
+            <div th:if="${status}">
+                <p><strong>Status:</strong> <span th:text="${status}"></span></p>
+            </div>
+            <div th:if="${timestamp}">
+                <p><strong>Time:</strong> <span th:text="${timestamp}"></span></p>
+            </div>
+            <div th:if="${trace}">
+                <details>
+                    <summary>Stack Trace</summary>
+                    <pre th:text="${trace}"></pre>
+                </details>
+            </div>
+        </div>
+
+        <p>Try refreshing the page or come back later!</p>
+        <a href="/" class="home-button">Back to Safety</a>
+
+        <p style="margin-top: 30px;">
+            <small>Error 500 - Internal Server Error</small>
+        </p>
+
+    </div>
+
+
+
+</main>
+</body>
+
+</html>

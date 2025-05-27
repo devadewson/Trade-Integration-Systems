@@ -10,5 +10,8 @@ public interface MsQueueConfigRepository extends CrudRepository<MsQueueConfig, L
 
     @Query("select m from MsQueueConfig m where m.ServiceName = ?1")
     MsQueueConfig findByServiceName(String serviceName);
+
+    @Query("select m from MsQueueConfig m where m.Request_Queue_Name = ?1")
+    MsQueueConfig findByRequestName(String requestQueueName);
 // Additional methods if needed
 }

@@ -19,6 +19,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -43,10 +44,15 @@ public class BatchPostingMessageListener implements CustomMessageListener {
         if (message instanceof TextMessage) {
             ServiceResponse response = new ServiceResponse();
             LogQueueData _data = new LogQueueData();
-
+            String correlationId = "";
             try {
-                System.out.println("Received 1 Message With CorrelationID : "+message.getJMSCorrelationID());
-
+                System.out.println("Batch Posting Listener Received : "+message.getJMSCorrelationID());
+//                System.out.println(message.getBody(String.class));
+                correlationId = message.getJMSCorrelationID();
+                if(dataDTO.findByCorrelationId(correlationId)!= null){
+                    message.acknowledge();
+                    return;
+                }
 //            String _message = message.getBody(String.class);
 //            String _message = message.getStringProperty("data");
                 String _message = message.getBody(String.class);
@@ -58,9 +64,10 @@ public class BatchPostingMessageListener implements CustomMessageListener {
                 _data.setReqMessage(_message);
                 _data.setCreated_date(new Date());
                 _data.setCorrelationID(message.getJMSCorrelationID());
-
+//                message.setJMSRedelivered(false);
 //                LogQueueDataDTO dataDTO = new LogQueueDataDTO();
                 _data = dataDTO.save(_data);
+                message.acknowledge();
 
                 XmlMapper xmlMapper = new XmlMapper();
                 ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);
@@ -77,6 +84,10 @@ public class BatchPostingMessageListener implements CustomMessageListener {
                 request.getBatchRequest().getServiceRequestChild().forEach(s->
                         _postings.add(s.getPosting())
                         );
+                if(_postings.get(0).getDebitCreditFlag().equals("C")){
+                    Collections.reverse(_postings);
+                }
+
 
                 processCompositeTBR.doPosting(_postings,_data.getId());
 
@@ -93,7 +104,7 @@ public class BatchPostingMessageListener implements CustomMessageListener {
 //            responseModel.setData(data);
 //            responseModel.setStatus("DONE");
 
-                message.acknowledge();
+//                message.acknowledge();
 
 //            System.out.println("Account Balance : "+responseModel.getData().getBalance());
 
@@ -101,6 +112,7 @@ public class BatchPostingMessageListener implements CustomMessageListener {
 //            producer.PublishMessage(responseModel);
 
             } catch (JMSException e) {
+
                 response.getResponseHeader().setStatus("Error");
                 response.getResponseHeader().getDetails().setError("MessageQueue Error");
 
@@ -129,6 +141,12 @@ public class BatchPostingMessageListener implements CustomMessageListener {
 
 
                 throw new RuntimeException(e);
+            } finally {
+                try {
+                    message.acknowledge();
+                } catch (JMSException e) {
+                    throw new RuntimeException(e);
+                }
             }
 //            MessageProducer producer = new MessageProducer();
             dataDTO.save(_data);

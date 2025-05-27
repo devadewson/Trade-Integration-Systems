@@ -6,7 +6,7 @@ public class FxRateListData {
     private String ccy;
     private String bidState;
     private String askState;
-    private String clientname;
+    private String clientName;
     private String name;
     private String timeStamp;
     private String riskAmount;
@@ -68,11 +68,11 @@ public class FxRateListData {
     }
 
     public String getClientname() {
-        return clientname;
+        return clientName;
     }
 
     public void setClientname(String clientname) {
-        this.clientname = clientname;
+        this.clientName = clientname;
     }
 
     public String getName() {

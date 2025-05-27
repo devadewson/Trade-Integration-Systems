@@ -17,6 +17,30 @@ public class MsTBRMapping {
     private String CurrencyCode;
     private String MappingType;
 
+    @ManyToOne
+    @JoinColumn(name = "TBR_Id", insertable = false, updatable = false)
+    private MsTBR tbr;
+
+    @ManyToOne
+    @JoinColumn(name = "AccountType_Id", insertable = false, updatable = false)
+    private MsAccountType accountType;
+
+    public MsTBR getTbr() {
+        return tbr;
+    }
+
+    public void setTbr(MsTBR tbr) {
+        this.tbr = tbr;
+    }
+
+    public MsAccountType getAccountType() {
+        return accountType;
+    }
+
+    public void setAccountType(MsAccountType accountType) {
+        this.accountType = accountType;
+    }
+
     public String getMappingType() {
         return MappingType;
     }

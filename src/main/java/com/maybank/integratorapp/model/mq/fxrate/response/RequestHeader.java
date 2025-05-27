@@ -1,52 +1,51 @@
 package com.maybank.integratorapp.model.mq.fxrate.response;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
-import com.maybank.integratorapp.model.mq.singleposting.request.Credentials;
 
 import java.io.Serializable;
 
 //@XmlAccessorType(XmlAccessType.FIELD)
 public class RequestHeader implements Serializable {
-    //    @XmlElement(name = "Service")
+    //    @XmlElement(name = "Service", namespace = "urn:control.services.tiplus2.misys.com")
     public RequestHeader(){
         this.credentials = new Credentials();
     }
-    @JacksonXmlProperty(localName = "Service")
+    @JacksonXmlProperty(localName = "Service", namespace = "urn:control.services.tiplus2.misys.com")
     private String service;
-    @JacksonXmlProperty(localName = "Operation")
+    @JacksonXmlProperty(localName = "Operation", namespace = "urn:control.services.tiplus2.misys.com")
 
     private String operation;
-    @JacksonXmlProperty(localName = "Credentials")
+    @JacksonXmlProperty(localName = "Credentials", namespace = "urn:control.services.tiplus2.misys.com")
 
     private Credentials credentials;
-    @JacksonXmlProperty(localName = "ReplyFormat")
+    @JacksonXmlProperty(localName = "ReplyFormat", namespace = "urn:control.services.tiplus2.misys.com")
 
     private String replyFormat;
-    @JacksonXmlProperty(localName = "ReplyTarget")
+    @JacksonXmlProperty(localName = "ReplyTarget", namespace = "urn:control.services.tiplus2.misys.com")
 
     private String replyTarget;
-    @JacksonXmlProperty(localName = "TargetSystem")
+    @JacksonXmlProperty(localName = "TargetSystem", namespace = "urn:control.services.tiplus2.misys.com")
 
     private String targetSystem;
-    @JacksonXmlProperty(localName = "SourceSystem")
+    @JacksonXmlProperty(localName = "SourceSystem", namespace = "urn:control.services.tiplus2.misys.com")
 
     private String sourceSystem;
-    @JacksonXmlProperty(localName = "NoRepair")
+    @JacksonXmlProperty(localName = "NoRepair", namespace = "urn:control.services.tiplus2.misys.com")
 
     private String noRepair;
-    @JacksonXmlProperty(localName = "NoOverride")
+    @JacksonXmlProperty(localName = "NoOverride", namespace = "urn:control.services.tiplus2.misys.com")
 
     private String noOverride;
-    @JacksonXmlProperty(localName = "CorrelationId")
+    @JacksonXmlProperty(localName = "CorrelationId", namespace = "urn:control.services.tiplus2.misys.com")
 
     private String correlationID;
-    @JacksonXmlProperty(localName = "TransactionControl")
+    @JacksonXmlProperty(localName = "TransactionControl", namespace = "urn:control.services.tiplus2.misys.com")
 
     private String transactionControl;
-    @JacksonXmlProperty(localName = "CreationDate")
+    @JacksonXmlProperty(localName = "CreationDate", namespace = "urn:control.services.tiplus2.misys.com")
 
     private String creationDate;
-    @JacksonXmlProperty(localName = "GroupingId")
+    @JacksonXmlProperty(localName = "GroupingId", namespace = "urn:control.services.tiplus2.misys.com")
 
     private String groupingID;
 

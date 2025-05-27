@@ -10,4 +10,7 @@ public interface MsCurrencyRepository extends CrudRepository<MsCurrency, Long> {
     @Query("select m from MsCurrency m where m.IsoCode = ?1")
     MsCurrency findByIsoCode(String currencyCode);
 
+    @Query("select m from MsCurrency m where m.InternalCode = ?1")
+    MsCurrency findByInternalCode(String internalCode);
+
 }

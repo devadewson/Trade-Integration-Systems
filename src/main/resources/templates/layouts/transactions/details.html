@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
+<body>
+<main>
+    <style>
+        .wrap-table td {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            /* Optional: set a max-width to force wrapping */
+            max-width: 200px;
+          }
+    </style>
+    <h1>Transaction</h1>
+    <script>
+        $(document).ready(function () {
+            // Handle "View Logs" button click
+            $(".view-logs-btn").click(function () {
+                const transMessageLogId = $(this).data("trans-message-log-id");
+                const transLogId = $(this).data("trans-log-id");
+
+                // Fetch logs via AJAX
+                $.get(`/transaction-details/${transMessageLogId}/logs`, function (logs) {
+                    // Clear previous logs
+                    $("#logs-table tbody").empty();
+
+                    // Populate the logs table
+                    logs.forEach(log => {
+                        $("#logs-table tbody").append(`
+                            <tr>
+                                <td>${log.id}</td>
+                                <td>${log.activity}</td>
+                                <td>${log.activityDescription}</td>
+                                <td>${log.activityStatus}</td>
+                                <td>${new Date(log.logDate).toLocaleString()}</td>
+                                <td>
+                                    <textarea rows="5" readonly="readonly" class="form-control">${log.integrationMessage}</textarea>
+                                </td>
+                            </tr>
+                        `);
+                    });
+
+                    // Show the logs section
+                    $("#logs-section").show();
+                });
+
+                // Fetch logs via AJAX
+                $.get(`/transaction-details/${transMessageLogId}/log-header`, function (logData) {
+                    $("#LogId").val(`${logData.id}`);
+                    $("#CorrelationId").val(`${logData.correlationID}`);
+                    $("#CreatedDate").val(`${new Date(logData.created_date).toLocaleString()}`);
+                    $("#UpdatedDate").val(`${new Date(logData.updated_date).toLocaleString()}`);
+                    $("#LogOrigin").val(`${logData.origin}`);
+                    $("#LogDestination").val(`${logData.destination}`);
+                    $("#LogReqMessage").val(`${logData.reqMessage}`);
+                    $("#LogResMessage").val(`${logData.resMessage}`);
+
+                });
+
+                // Fetch postings via AJAX
+                $.get(`/transaction-details/${transLogId}/postings`, function (postingGroups) {
+
+                    $("#accordionPostings").empty();
+                    // Populate the logs table
+                    postingGroups.forEach(postingGroup => {
+
+                        var groupId = postingGroup.groupId;
+                        var postingTableId = "#postingGroup"+groupId+"-table tbody";
+                        var logTableId = "#postingMessage"+groupId+"-table tbody";
+                        var accordionItem = buildAccordionItem(postingGroup);
+                        $("#accordionPostings").append(accordionItem);
+
+                        console.log(postingTableId);
+                        console.log(postings);
+
+                        postingGroup.postings.forEach(posting=> {
+                            $(postingTableId).append(`
+                                <tr>
+                                    <td>${posting.id}</td>
+                                    <td>${posting.debitCredit}</td>
+                                    <td>${posting.account}</td>
+                                    <td>${posting.amount}</td>
+                                    <td>${posting.accountType}</td>
+                                    <td>${posting.accountTypeAlias}</td>
+                                    <td>${posting.ccy}</td>
+                                    <td>${posting.ccyAlias}</td>
+                                    <td>${posting.ccyNumber}</td>
+                                    <td>${posting.postingSeqNo}</td>
+                                </tr>
+                            `);
+                        });
+                        postingGroup.logInterfaces.forEach(log => {
+                            $(logTableId).append(`
+                                <tr>
+                                    <td>${log.id}</td>
+                                    <td>${log.activity}</td>
+                                    <td>${log.activityDescription}</td>
+                                    <td>${log.activityStatus}</td>
+                                    <td>${new Date(log.logDate).toLocaleString()}</td>
+                                    <td>
+                                        <textarea rows="5" readonly="readonly" class="form-control">${log.integrationMessage}</textarea>
+                                    </td>
+                                </tr>
+                            `);
+                        });
+
+                    });
+
+                    // Show the logs section
+                    $("#postings-section").show();
+                });
+            });
+            // Function to escape HTML content
+            function escapeHtml(unsafe) {
+                if (unsafe == null) {
+                    return "N/A"; // Return a placeholder for null values
+                }
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+            function buildAccordionItem(postingGroup){
+
+                var template = `<div class="accordion-item">
+                                <h2 class="accordion-header" id="heading##">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse##" aria-expanded="false" aria-controls="collapse##">
+                                        Grouping ## - TBR @TBR
+                                    </button>
+                                </h2>
+                                <div id="collapse##" class="accordion-collapse collapse" aria-labelledby="heading##" data-bs-parent="#accordionPostings">
+                                    <div class="accordion-body">
+                                        <p>TBR : @TBR</p>
+                                        <p>Mapping Type : @MappingType</p>
+                                        <p>Flag Cross Valas : @FlagCrossValas</p>
+                                        <p>Flag Mdmc : @FlagMdmc</p>
+                                        <p>GroupId : @GroupId</p>
+                                        <hr/>
+                                        <h4>Posting Legs</h4>
+                                        <table id="postingGroup##-table" class="table table-bordered">
+                                            <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>DebitCredit</th>
+                                                <th>Account</th>
+                                                <th>Amount</th>
+                                                <th>Account Type</th>
+                                                <th>Account Type Alias</th>
+                                                <th>CCY</th>
+                                                <th>CCY Alias</th>
+                                                <th>CCY Number</th>
+                                                <th>Posting Sequence</th>
+
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            </tbody>
+                                        </table>
+                                        <h4>Posting Message</h4>
+                                        <table id="postingMessage##-table" class="table table-bordered">
+                                            <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Activity</th>
+                                                <th>Activity Description</th>
+                                                <th>Activity Status</th>
+                                                <th>Log Date</th>
+                                                <th>Integration Message</th>
+
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>`;
+
+                return template
+                        .replaceAll("@TBR",postingGroup.tbrCode)
+                        .replaceAll("@MappingType",postingGroup.mappingType)
+                        .replaceAll("@FlagCrossValas",postingGroup.flagCrossValas)
+                        .replaceAll("@FlagMdmc",postingGroup.flagMdmc)
+                        .replaceAll("@GroupId",postingGroup.groupId)
+                        .replaceAll("##",postingGroup.groupId);
+
+
+            }
+        });
+    </script>
+
+    <div class="card mb-3">
+        <h5 class="card-header">Transaction Detail</h5>
+        <div class="card-body">
+            <div class="col-md-4">
+                <form>
+                    <div class="form-group row">
+                        <label class="col-sm-4 col-form-label" for="masterRefNo">Master Ref No</label>
+                        <div class="col-md-8">
+                            <input type="text" readonly="readonly" class="form-control" id="masterRefNo" th:value="${transaction.masterRefNo}">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-4 col-form-label" for="lastEvent">Last Event</label>
+                        <div class="col-md-8">
+                            <input type="text" readonly="readonly" class="form-control" id="lastEvent" th:value="${transaction.lastEvent}">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-4 col-form-label" for="lastStep">Last Step</label>
+                        <div class="col-md-8">
+                            <input type="text" readonly="readonly" class="form-control" id="lastStep" th:value="${transaction.lastStep}">
+
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <hr />
+            <table class="table table-bordered mt-4 wrap-table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fti Event</th>
+                    <th>Trans Name</th>
+                    <th>Core Sys Name</th>
+                    <th>Core Sys Status</th>
+                    <th>Core Sys Message</th>
+                    <th>Info1</th>
+                    <th>Info2</th>
+                    <th>Info3</th>
+                    <th>Info4</th>
+                    <th>Info5</th>
+                    <th>Created Date</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="detail : ${details}">
+                    <td th:text="${detail.id}"></td>
+                    <td th:text="${detail.ftiEvent}"></td>
+                    <td th:text="${detail.transName}"></td>
+                    <td th:text="${detail.coreSysName}"></td>
+                    <td th:text="${detail.coreSysStatus}"></td>
+                    <td th:text="${detail.coreSysMessage}"></td>
+                    <td th:text="${detail.additionalInfo1}"></td>
+                    <td th:text="${detail.additionalInfo2}"></td>
+                    <td th:text="${detail.additionalInfo3}"></td>
+                    <td th:text="${detail.additionalInfo4}"></td>
+                    <td th:text="${detail.additionalInfo5}"></td>
+                    <td th:text="${detail.createdDate}"></td>
+                    <td>
+                        <button class="btn btn-info btn-sm view-logs-btn" th:data-trans-log-id="${detail.id}" th:data-trans-message-log-id="${detail.transMessageLogId}">View Logs</button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <a href="/transactions" class="btn btn-secondary">Back to List</a>
+        </div>
+    </div>
+    <hr/>
+    <div class="card mb-3">
+        <h5 class="card-header">Transaction Related Logs</h5>
+        <div class="card-body">
+
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button" role="tab" aria-controls="activity" aria-selected="true">Activity Log</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="queue-tab" data-bs-toggle="tab" data-bs-target="#queue" type="button" role="tab" aria-controls="queue" aria-selected="false">Queue Log</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="postings-tab" data-bs-toggle="tab" data-bs-target="#postings" type="button" role="tab" aria-controls="postings" aria-selected="false">Postings</button>
+                </li>
+            </ul>
+            <div class="tab-content" id="myTabContent">
+                <div class="tab-pane fade show active" id="activity" role="tabpanel" aria-labelledby="activity-tab">
+                    <div id="logs-section" class="mt-4" style="display: none;">
+
+                        <table id="logs-table" class="table table-bordered">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Activity</th>
+                                <th>Activity Description</th>
+                                <th>Activity Status</th>
+                                <th>Log Date</th>
+                                <th>Integration Message</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <!-- Logs will be dynamically populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="queue" role="tabpanel" aria-labelledby="queue-tab">
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <form>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="LogId">LogId</label>
+                                    <div class="col-md-8">
+                                        <input type="text" readonly="readonly" class="form-control" id="LogId">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="CreatedDate">CreatedDate</label>
+                                    <div class="col-md-8">
+                                        <input type="text" readonly="readonly" class="form-control" id="CreatedDate">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="LogOrigin">LogOrigin</label>
+                                    <div class="col-md-8">
+                                        <input type="text" readonly="readonly" class="form-control" id="LogOrigin">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="LogReqMessage">Request Message</label>
+                                    <div class="col-md-8">
+                                        <textarea rows="5" readonly="readonly" class="form-control" id="LogReqMessage" ></textarea>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <form>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="CorrelationId">CorrelationId</label>
+                                    <div class="col-md-8">
+                                        <input type="text" readonly="readonly" class="form-control" id="CorrelationId">
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="UpdatedDate">UpdatedDate</label>
+                                    <div class="col-md-8">
+                                        <input type="text" readonly="readonly" class="form-control" id="UpdatedDate" >
+
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="LogDestination">LogDestination</label>
+                                    <div class="col-md-8">
+                                        <input type="text" readonly="readonly" class="form-control" id="LogDestination">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label" for="LogResMessage">Response Message</label>
+                                    <div class="col-md-8">
+                                        <textarea rows="5" readonly="readonly" class="form-control" id="LogResMessage" ></textarea>
+
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="postings" role="tabpanel" aria-labelledby="postings-tab">
+                    <div id="postings-section" class="mt-4" style="display: none;">
+                        <div class="accordion" id="accordionPostings">
+
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+</main>
+<!-- JavaScript to Handle "View Logs" Button Click -->
+
+</body>
+
+</html>

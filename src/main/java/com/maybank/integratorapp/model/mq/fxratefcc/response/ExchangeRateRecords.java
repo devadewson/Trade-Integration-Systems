@@ -8,8 +8,14 @@ import jakarta.xml.bind.annotation.XmlAttribute;
 import java.util.ArrayList;
 import java.util.List;
 
-@JacksonXmlRootElement(localName = "exchange_rate_records",namespace = "http://www.w3.org/2001/XMLSchema-instance")
+@JacksonXmlRootElement(localName = "exchange_rate_records")
 public class ExchangeRateRecords {
+
+    @JacksonXmlProperty(isAttribute = true, namespace = "http://www.w3.org/2001/XMLSchema-instance", localName = "noNamespaceSchemaLocation")
+    private String noNamespaceSchemaLocation = "http://www.misys.com/portal/interfaces/xsd/exchangeRate.xsd";
+
+    @JacksonXmlProperty(isAttribute = true, localName = "xmlns:xsi")
+    private String xmlnsXsi = "http://www.w3.org/2001/XMLSchema-instance";
 
     public ExchangeRateRecords(){
         this.exchangeRateRecord = new ArrayList<ExchangeRateRecord>();

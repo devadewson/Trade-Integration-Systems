@@ -21,7 +21,11 @@ import java.util.Map;
 public class ProcessSwiftIn {
     @Autowired
     MsParameterService repo;
-    public Map<String, List<String>> getFileContent(LogInterfaceProcessService logger){
+    
+    @Autowired
+    LogInterfaceProcessService logger;
+    
+    public Map<String, List<String>> getFileContent(Long loggerId){
 //        Path folderPath = Paths.get("D:\\Agung\\Projects\\BankTrade Trade Transformation\\IntegrationList");
         Map<String, List<String>> fileContents = new HashMap<>();
 
@@ -31,12 +35,11 @@ public class ProcessSwiftIn {
             String sftpHost = repo.findValueByPrmKey("SwiftInSftpAddress");
             String sftpUsername = repo.findValueByPrmKey("SwiftInSftpUsername");
             String sftpPassword = repo.findValueByPrmKey("SwiftInSftpPassword");
-            String sftpKey = repo.findValueByPrmKey("SwiftInSftpKey");
             String sftpPath = repo.findValueByPrmKey("SwiftInSftpPath");
             String localpath = repo.findValueByPrmKey("SwiftInLocalPath");
 
-            SftpFileTransfer sftp = new SftpFileTransfer(sftpHost,sftpUsername,sftpPassword,sftpKey,sftpPath);
-            List<String> listFileProcessed = sftp.getSwiftFile(localpath,logger);
+            SftpFileTransfer sftp = new SftpFileTransfer(sftpHost,sftpUsername,sftpPassword,sftpPath);
+            List<String> listFileProcessed = sftp.getSwiftFile(localpath,logger,loggerId);
             Path folderPath = Paths.get(localpath);
 
             for (String pathFile:listFileProcessed) {
@@ -45,25 +48,25 @@ public class ProcessSwiftIn {
                 // Check if the file exists before attempting to read it
                 if (Files.exists(file) && Files.isReadable(file)) {
                     System.out.println("Reading file: " + file.getFileName());
-                    logger.Log("SwiftIn - Reading Swift File", "Reading swift file", "READ-LOCAL",file.getFileName().toString());
+                    logger.Log(loggerId,"SwiftIn - Reading Swift File", "Reading swift file", "READ-LOCAL",file.getFileName().toString());
 
                     List<String> fileContent = Files.readAllLines(file, StandardCharsets.UTF_8);  // Read the file content
                     fileContents.put(file.getFileName().toString(), fileContent);  // Store the file content with the file name as the key
                 } else {
                     System.err.println("File not found or not readable: " + pathFile);
-                    logger.Log("SwiftIn - File Read Error", "File not found or not readable", "ERROR");
+                    logger.Log(loggerId,"SwiftIn - File Read Error", "File not found or not readable", "ERROR");
                 }
             }
 
         } catch (IOException e) {
 //            e.printStackTrace();
-            logger.Log("SwiftIn - Reading Swift File","Reading swift file from local","ERROR",e.getMessage());
+            logger.Log(loggerId,"SwiftIn - Reading Swift File","Reading swift file from local","ERROR",e.getMessage());
         }
 
         return fileContents;
     }
 
-    public void moveToBackup(LogInterfaceProcessService logger){
+    public void moveToBackup(long loggerId){
         try {
             String localpath = repo.findValueByPrmKey("SwiftInLocalPath");
             String backuppath = repo.findValueByPrmKey("SwiftInBackupPath");
@@ -72,7 +75,7 @@ public class ProcessSwiftIn {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
             String formattedDate = today.format(formatter);
 
-            String completeBackupPath = backuppath+formattedDate+"\\";
+            String completeBackupPath = backuppath+formattedDate+File.separator;
 
             File folder = new File(completeBackupPath);
             if (!folder.exists()) {
@@ -88,21 +91,59 @@ public class ProcessSwiftIn {
                     if (Files.isRegularFile(file)) { // Check if it is a file (not a directory)
                         Path targetPath = targetDir.resolve(file.getFileName());
                         Files.move(file, targetPath, StandardCopyOption.REPLACE_EXISTING);
-                        logger.Log("SwiftIn - Backup Files","File Moved to backup folder","BACKUP",file.getFileName().toString());
+                        logger.Log(loggerId,"SwiftIn - Backup Files","File Moved to backup folder","BACKUP",file.getFileName().toString());
 
                         System.out.println("Moved: " + file.getFileName() + " to " + targetPath);
                     }
                 }
             } catch (IOException e) {
 //                System.err.println("Error moving files: " + e.getMessage());
-                logger.Log("SwiftIn - Backup Files","File Moved to backup folder","ERROR",e.getMessage());
+                logger.Log(loggerId,"SwiftIn - Backup Files","File Moved to backup folder","ERROR",e.getMessage());
 
             }
 
         }
         catch (Exception e){
 //            e.printStackTrace();
-            logger.Log("SwiftIn - Backup Files","File Moved to backup folder","ERROR",e.getMessage());
+            logger.Log(loggerId,"SwiftIn - Backup Files","File Moved to backup folder","ERROR",e.getMessage());
+        }
+    }
+
+    public void duplicateSwift(long loggerId){
+        try {
+
+            // Sftp Config
+            String sftpHost = repo.findValueByPrmKey("TempSwiftInSftpAddress");
+            String sftpUsername = repo.findValueByPrmKey("TempSwiftInSftpUsername");
+            String sftpPassword = repo.findValueByPrmKey("TempSwiftInSftpPassword");
+            String sftpPath = repo.findValueByPrmKey("TempSwiftInSftpPath");
+
+            String BTsftpHost = repo.findValueByPrmKey("BTSwiftInSftpAddress");
+            String BTsftpUsername = repo.findValueByPrmKey("BTSwiftInSftpUsername");
+            String BTsftpPassword = repo.findValueByPrmKey("BTSwiftInSftpPassword");
+            String BTsftpPath = repo.findValueByPrmKey("BTSwiftInSftpPath");
+
+            String FTIsftpHost = repo.findValueByPrmKey("FTISwiftInSftpAddress");
+            String FTIsftpUsername = repo.findValueByPrmKey("FTISwiftInSftpUsername");
+            String FTIsftpPassword = repo.findValueByPrmKey("FTISwiftInSftpPassword");
+            String FTIsftpPath = repo.findValueByPrmKey("FTISwiftInSftpPath");
+
+            SftpFileTransfer sftp = new SftpFileTransfer(sftpHost,sftpUsername,sftpPassword,sftpPath);
+            sftp.forwardSwiftFile(
+                    BTsftpHost,
+                    BTsftpUsername,
+                    BTsftpPassword,
+                    BTsftpPath,
+                    FTIsftpHost,
+                    FTIsftpUsername,
+                    FTIsftpPassword,
+                    FTIsftpPath,
+                    logger,loggerId
+                    );
+
+        } catch (Exception e) {
+//            e.printStackTrace();
+            logger.Log(loggerId,"SwiftIn - Reading Swift File","Reading swift file from local","ERROR",e.getMessage());
         }
     }
 }

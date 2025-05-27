@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.component.listener;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -14,11 +15,7 @@ import com.maybank.integratorapp.model.mq.accountinquiry.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.accountinquiry.response.ServiceResponse;
 //import com.maybank.integratorapp.service.JwtService;
 import com.maybank.integratorapp.util.MQUtil;
-import jakarta.jms.JMSException;
-import jakarta.jms.Message;
-import jakarta.jms.MessageListener;
-import jakarta.jms.TextMessage;
-import org.apache.activemq.command.ActiveMQDestination;
+import jakarta.jms.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -32,7 +29,7 @@ public class AccountBalanceMessageListener implements CustomMessageListener {
     private LogQueueDataRepository dataDTO;
 
 
-
+// Test Create new branch
 //    @Autowired
 //    private JwtService jwtService;
 
@@ -59,8 +56,8 @@ public class AccountBalanceMessageListener implements CustomMessageListener {
                 String _message = message.getBody(String.class);
 
 
-                ActiveMQDestination sourceQueue = (ActiveMQDestination) message.getJMSDestination();
-                _data.setOrigin("MQ_"+sourceQueue.getPhysicalName());
+                Queue sourceQueue = (Queue) message.getJMSDestination();
+                _data.setOrigin("MQ_"+sourceQueue.getQueueName());
                 _data.setMessageUID(new MQUtil().getMessageUID());
                 _data.setReqMessage(_message);
                 _data.setCreated_date(new Date());
@@ -84,19 +81,20 @@ public class AccountBalanceMessageListener implements CustomMessageListener {
 //                    response.getAvailBalResponse().setBalance(process.getAccountBalance(request.getAvailBALRequest().getBackOfficeAccount()));
                 response.getAvailBalResponse().setBalance(process.getAccountBalanceNew(request.getAvailBALRequest().getBackOfficeAccount()));
 
-                response.getResponseHeader().setStatus("Success");
-                response.getResponseHeader().getDetails().setInfo("Success");
+                response.getResponseHeader().setStatus("SUCCEEDED");
+                response.getResponseHeader().getDetails().setInfo("SUCCEEDED");
                 // Serialize the object to XML
                 String xmlResponse = xmlMapper.writeValueAsString(response);
 
-                _data.setStatus("Success");
+                _data.setStatus("SUCCEEDED");
+                _data.setResMessage(xmlResponse);
                 _data.setDelivery_date(new Date());
                 _data.setUpdated_date(new Date());
                 _data.setResMessage(xmlResponse);
                 _data.setDestination(this.publisher.getDestinationQueue());
 
 
-                message.acknowledge();
+//                message.acknowledge();
 //                if(jwtService.validateToken(request.getRequestHeader().getCredentials().getCertificate())){
 //
 //                    SystemProcess process = new SystemProcess();
@@ -165,6 +163,7 @@ public class AccountBalanceMessageListener implements CustomMessageListener {
             dataDTO.save(_data);
 
             XmlMapper xmlMapper = new XmlMapper();
+            xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             // Serialize the object to XML
             String xml = null;
             try {
@@ -173,7 +172,7 @@ public class AccountBalanceMessageListener implements CustomMessageListener {
                 throw new RuntimeException(e);
             }
 
-            publisher.PublishMessage(xml,response.getResponseHeader().getCorrelationID());
+//            publisher.PublishMessage(xml,response.getResponseHeader().getCorrelationID());
         }
     }
 

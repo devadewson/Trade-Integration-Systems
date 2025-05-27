@@ -49,7 +49,7 @@ public class SwiftOutMessageListener implements CustomMessageListener {
             LogQueueData _data = new LogQueueData();
 
             try {
-                System.out.println("Received 1 Message With CorrelationID : "+message.getJMSCorrelationID());
+                System.out.println("SwiftOut Received Message With CorrelationID : "+message.getJMSCorrelationID());
 
                 String _message = message.getBody(String.class);
 
@@ -65,7 +65,7 @@ public class SwiftOutMessageListener implements CustomMessageListener {
                 XmlMapper xmlMapper = new XmlMapper();
                 ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);
 
-                process.putFileContent(request.getSwiftOut().getMessages().getMessage(), message.getJMSCorrelationID(), _data.getId());
+                process.putFileContent(request.getSwiftOut().getMessages().getMessage(), request.getRequestHeader().getCorrelationID(), _data.getId());
 
                 _data.setStatus("Success");
                 _data.setDelivery_date(new Date());

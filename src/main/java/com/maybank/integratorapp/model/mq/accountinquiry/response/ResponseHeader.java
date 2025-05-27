@@ -1,12 +1,21 @@
 package com.maybank.integratorapp.model.mq.accountinquiry.response;
 
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
+
 public class ResponseHeader {
+    @JacksonXmlProperty(namespace = "urn:control.services.tiplus2.misys.com",localName = "Service")
     private String service;
+    @JacksonXmlProperty(namespace = "urn:control.services.tiplus2.misys.com",localName = "Operation")
     private String operation;
+    @JacksonXmlProperty(namespace = "urn:control.services.tiplus2.misys.com",localName = "Status")
     private String status;
+    @JacksonXmlProperty(namespace = "urn:control.services.tiplus2.misys.com",localName = "Details")
     private Details details;
+    @JacksonXmlProperty(namespace = "urn:control.services.tiplus2.misys.com",localName = "CorrelationId")
     private String correlationID;
+    @JacksonXmlProperty(namespace = "urn:control.services.tiplus2.misys.com",localName = "TargetSystem")
     private String targetSystem;
+    @JacksonXmlProperty(namespace = "urn:control.services.tiplus2.misys.com",localName = "SourceSystem")
     private String sourceSystem;
 
     public String getService() { return service; }

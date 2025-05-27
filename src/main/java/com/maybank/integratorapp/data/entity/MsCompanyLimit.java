@@ -1,0 +1,84 @@
+package com.maybank.integratorapp.data.entity;
+
+import jakarta.persistence.*;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Entity
+@Table(name = "MsCompanyLimit",schema = "dbo")
+@NoArgsConstructor
+public class MsCompanyLimit {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String cifno;
+    private String cbranch;
+    private String ibranch;
+
+//    @OneToMany
+//    @JoinColumn(name = "company_limit_id", insertable = false, updatable = false)
+//    private List<MsFacility> facilities;
+//
+//    @OneToMany
+//    @JoinColumn(name = "company_limit_utilize_id", insertable = false, updatable = false)
+//    private List<MsFacilityUtilize> facilityUtilizes;
+
+    @OneToMany
+    @JoinColumn(name = "companyLimitId")  // matches FK column in MsFacility table
+    private List<MsFacility> facilities;
+
+    @OneToMany
+    @JoinColumn(name = "companyLimitId")  // matches FK column in MsFacilityUtilize table
+    private List<MsFacilityUtilize> facilityUtilizes;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getCifno() {
+        return cifno;
+    }
+
+    public void setCifno(String cifno) {
+        this.cifno = cifno;
+    }
+
+    public String getCbranch() {
+        return cbranch;
+    }
+
+    public void setCbranch(String cbranch) {
+        this.cbranch = cbranch;
+    }
+
+    public String getIbranch() {
+        return ibranch;
+    }
+
+    public void setIbranch(String ibranch) {
+        this.ibranch = ibranch;
+    }
+
+    public List<MsFacility> getFacilities() {
+        return facilities;
+    }
+
+    public void setFacilities(List<MsFacility> facilities) {
+        this.facilities = facilities;
+    }
+
+    public List<MsFacilityUtilize> getFacilityUtilizes() {
+        return facilityUtilizes;
+    }
+
+    public void setFacilityUtilizes(List<MsFacilityUtilize> facilityUtilizes) {
+        this.facilityUtilizes = facilityUtilizes;
+    }
+}

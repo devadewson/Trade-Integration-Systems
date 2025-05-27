@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
+<body>
+
+<main>
+    <script>
+
+    </script>
+    <h1>Transaction</h1>
+
+    <div class="card mb-3">
+        <h5 class="card-header">Transaction Search</h5>
+        <div class="card-body">
+            <!-- Search Box -->
+            <form th:action="@{/transactions}" method="get" class="mb-4">
+                <div class="input-group">
+                    <input type="text" name="search" th:value="${search}" class="form-control" placeholder="Search by Master Ref No">
+                    <button type="submit" class="btn btn-primary">Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <hr/>
+    <div class="card mb-3">
+        <h5 class="card-header">Transaction List</h5>
+        <div class="card-body">
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Master Ref No</th>
+                    <th>Last Event</th>
+                    <th>Last Step</th>
+                    <th>Reservation ID</th>
+                    <th>Draw Number</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="transaction : ${transactionPage.content}">
+                    <td th:text="${transaction.id}"></td>
+                    <td th:text="${transaction.masterRefNo}"></td>
+                    <td th:text="${transaction.lastEvent}"></td>
+                    <td th:text="${transaction.lastStep}"></td>
+                    <td th:text="${transaction.reservationId}"></td>
+                    <td th:text="${transaction.drawNumber}"></td>
+                    <td>
+                        <a th:href="@{/transactions/{id}/details(id=${transaction.id})}" class="btn btn-primary btn-sm">View Details</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <!-- Pagination Controls -->
+            <nav aria-label="Page navigation">
+                <ul class="pagination">
+                    <!-- Previous Button -->
+                    <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{/transactions(page=1, size=${transactionPage.size}, search=${search})}">First</a>
+                    </li>
+                    <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{/transactions(page=${currentPage - 1}, size=${transactionPage.size}, search=${search})}">Previous</a>
+                    </li>
+
+                    <!-- "<< Previous 10 Pages" Button (Shows only if not on first 10 pages) -->
+                    <li class="page-item" th:if="${currentPage > 10}">
+                        <a class="page-link" th:href="@{/transactions(page=${(currentPage - 10)}, size=${transactionPage.size}, search=${search})}"><<</a>
+                    </li>
+
+                    <!-- Page Numbers (Limited to current range, e.g., 1-10, 11-20, etc.) -->
+                    <li th:each="page : ${#numbers.sequence(T(java.lang.Math).max(1, (currentPage - 5)),T(java.lang.Math).min(currentPage + 4, transactionPage.totalPages))}"
+                        class="page-item" th:classappend="${page == currentPage} ? 'active'">
+                        <a class="page-link" th:href="@{/transactions(page=${page}, size=${transactionPage.size}, search=${search})}" th:text="${page}"></a>
+                    </li>
+
+                    <!-- ">> Next 10 Pages" Button (Shows only if more pages exist) -->
+                    <li class="page-item" th:if="${(currentPage + 10) <= transactionPage.totalPages}">
+                        <a class="page-link" th:href="@{/transactions(page=${(currentPage + 10)}, size=${transactionPage.size}, search=${search})}">>></a>
+                    </li>
+
+                    <!-- Next Button -->
+                    <li class="page-item" th:classappend="${currentPage == transactionPage.totalPages} ? 'disabled'">
+                        <a class="page-link" th:href="@{/transactions(page=${currentPage + 1}, size=${transactionPage.size}, search=${search})}">Next</a>
+                    </li>
+                    <li class="page-item" th:classappend="${currentPage == transactionPage.totalPages} ? 'disabled'">
+                        <a class="page-link" th:href="@{/transactions(page=${transactionPage.totalPages}, size=${transactionPage.size}, search=${search})}">Last</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+    <hr/>
+
+
+
+</main>
+</body>
+
+</html>

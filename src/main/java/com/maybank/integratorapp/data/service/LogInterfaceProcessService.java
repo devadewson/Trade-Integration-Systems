@@ -9,42 +9,46 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class LogInterfaceProcessService {
     @Autowired
     private LogInterfaceProcessRepository repo;
 
-    private Long IdLogParent;
-
-    public void SetLogParent(long idLogParent) {
-        this.IdLogParent= idLogParent;
+    public List<LogInterfaceProcess> getLogsByParentId(Long idLogParent) {
+        return repo.findByIdLogParent(idLogParent);
     }
-    public void Log(String activity, String description) {
+
+    public void Log(long _idLogParent,String activity, String description) {
         LogInterfaceProcess logEntry = new LogInterfaceProcess();
-        logEntry.setIdLogParent(this.IdLogParent);
+        logEntry.setIdLogParent(_idLogParent);
         logEntry.setActivity(activity);
         logEntry.setActivityDescription(description);
         logEntry.setLogDate(new Date());
         repo.save(logEntry);
     }
-    public void Log(String activity, String description,String status) {
+    public void Log(long _idLogParent,String activity, String description,String status) {
         LogInterfaceProcess logEntry = new LogInterfaceProcess();
-        logEntry.setIdLogParent(this.IdLogParent);
+        logEntry.setIdLogParent(_idLogParent);
         logEntry.setActivity(activity);
         logEntry.setActivityDescription(description);
         logEntry.setActivityStatus(status);
         logEntry.setLogDate(new Date());
         repo.save(logEntry);
     }
-    public void Log(String activity, String description,String status,String message) {
+    public void Log(long _idLogParent,String activity, String description,String status,String message) {
         LogInterfaceProcess logEntry = new LogInterfaceProcess();
-        logEntry.setIdLogParent(this.IdLogParent);
+        logEntry.setIdLogParent(_idLogParent);
         logEntry.setActivity(activity);
         logEntry.setActivityDescription(description);
         logEntry.setActivityStatus(status);
         logEntry.setIntegrationMessage(message);
         logEntry.setLogDate(new Date());
         repo.save(logEntry);
+    }
+
+    public List<LogInterfaceProcess> getLogsByActivityName(String activityName) {
+        return repo.findByActivityName(activityName);
     }
 }

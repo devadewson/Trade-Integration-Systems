@@ -10,8 +10,19 @@ public class MsTBRField {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private Long TBR_Id;
+    @ManyToOne
+    @JoinColumn(name = "TBR_Id", insertable = false, updatable = false)
+    private MsTBR tbr;
+
+    public MsTBR getTbr() {
+        return tbr;
+    }
+
+    public void setTbr(MsTBR tbr) {
+        this.tbr = tbr;
+    }
+
     private String DestinationField;
     private String DestinationFieldDataType;
     private String SourceField;

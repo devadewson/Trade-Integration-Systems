@@ -1,15 +1,16 @@
 package com.maybank.integratorapp.model.soap.accountinquiry.request;
 
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
+import com.maybank.integratorapp.model.soap.limit.XLBT.request.AdditionalHeader;
 
 public class ChannelHeader {
-
-    @JacksonXmlProperty(localName = "messageID")
-    private String messageID;
+    @JacksonXmlElementWrapper(useWrapping = false)
+    @JacksonXmlProperty(localName = "additionalHeader")
+    private AdditionalHeader additionalHeader;
 
     @JacksonXmlProperty(localName = "branchCode")
     private String branchCode;
-
     @JacksonXmlProperty(localName = "channelID")
     private String channelID;
 
@@ -39,11 +40,6 @@ public class ChannelHeader {
     public void setReference(String reference) {
         this.reference = reference;
     }
-
-    public void setMessageID(String messageID) {
-        this.messageID = messageID;
-    }
-
     public void setClientUserID(String clientUserID) {
         this.clientUserID = clientUserID;
     }
@@ -62,10 +58,6 @@ public class ChannelHeader {
 
     public String getReference() {
         return reference;
-    }
-
-    public String getMessageID() {
-        return messageID;
     }
 
     public String getClientUserID() {
@@ -114,5 +106,13 @@ public class ChannelHeader {
 
     public void setTransactionTime(String transactionTime) {
         this.transactionTime = transactionTime;
+    }
+
+    public AdditionalHeader getAdditionalHeader() {
+        return additionalHeader;
+    }
+
+    public void setAdditionalHeader(AdditionalHeader additionalHeader) {
+        this.additionalHeader = additionalHeader;
     }
 }

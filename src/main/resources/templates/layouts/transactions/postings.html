@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
+<body>
+<style>
+    .posting-item {
+        cursor: move; /* Indicate that the item is draggable */
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+</style>
+<main>
+    <div class="card mb-3">
+        <h5 class="card-header">Transaction Detail</h5>
+        <div class="card-body">
+            <form th:action="@{/transaction-details/{transMessageLogId}/update-posting-sequence(transMessageLogId=${transMessageLogId})}" method="post">
+                <div id="postings-list">
+                    <!-- Iterate over the list of postings -->
+                    <div th:each="posting : ${postings}" class="posting-item" th:data-id="${posting.id}">
+                        <input type="hidden" th:name="|postings[${postingStat.index}].id|" th:value="${posting.id}">
+                        <input type="hidden" th:name="|postings[${postingStat.index}].sequenceNo|" th:value="${posting.sequenceNo}">
+                        <strong>ID:</strong> <span th:text="${posting.id}"></span> |
+                        <strong>Sequence No:</strong> <span th:text="${posting.sequenceNo}"></span> |
+                        <strong>Account Type:</strong> <span th:text="${posting.accountType}"></span> |
+                        <strong>Amount:</strong> <span th:text="${posting.amount}"></span>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Save Order</button>
+            </form>
+            <hr />
+            <a href="/transactions" class="btn btn-secondary">Back to List</a>
+        </div>
+    </div>
+</main>
+<div class="container mt-5">
+    <h2>Postings Shuffle</h2>
+
+</div>
+
+<script>
+        $(function() {
+            // Make the list sortable using jQuery UI
+            $("#postings-list").sortable({
+                update: function(event, ui) {
+                    // Update the sequence numbers based on the new order
+                    $("#postings-list .posting-item").each(function(index) {
+                        $(this).find("input[name$='sequenceNo']").val(index + 1);
+                    });
+                }
+            });
+            $("#postings-list").disableSelection();
+        });
+    </script>
+</body>
+</html>

@@ -1,16 +1,152 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
 <body>
 <main>
     <div class="row">
-        <div class="col">
-            Column
-        </div>
-        <div class="col">
-            Column
-        </div>
-        <div class="col">
-            Column
+        <div class="container">
+            <div class="row mt-4">
+
+                <div class="card">
+                    <div class="card-header">
+                        Hourly Message Monitoring
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Last checked:
+                            <span th:text="${#temporals.format(lastChecked, 'yyyy-MM-dd HH:mm:ss')}"></span>
+                            <a href="#" onclick="location.reload()" class="ms-2">⟳ Refresh</a>
+                        </p>
+
+                        <div class="row">
+                            <canvas id="hourlyMessagesChart"></canvas>
+
+                        </div>
+                    </div>
+                </div>
+                <script th:inline="javascript">
+                    /*<![CDATA[*/
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const ctx = document.getElementById('hourlyMessagesChart').getContext('2d');
+                        const labels = /*[[${labels}]]*/ [];
+                        const originsData = /*[[${hourlyCountsByOrigin}]]*/ {};
+                        const origins = /*[[${origins}]]*/ [];
+
+                        // Prepare datasets for Chart.js
+                        const datasets = [];
+                        const colors = [
+                            'rgba(255, 99, 132, 0.8)',    // Red
+                            'rgba(54, 162, 235, 0.8)',    // Blue
+                            'rgba(255, 206, 86, 0.8)',    // Yellow
+                            'rgba(75, 192, 192, 0.8)',    // Teal
+                            'rgba(153, 102, 255, 0.8)',   // Purple
+                            'rgba(255, 159, 64, 0.8)',    // Orange
+                            'rgba(199, 199, 199, 0.8)',   // Gray
+                            'rgba(83, 102, 255, 0.8)',    // Dark Blue
+                            'rgba(40, 167, 69, 0.8)',     // Green
+                            'rgba(220, 53, 69, 0.8)',     // Dark Red
+                            'rgba(253, 126, 20, 0.8)',    // Dark Orange
+                            'rgba(111, 66, 193, 0.8)',    // Dark Purple
+                            'rgba(32, 201, 151, 0.8)',    // Mint
+                            'rgba(233, 30, 99, 0.8)'      // Pink
+                        ];
+
+                        origins.forEach((origin, index) => {
+                            datasets.push({
+                                label: origin,
+                                data: originsData[origin],
+                                backgroundColor: colors[index % colors.length],
+                                borderColor: colors[index % colors.length].replace('0.7)', '1)'),
+                                borderWidth: 1
+                            });
+                        });
+
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: datasets
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    title: {
+                                        display: true,
+                                        text: 'Messages per Hour by Origin (Stacked)'
+                                    },
+                                    tooltip: {
+                                        mode: 'index',
+                                        intersect: false
+                                    }
+                                },
+                                scales: {
+                                    x: {
+                                        stacked: true,
+                                        title: {
+                                            display: true,
+                                            text: 'Hour of Day',
+                                            font: { weight: 'bold' }
+                                        },
+                                        grid: {
+                                            display: false
+                                        }
+                                    },
+                                    y: {
+                                        stacked: true,
+                                        beginAtZero: true,
+                                        title: {
+                                            display: true,
+                                            text: 'Number of Messages',
+                                            font: { weight: 'bold' }
+                                        },
+                                        ticks: {
+                                            precision: 0
+                                        }
+                                    }
+                                }
+                            }
+                        });
+
+                    });
+                    /*]]>*/
+                </script>
+            </div>
+            <div class="row mt-4">
+                <div class="card">
+                    <div class="card-header">
+                        Cron Logs Monitoring
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Last checked:
+                            <span th:text="${#temporals.format(lastChecked, 'yyyy-MM-dd HH:mm:ss')}"></span>
+                            <a href="#" onclick="location.reload()" class="ms-2">⟳ Refresh</a>
+                        </p>
+
+                        <div class="row">
+                            <div class="col-md-6 col-lg-3 mb-4" th:each="logFile : ${logFiles}">
+                                <div class="card" th:classappend="${!logFile.exists} ? 'bg-light'">
+                                    <div class="card-header" th:text="${logFile.name}">Log Name</div>
+                                    <div class="card-body">
+                                        <div th:if="${logFile.exists}">
+                                            <p class="card-text">
+                                                <strong>Last Modified:</strong>
+                                                <span th:text="${#temporals.format(logFile.lastModified, 'yyyy-MM-dd HH:mm:ss')}"></span>
+                                            </p>
+                                            <p class="card-text">
+                                                <strong>Size:</strong>
+                                                <span th:text="${#numbers.formatDecimal(logFile.size/1024, 1, 2)} + ' KB'"></span>
+                                            </p>
+                                            <a th:href="@{'/logs/view?id=' + ${logFile.id}}" class="btn btn-primary btn-sm">View Log</a>
+                                        </div>
+                                        <div th:unless="${logFile.exists}" class="text-danger">
+                                            File not found
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </main>
