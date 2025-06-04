@@ -465,8 +465,19 @@ public class LimitFacilitiesMessageProcessor {
                                 listFacility.add(facility);
                             }else{
                                 MsFacility _existing = existingFacility.stream().filter(x->x.getKeyLoanAcc().equals(facility.getKeyLoanAcc())).findAny().get();
+                                _existing.setKeyDigitNote(splitKey[4]);
+                                _existing.setCurrency(splitKey[1]);
+                                _existing.setBranchCode(splitKey[2]);
+                                _existing.setCifNo(splitKey[3]);
                                 _existing.setCommitmentBalance(facility.getCommitmentBalance());
                                 _existing.setCommitmentBalanceSign(facility.getCommitmentBalanceSign());
+                                _existing.setDescription(facility.getDescription());
+                                _existing.setLoanCurrencyCode(facility.getLoanCurrencyCode());
+                                _existing.setMaturityDate(facility.getMaturityDate());
+                                _existing.setNoteDate(facility.getNoteDate());
+                                _existing.setNoteType(facility.getNoteType());
+                                _existing.setPrincipalBalance(facility.getPrincipalBalance());
+                                _existing.setPrincipalBalanceSign(facility.getPrincipalBalanceSign());
                                 _existing.setStatus(facility.getStatus());
                                 _existing =msFacilityRepository.save(_existing);
 

@@ -104,3 +104,7 @@ replay_pid*
 *.unused
 *.bak
 /target/*
+/mqjms.log.0
+/mqjms.log.1
+/mqjms.log.2
+/.idea/inspectionProfiles/Project_Default.xml

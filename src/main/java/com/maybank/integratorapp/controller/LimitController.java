@@ -8,6 +8,7 @@ import com.maybank.integratorapp.component.coresystem.ProcessFacilities;
 import com.maybank.integratorapp.component.system.messageprocessor.AccountInquiryMessageProcessor;
 import com.maybank.integratorapp.component.system.messageprocessor.LimitFacilitiesMessageProcessor;
 import com.maybank.integratorapp.data.entity.*;
+import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.data.repository.MsCurrencyRepository;
 import com.maybank.integratorapp.data.repository.MsFacilityRepository;
 import com.maybank.integratorapp.data.repository.MsCompanyLimitRepository;
@@ -15,6 +16,7 @@ import com.maybank.integratorapp.model.mq.facilities.response.FacilityDetails;
 import com.maybank.integratorapp.model.soap.fcclimit.request.OFA;
 import com.maybank.integratorapp.model.soap.fcclimit.response.Limit;
 import com.maybank.integratorapp.model.soap.fcclimit.response.OFAResponse;
+import com.maybank.integratorapp.util.MQUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -31,6 +33,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -41,7 +44,8 @@ public class LimitController {
     @Autowired
     MsCompanyLimitRepository mscompanylimitRepository;
     private static Logger log = LoggerFactory.getLogger(LimitController.class);
-
+    @Autowired
+    private LogQueueDataRepository dataDTO;
     @Autowired
     private MsCurrencyRepository msCurrencyRepository;
 
@@ -179,6 +183,14 @@ public class LimitController {
         List<Limit> limitList = new ArrayList<>();
 
         try{
+            LogQueueData _data = new LogQueueData();
+            _data.setMessageUID(new MQUtil().getMessageUID());
+            _data.setOrigin("Refresh Limit Integrator Scheduler");
+            _data.setCreated_date(new Date());
+            _data.setStatus("Success");
+            _data.setDelivery_date(new Date());
+            _data.setUpdated_date(new Date());
+            _data = dataDTO.save(_data);
 
             List<MsCompanyLimit> allCompany = (List<MsCompanyLimit>) mscompanylimitRepository.findAll();
 

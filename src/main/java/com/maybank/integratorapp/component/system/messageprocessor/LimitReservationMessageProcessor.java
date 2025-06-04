@@ -652,6 +652,8 @@ public class LimitReservationMessageProcessor {
 //                    logger.Log(this.LoggerId,ProcessName, "CLS AFTER HIT XL01 RESPONSE CODE :"+xl01responseCode, "DEBUG");
 
 //                    logger.Log(this.LoggerId,ProcessName, "CLS AFTER HIT XL01 RESPONSE MESSAGE :"+xl01responseMessage, "DEBUG");
+                    if(xl01responseCode.contains("exception") && xl01responseMessage == null)
+                        xl01responseCode= "99";
 
                     if(xl01responseCode.equals("00")){
 //                        logger.Log(this.LoggerId,ProcessName, "CLS BEFORE REFRESH FACILITIES", "DEBUG");
@@ -737,7 +739,8 @@ public class LimitReservationMessageProcessor {
                     String xl2BresponseMessage = msgResponseXL2B
                             .getBody().getXl2BResponse().
                             getCmsXl2BResponse().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
-
+                    if(xl2BresponseCode.contains("exception") && xl2BresponseMessage == null)
+                        xl2BresponseCode= "99";
 
                     if(xl2BresponseCode.equals("00")) {
                         processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
@@ -1117,7 +1120,7 @@ public class LimitReservationMessageProcessor {
 //                        - REF LAMA 13 DIGIT (PYBB123456000-ISS001 >>> B123456ISS)
         String clsCustomReference = "";
         if(referenceId.length() == 16){
-            clsCustomReference = referenceId.substring(2,3) +referenceId.substring(7,13)+eventCode.substring(0,3);
+            clsCustomReference = referenceId.substring(2,3) +referenceId.substring(6,13)+eventCode.substring(0,3);
         }
         if(referenceId.length() == 13){
             clsCustomReference = referenceId.substring(3,4) +referenceId.substring(4,9)+eventCode.substring(0,3);
