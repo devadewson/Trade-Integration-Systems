@@ -538,9 +538,15 @@ public class LimitReservationMessageProcessor {
                                             x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B")
                                                     && x.getFtiEvent().equals(eventCode)
                                     ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
-                                    if(transactionDetails1.getAdditionalInfo5() != null)
-                                        _dateOld = transactionDetails1.getAdditionalInfo5();
-                                    if(!_dateOld.equals(_dateNew)){
+                                    // sementara XL2B belum bisa ganti start date, maka hanya compare expiry nya saja
+                                    if(transactionDetails1.getAdditionalInfo5() != null){
+//                                        _dateOld = transactionDetails1.getAdditionalInfo5();
+                                        _dateOld = transactionDetails1.getAdditionalInfo5().split("#")[1];
+                                    }
+
+
+//                                    if(!_dateOld.equals(_dateNew)){
+                                    if(!_dateOld.equals(expiryDate)){
                                         needXL2B = true;
                                     }
                                 }
