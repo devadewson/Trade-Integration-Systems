@@ -18,6 +18,11 @@ public class ExtraData {
 
     @JacksonXmlProperty(localName = "GroupID", namespace = "urn:custom.service.ti.apps.tiplus2.misys.com")
     private String groupID;
+    @JacksonXmlProperty(localName = "LineOfBusiness", namespace = "urn:custom.service.ti.apps.tiplus2.misys.com")
+    private String lineOfBusiness;
+    @JacksonXmlProperty(localName = "CustBranchFacility", namespace = "urn:custom.service.ti.apps.tiplus2.misys.com")
+
+    private String custBranchFacility;
 
     public String getGroupID() {
         return groupID;
@@ -57,5 +62,21 @@ public class ExtraData {
 
     public void setiDCurrencyNumber(String iDCurrencyNumber) {
         this.iDCurrencyNumber = iDCurrencyNumber;
+    }
+
+    public String getLineOfBusiness() {
+        return lineOfBusiness;
+    }
+
+    public void setLineOfBusiness(String lineOfBusiness) {
+        this.lineOfBusiness = lineOfBusiness;
+    }
+
+    public String getCustBranchFacility() {
+        return custBranchFacility;
+    }
+
+    public void setCustBranchFacility(String custBranchFacility) {
+        this.custBranchFacility = custBranchFacility;
     }
 }

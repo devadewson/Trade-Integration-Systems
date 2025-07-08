@@ -24,6 +24,11 @@
                         <input type="text" name="transref" th:value="${transref}" class="form-control" placeholder="Search in Message Content">
                     </div>
                 </div>
+                <div class="mb-3 row">
+                    <div class="col-sm-6">
+                        <input type="text" name="queueorigin" th:value="${queueorigin}" class="form-control" placeholder="Search in Queue Origin">
+                    </div>
+                </div>
                 <button type="submit" class="btn btn-primary">Search</button>
             </form>
         </div>
@@ -67,34 +72,34 @@
                 <ul class="pagination">
                     <!-- Previous Button -->
                     <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
-                        <a class="page-link" th:href="@{/log-queue(page=1, size=${logQueuePage.size}, search=${search}, transref=${transref})}">First</a>
+                        <a class="page-link" th:href="@{/log-queue(page=1, size=${logQueuePage.size}, search=${search}, transref=${transref}, queueorigin=${queueorigin})}">First</a>
                     </li>
                     <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
-                        <a class="page-link" th:href="@{/log-queue(page=${currentPage - 1}, size=${logQueuePage.size}, search=${search}, transref=${transref})}">Previous</a>
+                        <a class="page-link" th:href="@{/log-queue(page=${currentPage - 1}, size=${logQueuePage.size}, search=${search}, transref=${transref}, queueorigin=${queueorigin})}">Previous</a>
                     </li>
 
                     <!-- "<< Previous 10 Pages" Button (Shows only if not on first 10 pages) -->
                     <li class="page-item" th:if="${currentPage > 10}">
-                        <a class="page-link" th:href="@{/log-queue(page=${(currentPage - 10)}, size=${logQueuePage.size}, search=${search}, transref=${transref})}"><<</a>
+                        <a class="page-link" th:href="@{/log-queue(page=${(currentPage - 10)}, size=${logQueuePage.size}, search=${search}, transref=${transref}, queueorigin=${queueorigin})}"><<</a>
                     </li>
 
                     <!-- Page Numbers (Limited to current range, e.g., 1-10, 11-20, etc.) -->
                     <li th:each="page : ${#numbers.sequence(T(java.lang.Math).max(1, (currentPage - 5)),T(java.lang.Math).min(currentPage + 4, logQueuePage.totalPages))}"
                         class="page-item" th:classappend="${page == currentPage} ? 'active'">
-                        <a class="page-link" th:href="@{/log-queue(page=${page}, size=${logQueuePage.size}, search=${search}, transref=${transref})}" th:text="${page}"></a>
+                        <a class="page-link" th:href="@{/log-queue(page=${page}, size=${logQueuePage.size}, search=${search}, transref=${transref}, queueorigin=${queueorigin})}" th:text="${page}"></a>
                     </li>
 
                     <!-- ">> Next 10 Pages" Button (Shows only if more pages exist) -->
                     <li class="page-item" th:if="${(currentPage + 10) <= logQueuePage.totalPages}">
-                        <a class="page-link" th:href="@{/log-queue(page=${(currentPage + 10)}, size=${logQueuePage.size}, search=${search}, transref=${transref})}">>></a>
+                        <a class="page-link" th:href="@{/log-queue(page=${(currentPage + 10)}, size=${logQueuePage.size}, search=${search}, transref=${transref}, queueorigin=${queueorigin})}">>></a>
                     </li>
 
                     <!-- Next Button -->
                     <li class="page-item" th:classappend="${currentPage == logQueuePage.totalPages} ? 'disabled'">
-                        <a class="page-link" th:href="@{/log-queue(page=${currentPage + 1}, size=${logQueuePage.size}, search=${search}, transref=${transref})}">Next</a>
+                        <a class="page-link" th:href="@{/log-queue(page=${currentPage + 1}, size=${logQueuePage.size}, search=${search}, transref=${transref}, queueorigin=${queueorigin})}">Next</a>
                     </li>
                     <li class="page-item" th:classappend="${currentPage == logQueuePage.totalPages} ? 'disabled'">
-                        <a class="page-link" th:href="@{/log-queue(page=${logQueuePage.totalPages}, size=${logQueuePage.size}, search=${search}, transref=${transref})}">Last</a>
+                        <a class="page-link" th:href="@{/log-queue(page=${logQueuePage.totalPages}, size=${logQueuePage.size}, search=${search}, transref=${transref}, queueorigin=${queueorigin})}">Last</a>
                     </li>
                 </ul>
             </nav>

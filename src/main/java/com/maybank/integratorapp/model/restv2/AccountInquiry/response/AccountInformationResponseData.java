@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.model.restv2.AccountInquiry.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class AccountInformationResponseData {
@@ -31,6 +32,7 @@ public class AccountInformationResponseData {
     private String address4;
 
     @JsonProperty("AccountData")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private AccountData accountData;
     @JsonProperty("ApplCode")
     private String applCode;

@@ -100,6 +100,9 @@ public class SftpFileTransfer {
 
                     // Delete the temporary file
                     tempFile.delete();
+
+
+
 //                        System.out.println("Downloaded SWIFT file: " + entry.getFilename());
                     logger.Log(loggerId,"SwiftIn - Forward Swift File","Forward swift file from SwiftSAA","FORWARDED",entry.getFilename());
 
@@ -156,7 +159,7 @@ public class SftpFileTransfer {
             // Create session and connect to the SFTP server
             destination1Session = connectToSftp(destination1SftpHost,destination1SftpUser,destination1SftpPassword);
             // Open SFTP channel
-            destination1ChannelSftp = (ChannelSftp) destination1Session.openChannel("ftp");
+            destination1ChannelSftp = (ChannelSftp) destination1Session.openChannel("sftp");
             destination1ChannelSftp.connect();
 
             // Create session and connect to the SFTP server

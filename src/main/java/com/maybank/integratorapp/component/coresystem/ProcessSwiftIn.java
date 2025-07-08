@@ -1,8 +1,11 @@
 package com.maybank.integratorapp.component.coresystem;
 
 import com.maybank.integratorapp.component.SftpFileTransfer;
+import com.maybank.integratorapp.component.system.messageprocessor.LimitReservationMessageProcessor;
 import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
 import com.maybank.integratorapp.data.service.MsParameterService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +22,8 @@ import java.util.Map;
 
 @Component
 public class ProcessSwiftIn {
+    private static Logger log = LoggerFactory.getLogger(ProcessSwiftIn.class);
+
     @Autowired
     MsParameterService repo;
     
@@ -32,11 +37,17 @@ public class ProcessSwiftIn {
         try {
 
             // Sftp Config
-            String sftpHost = repo.findValueByPrmKey("SwiftInSftpAddress");
-            String sftpUsername = repo.findValueByPrmKey("SwiftInSftpUsername");
-            String sftpPassword = repo.findValueByPrmKey("SwiftInSftpPassword");
-            String sftpPath = repo.findValueByPrmKey("SwiftInSftpPath");
+//            String sftpHost = repo.findValueByPrmKey("FTISwiftInSftpAddress");
+//            String sftpUsername = repo.findValueByPrmKey("SwiftInSftpUsername");
+//            String sftpPassword = repo.findValueByPrmKey("SwiftInSftpPassword");
+//            String sftpPath = repo.findValueByPrmKey("SwiftInSftpPath");
             String localpath = repo.findValueByPrmKey("SwiftInLocalPath");
+
+            String sftpHost = repo.findValueByPrmKey("FTISwiftInSftpAddress");
+            String sftpUsername = repo.findValueByPrmKey("FTISwiftInSftpUsername");
+            String sftpPassword = repo.findValueByPrmKey("FTISwiftInSftpPassword");
+            String sftpPath = repo.findValueByPrmKey("FTISwiftInSftpPath");
+            String sftpPort = repo.findValueByPrmKey("FTISwiftInSftpPort");
 
             SftpFileTransfer sftp = new SftpFileTransfer(sftpHost,sftpUsername,sftpPassword,sftpPath);
             List<String> listFileProcessed = sftp.getSwiftFile(localpath,logger,loggerId);
@@ -47,13 +58,14 @@ public class ProcessSwiftIn {
 
                 // Check if the file exists before attempting to read it
                 if (Files.exists(file) && Files.isReadable(file)) {
-                    System.out.println("Reading file: " + file.getFileName());
+                    log.info("Reading file: " + file.getFileName());
                     logger.Log(loggerId,"SwiftIn - Reading Swift File", "Reading swift file", "READ-LOCAL",file.getFileName().toString());
 
                     List<String> fileContent = Files.readAllLines(file, StandardCharsets.UTF_8);  // Read the file content
+                    fileContent.removeIf(s -> s == null || s.trim().isEmpty());
                     fileContents.put(file.getFileName().toString(), fileContent);  // Store the file content with the file name as the key
                 } else {
-                    System.err.println("File not found or not readable: " + pathFile);
+                    log.error("File not found or not readable: " + pathFile);
                     logger.Log(loggerId,"SwiftIn - File Read Error", "File not found or not readable", "ERROR");
                 }
             }
@@ -122,24 +134,39 @@ public class ProcessSwiftIn {
             String BTsftpUsername = repo.findValueByPrmKey("BTSwiftInSftpUsername");
             String BTsftpPassword = repo.findValueByPrmKey("BTSwiftInSftpPassword");
             String BTsftpPath = repo.findValueByPrmKey("BTSwiftInSftpPath");
+            String BTsftpPort = repo.findValueByPrmKey("BTSwiftInSftpPort");
 
             String FTIsftpHost = repo.findValueByPrmKey("FTISwiftInSftpAddress");
             String FTIsftpUsername = repo.findValueByPrmKey("FTISwiftInSftpUsername");
             String FTIsftpPassword = repo.findValueByPrmKey("FTISwiftInSftpPassword");
             String FTIsftpPath = repo.findValueByPrmKey("FTISwiftInSftpPath");
+            String FTIsftpPort = repo.findValueByPrmKey("FTISwiftInSftpPort");
 
             SftpFileTransfer sftp = new SftpFileTransfer(sftpHost,sftpUsername,sftpPassword,sftpPath);
-            sftp.forwardSwiftFile(
+            sftp.forwardSwiftFileNew(
                     BTsftpHost,
+                    Integer.parseInt(BTsftpPort),
                     BTsftpUsername,
                     BTsftpPassword,
                     BTsftpPath,
                     FTIsftpHost,
+                    Integer.parseInt(FTIsftpPort),
                     FTIsftpUsername,
                     FTIsftpPassword,
                     FTIsftpPath,
                     logger,loggerId
                     );
+//            sftp.forwardSwiftFile(
+//                    BTsftpHost,
+//                    BTsftpUsername,
+//                    BTsftpPassword,
+//                    BTsftpPath,
+//                    FTIsftpHost,
+//                    FTIsftpUsername,
+//                    FTIsftpPassword,
+//                    FTIsftpPath,
+//                    logger,loggerId
+//                    );
 
         } catch (Exception e) {
 //            e.printStackTrace();

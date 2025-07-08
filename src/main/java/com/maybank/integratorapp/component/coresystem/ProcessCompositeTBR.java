@@ -10,6 +10,7 @@ import com.maybank.integratorapp.model.mq.batchposting.request.Posting;
 import com.maybank.integratorapp.model.restv2.CompositeTbr.response.MsgWrapper;
 import com.maybank.integratorapp.util.DynamicClassGenerator;
 import com.maybank.integratorapp.util.DynamicClassPropertyMap;
+import com.maybank.integratorapp.util.PostingGroupSorter;
 import com.maybank.integratorapp.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -148,11 +149,6 @@ public class ProcessCompositeTBR {
         String referenceID = data.stream().findFirst().get().getMasterReference();
         String eventCode = data.stream().findFirst().get().getEventReference();
 
-
-
-
-
-
         // remove the 999 vs 07 posting
         List<Posting> removed = data.stream().filter(x->x.getBackOfficeAccountNo().startsWith("07") || x.getBackOfficeAccountNo().startsWith("999")).toList();
         data.removeAll(removed);
@@ -161,8 +157,7 @@ public class ProcessCompositeTBR {
         logger.Log(this.LoggerId,"Posting - Group Posting Data","Group posting into pair of debit credit","START");
         List<PostingGroup> finalData = groupPosting(data);
         logger.Log(this.LoggerId,"Posting - Group Posting Data","Group posting into pair of debit credit","END");
-        // condition check if there is cross valas
-
+        PostingGroupSorter.sortPostingGroups(finalData);
 
         for (PostingGroup postingGroup:finalData) {
             FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
@@ -215,6 +210,7 @@ public class ProcessCompositeTBR {
             else{
                 // do cross valas logic here
                 logger.Log(this.LoggerId,"Posting - Posting Data to ESB", "Map and Posting Cross Valas Data the data into ESB", "START");
+
                 logger.Log(this.LoggerId,"Posting - Posting Data to ESB", "Map and Posting Cross Valas Data the data into ESB", "END");
 
             }
@@ -799,6 +795,12 @@ public class ProcessCompositeTBR {
 
             for (int i = 0; i < filteredPostings.size(); i++) {
                 PostingExtender post = filteredPostings.get(i);
+                if (i>0) {
+                    PostingExtender prevPost = filteredPostings.get(i -1);
+                    if (post.getAccountTypeAlias().equals(prevPost.getAccountTypeAlias())) {
+                        seq++;
+                    }
+                }
                 // find all fields for this posting
                 int finalSeq = seq;
                 logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Map seq "+String.valueOf(finalSeq), "DEBUG");
@@ -854,12 +856,7 @@ public class ProcessCompositeTBR {
                     }
 
                 }
-                if (i + 1 < filteredPostings.size()) {
-                    PostingExtender nextPost = filteredPostings.get(i + 1);
-                    if (post.getAccountTypeAlias().equals(nextPost.getAccountTypeAlias())) {
-                        seq++;
-                    }
-                }
+
 
             }
             // credit legs
@@ -870,6 +867,12 @@ public class ProcessCompositeTBR {
 
             for (int i = 0; i < filteredPostings.size(); i++) {
                 PostingExtender post = filteredPostings.get(i);
+                if (i>0) {
+                    PostingExtender prevPost = filteredPostings.get(i -1);
+                    if (post.getAccountTypeAlias().equals(prevPost.getAccountTypeAlias())) {
+                        seq++;
+                    }
+                }
                 // find all fields for this posting
                 int finalSeq = seq;
                 logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Map seq "+String.valueOf(finalSeq), "DEBUG");
@@ -926,13 +929,6 @@ public class ProcessCompositeTBR {
                     }
 
                 }
-                if ((i + 1) < filteredPostings.size()) {
-                    PostingExtender nextPost = filteredPostings.get(i + 1);
-                    if (post.getAccountTypeAlias().equals(nextPost.getAccountTypeAlias())) {
-                        seq++;
-                    }
-                }
-
 
             }
             // finalize object

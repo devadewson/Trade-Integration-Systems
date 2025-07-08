@@ -206,6 +206,7 @@ public class MQController {
             @RequestParam("size") Optional<Integer> size,
             @RequestParam("search") Optional<String> search,
             @RequestParam("transref") Optional<String> transref,
+            @RequestParam("queueorigin") Optional<String> queueorigin,
             Model model) {
 
         // Set default values for pagination
@@ -225,6 +226,10 @@ public class MQController {
             // If search term is provided, search by masterRefNo
             logQueuePage = logQueueDataService.searchByTransactionId(transref.get(), pageable);
         }
+        else if (queueorigin.isPresent() && !queueorigin.get().isEmpty()) {
+            // If search term is provided, search by masterRefNo
+            logQueuePage = logQueueDataService.searchByQueueOrigin(queueorigin.get(), pageable);
+        }
         else {
             // Otherwise, fetch all transactions with default sorting
             logQueuePage = logQueueDataService.getAll(pageable);
@@ -235,6 +240,7 @@ public class MQController {
         model.addAttribute("totalPages", logQueuePage.getTotalPages());
         model.addAttribute("search", search.orElse(""));
         model.addAttribute("transref", transref.orElse(""));
+        model.addAttribute("queueorigin", queueorigin.orElse(""));
 
         return "layouts/queue/index"; // Thymeleaf template name
     }
@@ -243,6 +249,11 @@ public class MQController {
     public String getLogQueueDetails(@PathVariable Long id, Model model) {
         LogQueueData logQueueData = logQueueDataService.findById(id).get();
         List<LogInterfaceProcess> details = logInterfaceProcessService.getLogsByParentId(id);
+
+        String relatedTransaction = "";
+        if(logQueueData.getReqMessage().contains("<reference>")||logQueueData.getReqMessage().contains("MasterReference>")){
+
+        }
         model.addAttribute("logQueue", logQueueData);
         model.addAttribute("logs", details);
         return "layouts/queue/details"; // Thymeleaf template name

@@ -61,4 +61,8 @@ public class LogQueueDataService {
 
         return result;
     }
+
+    public Page<LogQueueData> searchByQueueOrigin(String queueOrigin, Pageable pageable) {
+        return repo.findByQueueOriginContainingIgnoreCase(queueOrigin, pageable);
+    }
 }

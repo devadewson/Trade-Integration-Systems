@@ -31,6 +31,9 @@ public interface LogQueueDataRepository extends CrudRepository<LogQueueData, Lon
     @Query("SELECT t FROM LogQueueData t WHERE t.reqMessage LIKE LOWER(CONCAT('%', :transref, '%'))")
     Page<LogQueueData> findByTransactionIdContainingIgnoreCase(@Param("transref") String transref, Pageable pageable);
 
+    @Query("SELECT t FROM LogQueueData t WHERE t.origin LIKE LOWER(CONCAT('%', :queueorigin, '%'))")
+    Page<LogQueueData> findByQueueOriginContainingIgnoreCase(@Param("queueorigin") String queueorigin, Pageable pageable);
+
     @Query(value = "SELECT " +
             "REPLACE(origin,'MQ_queue:///',''), " +
             "DATEPART(HOUR, created_date) as hour, " +

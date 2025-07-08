@@ -9,7 +9,6 @@ import com.maybank.integratorapp.model.mq.swiftout.request.SwiftOut;
 //@XmlRootElement(name = "ServiceRequest", namespace = "urn:control.services.tiplus2.misys.com")
 //@XmlAccessorType(XmlAccessType.FIELD)
 @JacksonXmlRootElement(localName = "ServiceRequest", namespace = "urn:control.services.tiplus2.misys.com")
-
 public class ServiceRequest {
     //    @XmlElement(name = "RequestHeader")
 //@XmlElement(name = "RequestHeader")
@@ -17,7 +16,7 @@ public class ServiceRequest {
         this.requestHeader = new RequestHeader();
         this.swiftIn = new SwiftIn();
     }
-    @JacksonXmlProperty(localName = "RequestHeader")
+    @JacksonXmlProperty(localName = "RequestHeader",namespace = "urn:control.services.tiplus2.misys.com")
     private RequestHeader requestHeader;
     //    @XmlElement(name = "AvailBalRequest", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
 //@XmlElement(name = "AvailBalRequest", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")

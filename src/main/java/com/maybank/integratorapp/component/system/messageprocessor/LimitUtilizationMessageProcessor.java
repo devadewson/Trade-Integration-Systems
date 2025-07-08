@@ -28,6 +28,8 @@ import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -57,6 +59,9 @@ public class LimitUtilizationMessageProcessor {
     @Autowired
     EmailService emailService;
     private Long LoggerId;
+    private long XL2BTransId;
+    private long XL31TransId;
+    private FtiTransactionDetail LastLimitAction;
 
     public String processMessage(String message,Long loggerId) {
         String responseXml = "";
@@ -79,7 +84,8 @@ public class LimitUtilizationMessageProcessor {
                 // step 2.
                 setInitialResponseHeader(request);
                 String accountNo = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getAccountNumber();
-                String utilizationID = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getReservationIdentifier();
+//                String utilizationID = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getReservationIdentifier();
+                String utilizationID = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getFacilityExposureIdentifier();
                 String correlationID = request.getRequestHeader().getCorrelationID();
                 String masterReference = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getMasterReference();
                 String eventCode = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getEventReference();
@@ -96,32 +102,56 @@ public class LimitUtilizationMessageProcessor {
 
                 boolean needXL40 = false;
                 boolean needXL41 = false;
+                boolean recreateTrans = false;
 
-                FtiTransactionDetail _lastLimitAction;
+
+
                 if(_listTransactionDetail.stream().count()>0){
 //                    logger.Log(this.LoggerId,ProcessName, "Transaction Detail Count : "+_listTransactionDetail.stream().count(), "DEBUG");
 
-                    _lastLimitAction = _listTransactionDetail.get((int) (_listTransactionDetail.stream().count()-1));
-                    if(_lastLimitAction.getCoreSysName().contains("XL2B")){
+                    LastLimitAction = _listTransactionDetail.get((int) (_listTransactionDetail.stream().count()-1));
+                    // cek dulu tanggal reservasinya
+                    // kalau bukan hari ini maka bikin ulang
+                    LocalDateTime today = LocalDateTime.now();
+                    LocalDateTime inputDate = LocalDateTime.ofInstant(
+                            LastLimitAction.getCreatedDate().toInstant(), ZoneId.systemDefault());
+
+                    if(!(inputDate.getYear() == today.getYear() &&
+                            inputDate.getMonth() == today.getMonth() &&
+                            inputDate.getDayOfMonth() == today.getDayOfMonth())){
+
+                        // bikin ulang last action nya
+                        // karena di cls sudah ilang
+                        recreateTrans = true;
+                    }
+
+                    if(LastLimitAction.getCoreSysName().contains("XL2B")){
+                        XL2BTransId = LastLimitAction.getId();
                         needXL40 =true;
-                    }else if(_lastLimitAction.getCoreSysName().contains("XL31")){
+                    }else if(LastLimitAction.getCoreSysName().contains("XL31")){
+                        XL31TransId = LastLimitAction.getId();
                         needXL41 = true;
                         // check whether before XL31 there is XL2B
-                        List<FtiTransactionDetail> _listTransaction = ftiTransactionDetailService.getDetailsByHeaderId(_lastLimitAction.getHeaderId());
+                        List<FtiTransactionDetail> _listTransaction = ftiTransactionDetailService.getDetailsByHeaderId(LastLimitAction.getHeaderId());
                         Optional<FtiTransactionDetail> _beforeLastLimitAction = _listTransaction.stream().filter(x ->
-                                x.getCoreSysName().equals("CLS-XL2B") && x.getCoreSysStatus().equals("00") && x.getFtiEvent().equals(_lastLimitAction.getFtiEvent()) && x.getId()< _lastLimitAction.getId()
+                                x.getCoreSysName().equals("CLS-XL2B") && x.getCoreSysStatus().equals("00") && x.getFtiEvent().equals(LastLimitAction.getFtiEvent()) && x.getId()< LastLimitAction.getId()
                         ).max(Comparator.comparing(FtiTransactionDetail::getId));
 //                        FtiTransactionDetail _beforeLastLimitAction = ftiTransactionDetailService.getById(_lastLimitAction.getId()-1);
                         if(_beforeLastLimitAction.isPresent()){
+                            XL2BTransId = _beforeLastLimitAction.get().getId();
                             needXL40 = true;
                         }
                     }
 
 
                 } else {
-                    _lastLimitAction = null;
+                    LastLimitAction = null;
                 }
                 if(needXL40){
+                    if(recreateTrans){
+                        LastLimitAction = _listTransactionDetail.stream().filter(x->x.getId().equals(XL2BTransId)).findFirst().get();
+//                        how??
+                    }
                     // step 3.
                     com.maybank.integratorapp.model.soap.limit.XL40.request.SoapEnvelope msgRequest = mapXL40Request(utilizationID,masterReference);
 
@@ -131,6 +161,10 @@ public class LimitUtilizationMessageProcessor {
                 }
 
                 if(needXL41){
+                    if(recreateTrans){
+                        LastLimitAction = _listTransactionDetail.stream().filter(x->x.getId().equals(XL31TransId)).findFirst().get();
+//                        how??
+                    }
                     // step 3.
                     com.maybank.integratorapp.model.soap.limit.XL41.request.SoapEnvelope msgRequest = mapXL41Request(utilizationID,masterReference);
 
@@ -349,6 +383,8 @@ public class LimitUtilizationMessageProcessor {
 
                     cmsResponseXL41 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope.class);
                     res = cmsResponseXL41;
+                    String xmlResponseXL41 = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cmsResponseXL41);
+//
                     String responseCode = cmsResponseXL41
                             .getBody().getXl41Response().
                             getCmsXl41Response().getResponsecode();
@@ -370,10 +406,10 @@ public class LimitUtilizationMessageProcessor {
                     ftiTransactionDetail.setAdditionalInfo2(dcType);
                     ftiTransactionDetail.setAdditionalInfo3(amount);
                     ftiTransactionDetail.setAdditionalInfo4("REL");
+                    ftiTransactionDetail.setReqMessage(xmlString);
+                    ftiTransactionDetail.setResMessage(xmlResponseXL41);
                     ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
 
-                    String xmlResponseXL41 = mapper.writeValueAsString(cmsResponseXL41);
-//                    log.info(xmlResponseXL41);
 
                 }
             } catch (Exception e) {
@@ -432,6 +468,8 @@ public class LimitUtilizationMessageProcessor {
 
                     cmsResponseXL40 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL40.response.SoapEnvelope.class);
                     res = cmsResponseXL40;
+                    String xmlResponseXL40 = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cmsResponseXL40);
+//
                     String responseCode = cmsResponseXL40
                             .getBody().getXl40Response().
                             getCmsXl40Response().getResponsecode();
@@ -454,10 +492,9 @@ public class LimitUtilizationMessageProcessor {
                     ftiTransactionDetail.setAdditionalInfo2(dcType);
                     ftiTransactionDetail.setAdditionalInfo3(amount);
                     ftiTransactionDetail.setAdditionalInfo4("REL");
+                    ftiTransactionDetail.setReqMessage(xmlString);
+                    ftiTransactionDetail.setResMessage(xmlResponseXL40);
                     ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
-
-                    String xmlResponseXL40 = mapper.writeValueAsString(cmsResponseXL40);
-//                    log.info(xmlResponseXL40);
 
                 }
             } catch (Exception e) {
