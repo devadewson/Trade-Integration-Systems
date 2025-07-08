@@ -679,6 +679,8 @@ public class LimitReservationMessageProcessor {
 //                    logger.Log(this.LoggerId,ProcessName, "CLS AFTER HIT XL01 RESPONSE CODE :"+xl01responseCode, "DEBUG");
 
 //                    logger.Log(this.LoggerId,ProcessName, "CLS AFTER HIT XL01 RESPONSE MESSAGE :"+xl01responseMessage, "DEBUG");
+                    if(xl01responseCode.contains("exception") && xl01responseMessage == null)
+                        xl01responseCode= "99";
 
                     if(xl01responseCode.equals("00")){
 //                        logger.Log(this.LoggerId,ProcessName, "CLS BEFORE REFRESH FACILITIES", "DEBUG");
@@ -764,7 +766,8 @@ public class LimitReservationMessageProcessor {
                     String xl2BresponseMessage = msgResponseXL2B
                             .getBody().getXl2BResponse().
                             getCmsXl2BResponse().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
-
+                    if(xl2BresponseCode.contains("exception") && xl2BresponseMessage == null)
+                        xl2BresponseCode= "99";
 
                     if(xl2BresponseCode.equals("00")) {
                         processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
@@ -808,7 +811,7 @@ public class LimitReservationMessageProcessor {
 
 
                     mapExternalResponse("00","Nothing Changed",facilityIdentifier,facilitySequence
-                    ,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
+                            ,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
 
                 }
             }
@@ -1346,7 +1349,7 @@ public class LimitReservationMessageProcessor {
             String exposureAmount,
             String reservedAmount,
             String availableAmount
-            ) {
+    ) {
         ResponseHeader responseHeader = response.getResponseHeader();
 //set reservation response
         ReservationsResponse reservationsResponse =  new ReservationsResponse();
