@@ -9,10 +9,7 @@ import com.maybank.integratorapp.data.repository.MsQueueConfigRepository;
 import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
 import com.maybank.integratorapp.data.service.LogQueueDataService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +20,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.io.EOFException;
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Controller
 public class MQController {
@@ -206,6 +206,7 @@ public class MQController {
             @RequestParam("size") Optional<Integer> size,
             @RequestParam("search") Optional<String> search,
             @RequestParam("transref") Optional<String> transref,
+            @RequestParam("queueorigin") Optional<String> queueorigin,
             Model model) {
 
         // Set default values for pagination
@@ -229,12 +230,23 @@ public class MQController {
             // Otherwise, fetch all transactions with default sorting
             logQueuePage = logQueueDataService.getAll(pageable);
         }
+
+        if (queueorigin.isPresent() && !queueorigin.get().isEmpty()) {
+            // If search term is provided, search by masterRefNo
+            List<LogQueueData> _logQueueData = logQueuePage.getContent().stream().filter(x->x.getOrigin().contains(queueorigin.get())).toList();
+            logQueuePage = new PageImpl<>(
+                    _logQueueData,
+                    pageable,
+                    _logQueueData.size()
+            );
+        }
         // Add data to the model
         model.addAttribute("logQueuePage", logQueuePage);
         model.addAttribute("currentPage", currentPage);
         model.addAttribute("totalPages", logQueuePage.getTotalPages());
         model.addAttribute("search", search.orElse(""));
         model.addAttribute("transref", transref.orElse(""));
+        model.addAttribute("queueorigin", queueorigin.orElse(""));
 
         return "layouts/queue/index"; // Thymeleaf template name
     }
@@ -243,6 +255,31 @@ public class MQController {
     public String getLogQueueDetails(@PathVariable Long id, Model model) {
         LogQueueData logQueueData = logQueueDataService.findById(id).get();
         List<LogInterfaceProcess> details = logInterfaceProcessService.getLogsByParentId(id);
+
+
+        String relatedTransaction = "";
+        String relatedLink = "/transactions?search=";
+        if(logQueueData.getReqMessage().contains("<reference>")){
+            Pattern pattern = Pattern.compile("<reference>(.*?)</reference>");
+            Matcher matcher = pattern.matcher(logQueueData.getReqMessage());
+
+            if (matcher.find()) {
+                relatedTransaction = matcher.group(1);
+                relatedLink+= relatedTransaction;
+            }
+
+        }else if(logQueueData.getReqMessage().contains("MasterReference>")){
+            Pattern pattern = Pattern.compile("<[^:>]+:MasterReference>(.*?)</[^:>]+:MasterReference>");
+            Matcher matcher = pattern.matcher(logQueueData.getReqMessage());
+
+            if (matcher.find()) {
+                relatedTransaction = matcher.group(1);
+                relatedLink+= relatedTransaction;
+            }
+
+        }
+        model.addAttribute("relatedLink",relatedLink);
+        model.addAttribute("relatedTransaction",relatedTransaction);
         model.addAttribute("logQueue", logQueueData);
         model.addAttribute("logs", details);
         return "layouts/queue/details"; // Thymeleaf template name

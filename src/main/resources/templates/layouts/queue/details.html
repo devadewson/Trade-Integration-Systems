@@ -11,61 +11,71 @@
             <div class="row">
                 <div class="col-md-6">
                     <form>
-                        <div class="form-group row">
+                        <div class="form-group row mb-3">
                             <label class="col-sm-4 col-form-label" for="LogId">LogId</label>
                             <div class="col-md-8">
                                 <input type="text" readonly="readonly" th:value="${logQueue.id}" class="form-control" id="LogId">
                             </div>
                         </div>
-                        <div class="form-group row">
+                        <div class="form-group row mb-3">
                             <label class="col-sm-4 col-form-label" for="CreatedDate">CreatedDate</label>
                             <div class="col-md-8">
                                 <input type="text" readonly="readonly" th:value="${logQueue.created_date}" class="form-control" id="CreatedDate">
                             </div>
                         </div>
-                        <div class="form-group row">
+                        <div class="form-group row mb-3">
                             <label class="col-sm-4 col-form-label" for="LogOrigin">LogOrigin</label>
                             <div class="col-md-8">
                                 <input type="text" readonly="readonly" th:value="${logQueue.origin}" class="form-control" id="LogOrigin">
                             </div>
                         </div>
-                        <div class="form-group row">
+                        <div class="form-group row mb-3">
                             <label class="col-sm-4 col-form-label" for="LogReqMessage">Request Message</label>
                             <div class="col-md-8">
                                 <textarea rows="5" readonly="readonly" th:text="${logQueue.reqMessage}" class="form-control" id="LogReqMessage" ></textarea>
+                            </div>
+                        </div>
+                        <div class="form-group row mb-3">
+                            <label class="col-sm-4 col-form-label" for="relatedTransaction">Related Transaction</label>
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <input type="text" readonly="readonly" th:value="${relatedTransaction}" class="form-control" id="relatedTransaction">
+                                    <a class="btn btn-primary" th:href="${relatedLink}">Go To Trans</a>
+                                </div>
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="col-md-6">
                     <form>
-                        <div class="form-group row">
+                        <div class="form-group row mb-3">
                             <label class="col-sm-4 col-form-label" for="CorrelationId">CorrelationId</label>
                             <div class="col-md-8">
                                 <input type="text" readonly="readonly" th:value="${logQueue.correlationID}" class="form-control" id="CorrelationId">
                             </div>
                         </div>
 
-                        <div class="form-group row">
+                        <div class="form-group row mb-3">
                             <label class="col-sm-4 col-form-label" for="UpdatedDate">UpdatedDate</label>
                             <div class="col-md-8">
                                 <input type="text" readonly="readonly" th:value="${logQueue.updated_date}" class="form-control" id="UpdatedDate" >
 
                             </div>
                         </div>
-                        <div class="form-group row">
+                        <div class="form-group row mb-3">
                             <label class="col-sm-4 col-form-label" for="LogDestination">LogDestination</label>
                             <div class="col-md-8">
                                 <input type="text" readonly="readonly" th:value="${logQueue.destination}" class="form-control" id="LogDestination">
                             </div>
                         </div>
-                        <div class="form-group row">
+                        <div class="form-group row mb-3">
                             <label class="col-sm-4 col-form-label" for="LogResMessage">Response Message</label>
                             <div class="col-md-8">
                                 <textarea rows="5" readonly="readonly" th:text="${logQueue.resMessage}" class="form-control" id="LogResMessage" ></textarea>
 
                             </div>
                         </div>
+
                     </form>
                 </div>
             </div>

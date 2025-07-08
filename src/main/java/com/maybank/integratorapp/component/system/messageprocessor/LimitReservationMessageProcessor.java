@@ -555,7 +555,21 @@ public class LimitReservationMessageProcessor {
                                 if(_eventCode.equals("CAN") || _eventCode.equals("BCR")){
                                     _transDate = LocalDate.parse(transDateRes, inputFormatter);
                                     expiryDate = _transDate.format(outputFormatter);
-                                    needXL2B = true;
+                                    transactionDetails1 = transactionDetails.stream().filter(x ->
+                                            x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B")
+                                                    && x.getFtiEvent().equals(eventCode)
+                                    ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
+                                    // sementara XL2B belum bisa ganti start date, maka hanya compare expiry nya saja
+                                    if(transactionDetails1.getAdditionalInfo5() != null){
+//                                        _dateOld = transactionDetails1.getAdditionalInfo5();
+                                        _dateOld = transactionDetails1.getAdditionalInfo5().split("#")[1];
+                                    }
+
+
+//                                    if(!_dateOld.equals(_dateNew)){
+                                    if(!_dateOld.equals(expiryDate)){
+                                        needXL2B = true;
+                                    }
                                 }
 
                                 if(exposureAmmount.equals("0")){
@@ -790,7 +804,7 @@ public class LimitReservationMessageProcessor {
 
 
                     mapExternalResponse("00","Nothing Changed",facilityIdentifier,facilitySequence
-                    ,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
+                            ,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
 
                 }
             }
@@ -962,7 +976,7 @@ public class LimitReservationMessageProcessor {
                     cmsResponseXL01 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL01.responseComplete.SoapEnvelope.class);
 
 
-                    String xmlResponseXL01 = mapper.writeValueAsString(cmsResponseXL01);
+                    String xmlResponseXL01 = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cmsResponseXL01);
 //                    log.info(xmlResponseXL01);
 
                     // Extract  response code
@@ -972,7 +986,7 @@ public class LimitReservationMessageProcessor {
                     String responseMessage = cmsResponseXL01
                             .getBody().getXl01Draw001Response().
                             getCmsXL01Draw001Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
-                    if(responseMessage.contains("exception") && responseCode == null)
+                    if(outputResponse.contains("exception") && responseCode == null)
                         responseCode= "99";
 
                     FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
@@ -1057,7 +1071,7 @@ public class LimitReservationMessageProcessor {
                     serviceResponse = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL31.response.SoapEnvelope.class);
 
 
-                    String xmlResponseXL01 = mapper.writeValueAsString(serviceResponse);
+                    String xmlResponseXL31 = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(serviceResponse);
 //                    log.info(xmlResponseXL01);
 
                     // Extract  response code
@@ -1126,10 +1140,10 @@ public class LimitReservationMessageProcessor {
 //                        - REF LAMA 13 DIGIT (PYBB123456000-ISS001 >>> B123456ISS)
         String clsCustomReference = "";
         if(referenceId.length() == 16){
-            clsCustomReference = referenceId.substring(2,3) +referenceId.substring(6,13)+eventCode.substring(0,3);
+            clsCustomReference = referenceId.substring(2,3) +referenceId.substring(7,14)+eventCode.substring(0,3);
         }
         if(referenceId.length() == 13){
-            clsCustomReference = referenceId.substring(3,4) +referenceId.substring(4,9)+eventCode.substring(0,3);
+            clsCustomReference = referenceId.substring(3,4) +referenceId.substring(4,10)+eventCode.substring(0,3);
 
         }
 
@@ -1264,7 +1278,7 @@ public class LimitReservationMessageProcessor {
                     serviceResponse = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL2B.response.SoapEnvelope.class);
 
 
-                    String xmlResponseXL2B = mapper.writeValueAsString(serviceResponse);
+                    String xmlResponseXL2B = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(serviceResponse);
 //                    log.info(xmlResponseXL2B);
 
                     // Extract  response code
@@ -1323,7 +1337,7 @@ public class LimitReservationMessageProcessor {
             String exposureAmount,
             String reservedAmount,
             String availableAmount
-            ) {
+    ) {
         ResponseHeader responseHeader = response.getResponseHeader();
 //set reservation response
         ReservationsResponse reservationsResponse =  new ReservationsResponse();
