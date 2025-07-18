@@ -1,32 +1,55 @@
 package com.maybank.integratorapp.util;
+
 import java.lang.reflect.Field;
+
 public class ReflectionUtils {
     public static void copyProperties(Object source, Object target) {
-        Field[] fields = source.getClass().getDeclaredFields();
+        // Get all fields from source (including superclass fields)
+        Field[] sourceFields = getAllFields(source.getClass());
 
-        for (Field field : fields) {
+        for (Field sourceField : sourceFields) {
             try {
-                field.setAccessible(true);  // Allow access to private fields
-                Object value = field.get(source);  // Get value from source object
+                sourceField.setAccessible(true);  // Allow access to private fields
+                Object value = sourceField.get(source);  // Get value from source
 
-                Field targetField = getField(target.getClass(), field.getName()); // Get corresponding field in target
+                // Find corresponding field in target (including superclasses)
+                Field targetField = findField(target.getClass(), sourceField.getName());
+
                 if (targetField != null) {
                     targetField.setAccessible(true);
-                    targetField.set(target, value);  // Set value in target object
+                    targetField.set(target, value);  // Set value in target
                 }
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
         }
     }
-    private static Field getField(Class<?> clazz, String fieldName) {
+
+    /**
+     * Gets all fields of a class (including superclass fields)
+     */
+    private static Field[] getAllFields(Class<?> clazz) {
+        java.util.List<Field> fields = new java.util.ArrayList<>();
+        while (clazz != null) {
+            for (Field field : clazz.getDeclaredFields()) {
+                fields.add(field);
+            }
+            clazz = clazz.getSuperclass(); // Move up to the superclass
+        }
+        return fields.toArray(new Field[0]);
+    }
+
+    /**
+     * Finds a field in a class or its superclasses
+     */
+    private static Field findField(Class<?> clazz, String fieldName) {
         while (clazz != null) {
             try {
-                return clazz.getDeclaredField(fieldName);  // Look for field in current class
+                return clazz.getDeclaredField(fieldName);
             } catch (NoSuchFieldException e) {
-                clazz = clazz.getSuperclass();  // Try superclass if not found
+                clazz = clazz.getSuperclass(); // Check superclass if not found
             }
         }
-        return null;  // Return null if field not found
+        return null; // Field not found
     }
 }

@@ -606,10 +606,10 @@ public class LimitReservationMessageProcessor {
                     _eventCode = "ISS";
                 }
 
-                if(!lineOfBusiness.equals("01"))
+                if(!lineOfBusiness.equals("07") && !lineOfBusiness.equals("01"))
                     lineOfBusiness= "00";
-                if(productType.equals("515")) // bank limits
-                    lineOfBusiness= "07";
+//                if(productType.equals("515") || productType.equals("525")) // bank limits
+//                    lineOfBusiness= "07";
 
                 String cls001ProductType= "";
                 if(productType.startsWith("7")) // islamic limits

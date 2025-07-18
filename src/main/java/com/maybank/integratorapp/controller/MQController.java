@@ -218,28 +218,30 @@ public class MQController {
 
         // Fetch a page of FtiTransactions
         Page<LogQueueData> logQueuePage;
-        if (search.isPresent() && !search.get().isEmpty()) {
-            // If search term is provided, search by masterRefNo
-            logQueuePage = logQueueDataService.searchByCorrelationId(search.get(), pageable);
-        }
-        else if (transref.isPresent() && !transref.get().isEmpty()) {
-            // If search term is provided, search by masterRefNo
-            logQueuePage = logQueueDataService.searchByTransactionId(transref.get(), pageable);
-        }
-        else {
-            // Otherwise, fetch all transactions with default sorting
-            logQueuePage = logQueueDataService.getAll(pageable);
-        }
-
-        if (queueorigin.isPresent() && !queueorigin.get().isEmpty()) {
-            // If search term is provided, search by masterRefNo
-            List<LogQueueData> _logQueueData = logQueuePage.getContent().stream().filter(x->x.getOrigin().contains(queueorigin.get())).toList();
-            logQueuePage = new PageImpl<>(
-                    _logQueueData,
-                    pageable,
-                    _logQueueData.size()
-            );
-        }
+//        if (search.isPresent() && !search.get().isEmpty()) {
+//            // If search term is provided, search by masterRefNo
+//            logQueuePage = logQueueDataService.searchByCorrelationId(search.get(), pageable);
+//        }
+//        else if (transref.isPresent() && !transref.get().isEmpty()) {
+//            // If search term is provided, search by masterRefNo
+//            logQueuePage = logQueueDataService.searchByTransactionId(transref.get(), pageable);
+//        }
+//        else {
+//            // Otherwise, fetch all transactions with default sorting
+//            logQueuePage = logQueueDataService.getAll(pageable);
+//        }
+//
+//        if (queueorigin.isPresent() && !queueorigin.get().isEmpty()) {
+//            // If search term is provided, search by masterRefNo
+//            List<LogQueueData> _logQueueData = logQueuePage.stream().filter(x->
+//                    x.getOrigin().contains(queueorigin.get())).toList();
+//            logQueuePage = new PageImpl<>(
+//                    _logQueueData,
+//                    pageable,
+//                    _logQueueData.size()
+//            );
+//        }
+        logQueuePage = logQueueDataService.getAllWithSearch(pageable,search,transref,queueorigin);
         // Add data to the model
         model.addAttribute("logQueuePage", logQueuePage);
         model.addAttribute("currentPage", currentPage);
@@ -274,6 +276,18 @@ public class MQController {
 
             if (matcher.find()) {
                 relatedTransaction = matcher.group(1);
+                relatedLink+= relatedTransaction;
+            }
+
+        }
+        else if(logQueueData.getOrigin().contains("swiftOutgoing")){
+            String text = logQueueData.getReqMessage();
+            int startIndex = text.indexOf(":20:") + 4; // `+4` to skip `:20:`
+            int endIndex = text.indexOf("\n", startIndex); // Find the next newline
+
+            if (startIndex >= 4 && endIndex != -1) {
+                relatedTransaction = text.substring(startIndex, endIndex).trim();
+
                 relatedLink+= relatedTransaction;
             }
 
