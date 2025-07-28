@@ -252,6 +252,10 @@ public class LimitReversalMessageProcessor {
                     logger.Log(this.LoggerId,ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
 
                     cmsResponseXL41 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope.class);
+                    String xmlResponseXL41 = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cmsResponseXL41);
+//
+
+
                     String responseCode = cmsResponseXL41
                             .getBody().getXl41Response().
                             getCmsXl41Response().getResponsecode();
@@ -273,10 +277,10 @@ public class LimitReversalMessageProcessor {
                     ftiTransactionDetail.setAdditionalInfo2(dcType);
                     ftiTransactionDetail.setAdditionalInfo3(amount);
                     ftiTransactionDetail.setAdditionalInfo4("DEL");
+                    ftiTransactionDetail.setReqMessage(xmlString);
+                    ftiTransactionDetail.setResMessage(xmlResponseXL41);
                     ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
 
-                    String xmlResponseXL41 = mapper.writeValueAsString(cmsResponseXL41);
-//                    log.info(xmlResponseXL41);
 
                 }
             } catch (Exception e) {

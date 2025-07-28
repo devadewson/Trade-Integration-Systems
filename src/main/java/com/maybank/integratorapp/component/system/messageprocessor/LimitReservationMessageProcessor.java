@@ -66,8 +66,8 @@ public class LimitReservationMessageProcessor {
     @Autowired
     private LimitFacilitiesMessageProcessor processFacilities;
     private long LoggerId;
-    @Autowired
-    private LimitFacilitiesMessageProcessor facilitiesMessageProcessor;
+//    @Autowired
+//    private LimitFacilitiesMessageProcessor facilitiesMessageProcessor;
 
 //    public String processMessage(String message,Long loggerId) {
 //        String responseXml = "";
@@ -385,6 +385,7 @@ public class LimitReservationMessageProcessor {
     public String processMessage(String message,Long loggerId) {
         String responseXml = "";
         this.LoggerId = loggerId;
+        processFacilities.setLoggerId(loggerId);
 //        logger.SetLogParent(loggerId);
 
         try {
@@ -439,6 +440,12 @@ public class LimitReservationMessageProcessor {
                 LocalDate _transDate = LocalDate.parse(transDateRes, inputFormatter);
                 String transactionDate = _transDate.format(outputFormatter);
 //                String transactionDate = "051124";
+
+                String clsStaticDate = parameterService.findValueByPrmKey("CLSStaticDate");
+                if(!clsStaticDate.equals("-")){
+                    startDate = clsStaticDate;
+                    transactionDate = clsStaticDate;
+                }
 
                 // Ambil semua MsFacility dengan keyLoanAcc yang sesuai
                 MsFacility facilities = msFacilityRepository.findByKeyLoanAcc(facilityIdentifier);
@@ -535,8 +542,8 @@ public class LimitReservationMessageProcessor {
 
                                 if(_dateFromReq != null){
                                     transactionDetails1 = transactionDetails.stream().filter(x ->
-                                            x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B")
-                                                    && x.getFtiEvent().equals(eventCode)
+                                            (x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B")) &&
+                                            x.getCoreSysStatus().equals("00")
                                     ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
                                     // sementara XL2B belum bisa ganti start date, maka hanya compare expiry nya saja
                                     if(transactionDetails1.getAdditionalInfo5() != null){
@@ -556,8 +563,8 @@ public class LimitReservationMessageProcessor {
                                     _transDate = LocalDate.parse(transDateRes, inputFormatter);
                                     expiryDate = _transDate.format(outputFormatter);
                                     transactionDetails1 = transactionDetails.stream().filter(x ->
-                                            x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B")
-                                                    && x.getFtiEvent().equals(eventCode)
+                                            (x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B")) &&
+                                                    x.getCoreSysStatus().equals("00")
                                     ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
                                     // sementara XL2B belum bisa ganti start date, maka hanya compare expiry nya saja
                                     if(transactionDetails1.getAdditionalInfo5() != null){
@@ -599,10 +606,10 @@ public class LimitReservationMessageProcessor {
                     _eventCode = "ISS";
                 }
 
-                if(!lineOfBusiness.equals("01"))
+                if(!lineOfBusiness.equals("07") && !lineOfBusiness.equals("01"))
                     lineOfBusiness= "00";
-                if(productType.equals("515")) // bank limits
-                    lineOfBusiness= "07";
+//                if(productType.equals("515") || productType.equals("525")) // bank limits
+//                    lineOfBusiness= "07";
 
                 String cls001ProductType= "";
                 if(productType.startsWith("7")) // islamic limits
@@ -677,7 +684,7 @@ public class LimitReservationMessageProcessor {
 
                     if(xl01responseCode.equals("00")){
 //                        logger.Log(this.LoggerId,ProcessName, "CLS BEFORE REFRESH FACILITIES", "DEBUG");
-                        facilitiesMessageProcessor.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
+                        processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
 //                        logger.Log(this.LoggerId,ProcessName, "CLS AFTER REFRESH FACILITIES", "DEBUG");
                         FtiTransaction ftiTransaction = new FtiTransaction();
                         ftiTransaction.setMasterRefNo(masterReference);
@@ -1005,6 +1012,8 @@ public class LimitReservationMessageProcessor {
                                     +"#"+
                                     soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().getMatdate();
                     ftiTransactionDetail.setAdditionalInfo5(_StartAndMaturity);
+                    ftiTransactionDetail.setReqMessage(xmlString);
+                    ftiTransactionDetail.setResMessage(xmlResponseXL01);
                     ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
 
                 }
@@ -1097,7 +1106,8 @@ public class LimitReservationMessageProcessor {
                     ftiTransactionDetail.setAdditionalInfo2(dcType);
                     ftiTransactionDetail.setAdditionalInfo3(amount);
                     ftiTransactionDetail.setAdditionalInfo4("NRY");
-
+                    ftiTransactionDetail.setReqMessage(xmlString);
+                    ftiTransactionDetail.setResMessage(xmlResponseXL31);
                     ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
 
                 }
@@ -1302,6 +1312,8 @@ public class LimitReservationMessageProcessor {
                     ftiTransactionDetail.setAdditionalInfo2(dcType);
                     ftiTransactionDetail.setAdditionalInfo3(amount);
                     ftiTransactionDetail.setAdditionalInfo4("NRY");
+                    ftiTransactionDetail.setReqMessage(xmlString);
+                    ftiTransactionDetail.setResMessage(xmlResponseXL2B);
                     String _StartAndMaturity =startDate+"#"+maturityDate;
                     ftiTransactionDetail.setAdditionalInfo5(_StartAndMaturity);
                     ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);

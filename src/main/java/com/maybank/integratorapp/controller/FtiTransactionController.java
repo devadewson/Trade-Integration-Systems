@@ -103,12 +103,12 @@ public class FtiTransactionController {
         return logQueueDataService.findById(transMessageLogId);
     }
 
-    @GetMapping("/transaction-details/{transMessageLogId}/postings")
+    @GetMapping("/transaction-details/{transLogId}/postings")
     @ResponseBody
-    public List<PostingExtender> getPostingsByTransMessageLogId(@PathVariable Long transMessageLogId) {
+    public List<PostingExtender> getPostingsByTransMessageLogId(@PathVariable Long transLogId) {
         List<PostingExtender> listOfPostingGroups = new ArrayList<>();
         // Fetch the list of postings from the database
-        List<FtiTransactionDetailPostingGroup> postingGroups = ftiPostingGroupService.getByDetailId(transMessageLogId);
+        List<FtiTransactionDetailPostingGroup> postingGroups = ftiPostingGroupService.getByDetailId(transLogId);
         postingGroups.forEach(x->{
             PostingExtender _new = new PostingExtender();
             _new.setFlagCrossValas(x.getFlagCrossValas());
@@ -123,7 +123,7 @@ public class FtiTransactionController {
             List<LogInterfaceProcess> _logInterfaceProcessList = new ArrayList<>();
             if (!_new.getGroupId().isEmpty()) {
                 _postings = ftiPostingService.getByIdGroup(_new.getId());
-                String activityName = "Posting "+_new.getGroupId();
+                String activityName = "Posting "+_new.getId();
                 _logInterfaceProcessList = logInterfaceProcessService.getLogsByActivityName(activityName);
 
             }

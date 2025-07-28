@@ -5,6 +5,7 @@ import com.maybank.integratorapp.data.entity.LogQueueData;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
@@ -17,7 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface LogQueueDataRepository extends CrudRepository<LogQueueData, Long> {
+public interface LogQueueDataRepository extends CrudRepository<LogQueueData, Long>, JpaSpecificationExecutor<LogQueueData> {
 
     // Additional methods if needed
     @Query("select m from LogQueueData m where m.correlationID = ?1")
@@ -30,6 +31,9 @@ public interface LogQueueDataRepository extends CrudRepository<LogQueueData, Lon
 
     @Query("SELECT t FROM LogQueueData t WHERE t.reqMessage LIKE LOWER(CONCAT('%', :transref, '%'))")
     Page<LogQueueData> findByTransactionIdContainingIgnoreCase(@Param("transref") String transref, Pageable pageable);
+
+    @Query("SELECT t FROM LogQueueData t WHERE t.origin LIKE LOWER(CONCAT('%', :queueorigin, '%'))")
+    Page<LogQueueData> findByQueueOriginContainingIgnoreCase(@Param("queueorigin") String queueorigin, Pageable pageable);
 
     @Query(value = "SELECT " +
             "REPLACE(origin,'MQ_queue:///',''), " +

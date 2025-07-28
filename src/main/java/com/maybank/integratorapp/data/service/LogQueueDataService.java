@@ -3,9 +3,11 @@ package com.maybank.integratorapp.data.service;
 import com.maybank.integratorapp.data.entity.FtiTransaction;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -16,6 +18,44 @@ import java.util.stream.IntStream;
 public class LogQueueDataService {
     @Autowired
     private LogQueueDataRepository repo;
+    public Page<LogQueueData> getAllWithSearch(Pageable pageable,
+                                               Optional<String> correlationId,
+                                               Optional<String> transref,
+                                               Optional<String> queueOrigin){
+        Specification<LogQueueData> spec = (root, query, cb) ->
+        {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (correlationId.isPresent() && !correlationId.get().isEmpty()) {
+                predicates.add(cb.like(
+                        cb.lower(root.get("correlationID")),
+                        "%" + correlationId.get().toLowerCase() + "%"
+                ));
+            }
+
+            if (transref.isPresent() && !transref.get().isEmpty()) {
+                predicates.add(cb.like(
+                        root.get("reqMessage"),
+                        "%" + transref.get().toLowerCase() + "%"
+                ));
+            }
+
+            if  (queueOrigin.isPresent() && !queueOrigin.get().isEmpty()) {
+                predicates.add(cb.like(
+                        cb.lower(root.get("origin")),
+                        "%" + queueOrigin.get().toLowerCase() + "%"
+                ));
+            }
+
+            return predicates.isEmpty()
+                    ? cb.conjunction()  // no filter if both null/empty
+                    : cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<LogQueueData> result = repo.findAll(spec, pageable);
+
+        return result;
+    }
     public Page<LogQueueData> getAll(Pageable pageable) {
         return repo.findAll(pageable);
     }
@@ -60,5 +100,9 @@ public class LogQueueDataService {
         result.put("origins", new ArrayList<>(origins)); // Add origins list
 
         return result;
+    }
+
+    public Page<LogQueueData> searchByQueueOrigin(String queueOrigin, Pageable pageable) {
+        return repo.findByQueueOriginContainingIgnoreCase(queueOrigin, pageable);
     }
 }

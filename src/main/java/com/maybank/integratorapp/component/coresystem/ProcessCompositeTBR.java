@@ -208,8 +208,9 @@ public class ProcessCompositeTBR {
             if (postingGroup.getFlagCrossValas().equals("N"))
             {
                 logger.Log(this.LoggerId,"Posting - Posting Data to ESB", "Map and Posting the data into ESB", "START");
-                postTbr(referenceID,postingGroup, Long.valueOf(postingGroup.getGroupId()),ftiTransactionDetail.getId());
+                postTbr(referenceID,postingGroup, _group.getId(),ftiTransactionDetail.getId());
                 logger.Log(this.LoggerId,"Posting - Posting Data to ESB", "Map and Posting the data into ESB", "END");
+
 
             }
             else{
@@ -575,10 +576,17 @@ public class ProcessCompositeTBR {
             }
 
             for (PostingGroup group : groupedPostings) {
-                logger.Log(this.LoggerId,"Posting - Group Posting Data", "TbrCode: " + group.getTbrCode(), "PROCESS");
-                logger.Log(this.LoggerId,"Posting - Group Posting Data", "MappingType: " + group.getMappingType(), "PROCESS");
-                logger.Log(this.LoggerId,"Posting - Group Posting Data", "MDMC: " + group.getFlagMdmc(), "PROCESS");
-
+                logger.Log(this.LoggerId,"Posting - Group Posting Data",
+                        "TbrCode: " + group.getTbrCode()
+                        +" | "+
+                        "GroupID : " + group.getGroupId()
+                        +" | "+
+                        "MappingType : " + group.getMappingType()
+                        +" | "+
+                        "MDMC : " + group.getFlagMdmc()
+                        +" | "+
+                        "Cross Valas : " + group.getFlagCrossValas()
+                        , "PROCESS");
                 for (PostingExtender posting : group.getPostings()) {
                     logger.Log(this.LoggerId,"Posting - Group Posting Data", " - Sequence: " + posting.getPostingSeqNo() +
                             ", Account: " + posting.getBackOfficeAccountNo() +
@@ -799,14 +807,20 @@ public class ProcessCompositeTBR {
 
             for (int i = 0; i < filteredPostings.size(); i++) {
                 PostingExtender post = filteredPostings.get(i);
+                if (i>0) {
+                    PostingExtender prevPost = filteredPostings.get(i -1);
+                    if (post.getAccountTypeAlias().equals(prevPost.getAccountTypeAlias())) {
+                        seq++;
+                    }
+                }
                 // find all fields for this posting
                 int finalSeq = seq;
                 logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Map seq "+String.valueOf(finalSeq), "DEBUG");
 
                 List<MsTBRField> listField = listMapping.stream().filter(x->
                         x.getMappingDebitCredit().equals(post.getDebitCreditFlag())
-                        && x.getMappingAccountType().equals(post.getAccountTypeAlias())
-                        && x.getMappingPosition().equals(String.valueOf(finalSeq))
+                                && x.getMappingAccountType().equals(post.getAccountTypeAlias())
+                                && Arrays.stream(x.getMappingPosition().split(",")).anyMatch(z->z.equals(String.valueOf(finalSeq)))
                 ).toList();
                 for (MsTBRField field :listField){
                     String destinationPropertyName = field.getDestinationField();
@@ -854,12 +868,7 @@ public class ProcessCompositeTBR {
                     }
 
                 }
-                if (i + 1 < filteredPostings.size()) {
-                    PostingExtender nextPost = filteredPostings.get(i + 1);
-                    if (post.getAccountTypeAlias().equals(nextPost.getAccountTypeAlias())) {
-                        seq++;
-                    }
-                }
+
 
             }
             // credit legs
@@ -870,6 +879,12 @@ public class ProcessCompositeTBR {
 
             for (int i = 0; i < filteredPostings.size(); i++) {
                 PostingExtender post = filteredPostings.get(i);
+                if (i>0) {
+                    PostingExtender prevPost = filteredPostings.get(i -1);
+                    if (post.getAccountTypeAlias().equals(prevPost.getAccountTypeAlias())) {
+                        seq++;
+                    }
+                }
                 // find all fields for this posting
                 int finalSeq = seq;
                 logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Map seq "+String.valueOf(finalSeq), "DEBUG");
@@ -877,7 +892,7 @@ public class ProcessCompositeTBR {
                 List<MsTBRField> listField = listMapping.stream().filter(x->
                         x.getMappingDebitCredit().equals(post.getDebitCreditFlag())
                         && x.getMappingAccountType().equals(post.getAccountTypeAlias())
-                        && x.getMappingPosition().equals(String.valueOf(finalSeq))
+                        && Arrays.stream(x.getMappingPosition().split(",")).anyMatch(z->z.equals(String.valueOf(finalSeq)))
                 ).toList();
                 for (MsTBRField field :listField){
                     String destinationPropertyName = field.getDestinationField();
@@ -926,13 +941,6 @@ public class ProcessCompositeTBR {
                     }
 
                 }
-                if ((i + 1) < filteredPostings.size()) {
-                    PostingExtender nextPost = filteredPostings.get(i + 1);
-                    if (post.getAccountTypeAlias().equals(nextPost.getAccountTypeAlias())) {
-                        seq++;
-                    }
-                }
-
 
             }
             // finalize object

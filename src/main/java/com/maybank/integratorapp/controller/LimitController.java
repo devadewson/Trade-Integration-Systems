@@ -198,6 +198,7 @@ public class LimitController {
             _data = dataDTO.save(_data);
 
             List<MsCompanyLimit> allCompany = (List<MsCompanyLimit>) mscompanylimitRepository.findAll();
+            processFacilities.setLoggerId(_data.getId());
 
             allCompany.forEach(x->{
                 processFacilities.refreshFacilities(x.getCifno(),x.getId());

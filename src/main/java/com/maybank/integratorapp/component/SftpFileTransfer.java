@@ -100,6 +100,9 @@ public class SftpFileTransfer {
 
                     // Delete the temporary file
                     tempFile.delete();
+
+
+
 //                        System.out.println("Downloaded SWIFT file: " + entry.getFilename());
                     logger.Log(loggerId,"SwiftIn - Forward Swift File","Forward swift file from SwiftSAA","FORWARDED",entry.getFilename());
 

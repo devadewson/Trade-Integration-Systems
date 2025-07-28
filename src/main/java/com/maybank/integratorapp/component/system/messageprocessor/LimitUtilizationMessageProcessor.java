@@ -349,6 +349,8 @@ public class LimitUtilizationMessageProcessor {
 
                     cmsResponseXL41 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope.class);
                     res = cmsResponseXL41;
+                    String xmlResponseXL41 = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cmsResponseXL41);
+//
                     String responseCode = cmsResponseXL41
                             .getBody().getXl41Response().
                             getCmsXl41Response().getResponsecode();
@@ -370,10 +372,10 @@ public class LimitUtilizationMessageProcessor {
                     ftiTransactionDetail.setAdditionalInfo2(dcType);
                     ftiTransactionDetail.setAdditionalInfo3(amount);
                     ftiTransactionDetail.setAdditionalInfo4("REL");
+                    ftiTransactionDetail.setReqMessage(xmlString);
+                    ftiTransactionDetail.setResMessage(xmlResponseXL41);
                     ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
 
-                    String xmlResponseXL41 = mapper.writeValueAsString(cmsResponseXL41);
-//                    log.info(xmlResponseXL41);
 
                 }
             } catch (Exception e) {
@@ -432,6 +434,8 @@ public class LimitUtilizationMessageProcessor {
 
                     cmsResponseXL40 = mapper.readValue(_response, com.maybank.integratorapp.model.soap.limit.XL40.response.SoapEnvelope.class);
                     res = cmsResponseXL40;
+                    String xmlResponseXL40 = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cmsResponseXL40);
+//
                     String responseCode = cmsResponseXL40
                             .getBody().getXl40Response().
                             getCmsXl40Response().getResponsecode();
@@ -454,10 +458,9 @@ public class LimitUtilizationMessageProcessor {
                     ftiTransactionDetail.setAdditionalInfo2(dcType);
                     ftiTransactionDetail.setAdditionalInfo3(amount);
                     ftiTransactionDetail.setAdditionalInfo4("REL");
+                    ftiTransactionDetail.setReqMessage(xmlString);
+                    ftiTransactionDetail.setResMessage(xmlResponseXL40);
                     ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
-
-                    String xmlResponseXL40 = mapper.writeValueAsString(cmsResponseXL40);
-//                    log.info(xmlResponseXL40);
 
                 }
             } catch (Exception e) {

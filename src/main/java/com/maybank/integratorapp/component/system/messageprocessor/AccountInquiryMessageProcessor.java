@@ -213,8 +213,23 @@ public class AccountInquiryMessageProcessor {
 //            detailsResponse.setInfo(res.getMsg().getMsgHeader().getStatusDesc());
 
         AvailBalResponse availBalResponse = new AvailBalResponse();
+//
+//        String balance = res.getMsg().getMsgBody().getAccountInformationResponseData().getAccountData().getcADataRecord().getAvailableBalance();
+////        String formattedBalance = balance.substring(1).replace(".", "");
+//        String formattedBalance = balance.substring(1);
 
         String balance = res.getMsg().getMsgBody().getAccountInformationResponseData().getAccountData().getcADataRecord().getAvailableBalance();
+        String holdAmount = res.getMsg().getMsgBody().getAccountInformationResponseData().getAccountData().getcADataRecord().getHoldAmount();
+
+
+        double balanceValue = Double.parseDouble(balance);
+        double holdAmountValue = Double.parseDouble(holdAmount);
+        double availableBalanceValue = balanceValue - holdAmountValue;
+
+        String availableBalance = String.valueOf(availableBalanceValue);
+
+        System.out.println(availableBalance);
+
 //        String formattedBalance = balance.substring(1).replace(".", "");
         String formattedBalance = balance.substring(1);
         String holdCode = res.getMsg().getMsgBody().getAccountInformationResponseData().getAccountStatus();

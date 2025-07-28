@@ -7,7 +7,7 @@ import java.util.List;
 
 public class SwiftIn {
     public SwiftIn(){
-        this.embeddedItems = new EmbeddedItems();
+//        this.embeddedItems = new EmbeddedItems();
     }
     @JacksonXmlProperty(localName = "Acknowledged", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String acknowledged;

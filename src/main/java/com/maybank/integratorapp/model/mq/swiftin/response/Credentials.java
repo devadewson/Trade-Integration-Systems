@@ -4,15 +4,15 @@ package com.maybank.integratorapp.model.mq.swiftin.response;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
 public class Credentials {
-    @JacksonXmlProperty(localName = "Name")
+    @JacksonXmlProperty(localName = "Name", namespace = "urn:control.services.tiplus2.misys.com")
     private String name;
-    @JacksonXmlProperty(localName = "Password")
+    @JacksonXmlProperty(localName = "Password", namespace = "urn:control.services.tiplus2.misys.com")
 
     private String password;
-    @JacksonXmlProperty(localName = "Certificate")
+    @JacksonXmlProperty(localName = "Certificate", namespace = "urn:control.services.tiplus2.misys.com")
 
     private String certificate;
-    @JacksonXmlProperty(localName = "Digest")
+    @JacksonXmlProperty(localName = "Digest", namespace = "urn:control.services.tiplus2.misys.com")
 
     private String digest;
 

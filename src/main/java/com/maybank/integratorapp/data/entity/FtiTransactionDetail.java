@@ -28,6 +28,12 @@ public class FtiTransactionDetail {
     private String additionalInfo4;
     private String additionalInfo5;
 
+    @Column(columnDefinition = "TEXT")
+    private String reqMessage;
+
+    @Column(columnDefinition = "TEXT")
+    private String resMessage;
+
 
     public Long getId() {
         return id;
@@ -139,5 +145,21 @@ public class FtiTransactionDetail {
 
     public void setAdditionalInfo5(String additionalInfo5) {
         this.additionalInfo5 = additionalInfo5;
+    }
+
+    public String getReqMessage() {
+        return reqMessage;
+    }
+
+    public void setReqMessage(String reqMessage) {
+        this.reqMessage = reqMessage;
+    }
+
+    public String getResMessage() {
+        return resMessage;
+    }
+
+    public void setResMessage(String resMessage) {
+        this.resMessage = resMessage;
     }
 }

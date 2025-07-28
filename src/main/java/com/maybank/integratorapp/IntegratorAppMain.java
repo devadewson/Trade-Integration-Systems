@@ -11,10 +11,12 @@ import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @SpringBootApplication(scanBasePackages = "com.maybank.integratorapp")
 @EnableJpaRepositories(basePackages = "com.maybank.integratorapp.data.repository")
 @EnableScheduling
+@EnableTransactionManagement
 //@ComponentScan(basePackages = {
 //        "com.maybank.integratorapp.config"
 //        ,"com.maybank.integratorapp.data"

@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.controller;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -11,6 +12,8 @@ import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
+import com.maybank.integratorapp.model.mq.swiftin.response.Credentials;
+import com.maybank.integratorapp.model.mq.swiftin.response.RequestHeader;
 import com.maybank.integratorapp.model.mq.swiftin.response.ServiceRequest;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.util.MQUtil;
@@ -67,8 +70,22 @@ public class SwiftInController {
 
 
                 fileContents.forEach((fileName, content) -> {
+                    String date = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date());
+                    String correlationId = "SwiftIn_"+date+"_"+MQUtil.generateRandomString(6);
+
                     ServiceRequest response = new ServiceRequest();
                     response.getSwiftIn().setMessage(String.join("\n", content));
+                    response.setRequestHeader(new RequestHeader());
+                    response.getRequestHeader().setCorrelationID(correlationId);
+                    response.getRequestHeader().setService("TI");
+                    response.getRequestHeader().setOperation("SwiftIn");
+                    response.getRequestHeader().setCredentials(new Credentials());
+                    response.getRequestHeader().getCredentials().setName("SUPERVISOR");
+                    response.getRequestHeader().setReplyFormat("FULL");
+                    response.getRequestHeader().setNoRepair("Y");
+                    response.getRequestHeader().setNoOverride("Y");
+                    response.getRequestHeader().setTransactionControl("NONE");
+
                     LogQueueData data = new LogQueueData();
                     data.setMessageUID(new MQUtil().getMessageUID());
                     data.setOrigin("SwiftSAA");
@@ -88,6 +105,7 @@ public class SwiftInController {
                     String xml = null;
                     try {
                         xmlMapper.enable(SerializationFeature.INDENT_OUTPUT);
+                        xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
                         xmlMapper.enable(ToXmlGenerator.Feature.WRITE_XML_DECLARATION);
 
                         xml = xmlMapper.writeValueAsString(response);
@@ -95,8 +113,7 @@ public class SwiftInController {
                         throw new RuntimeException(e);
                     }
 
-                    String date = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date());
-                    String correlationId = "SwiftIn_"+date+"_"+MQUtil.generateRandomString(6);
+
                     logger.Log(data.getId(),"SwiftIn - Sending Swift Messages","Sending to FTI Queues","START");
                     // logging
 

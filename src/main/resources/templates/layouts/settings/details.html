@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
+<body>
+
+<main>
+    <script>
+
+    </script>
+    <h1 class="mt-3" th:text="${metadata.displayName} + ' Management'">Entity Management</h1>
+    <hr/>
+    <!-- Success/Error Messages -->
+<!--    <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger">-->
+<!--        <ul>-->
+<!--            <li th:each="err : ${#fields.errors('*')}" th:text="${err}"></li>-->
+<!--        </ul>-->
+<!--    </div>-->
+    <!-- Messages -->
+    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+
+    <!-- Dynamic Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 th:text="(${entity.id} != null ? 'Edit' : 'New') + ' ' + ${metadata.displayName}"></h5>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/settings/{entityName}/save(entityName=${metadata.name})}" method="post">
+                <input type="hidden" name="id" th:value="${entity.id}"/>
+
+                <div th:each="field : ${metadata.fields}">
+                    <div class="mb-3">
+                        <label th:for="${field.name}" class="form-label" th:text="${field.displayName}"></label>
+
+                        <input th:if="${field.type.simpleName == 'String'}"
+                               type="text" class="form-control"
+                               th:id="${field.name}" th:name="${field.name}"
+                               th:value="${entity.__${field.name}__}"
+                               th:required="${field.required}">
+
+                        <input th:if="${field.type.simpleName == 'Long' || field.type.simpleName == 'Integer'}"
+                               type="number" class="form-control"
+                               th:id="${field.name}" th:name="${field.name}"
+                               th:value="${entity.__${field.name}__}"
+                               th:required="${field.required}">
+
+                        <!-- Add more field types as needed -->
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save</button>
+            </form>
+<!--            <form th:object="${entity}" th:action="@{/settings/{entityName}/save(entityName=${metadata.name})}" method="post">-->
+<!--                <input type="hidden" th:field="*{id}"/>-->
+
+<!--                <div class="row">-->
+<!--                    <div th:each="field : ${metadata.fields}" class="col-md-4 mb-3">-->
+<!--                        <label th:for="${field.name}" class="form-label" th:text="${field.displayName}"></label>-->
+
+<!--                        <th:block th:switch="${field.type.simpleName}">-->
+<!--                            &lt;!&ndash; Text Input &ndash;&gt;-->
+<!--                            <input th:case="String" type="text" class="form-control"-->
+<!--                                   th:id="${field.name}" th:field="*{__${field.name}__}"-->
+<!--                                   th:required="${field.required}">-->
+
+<!--                            &lt;!&ndash; Number Input &ndash;&gt;-->
+<!--                            <input th:case="Long,Integer" type="number" class="form-control"-->
+<!--                                   th:id="${field.name}" th:field="*{__${field.name}__}"-->
+<!--                                   th:required="${field.required}">-->
+
+<!--                            &lt;!&ndash; Date Input &ndash;&gt;-->
+<!--                            <input th:case="LocalDate" type="date" class="form-control"-->
+<!--                                   th:id="${field.name}" th:field="*{__${field.name}__}">-->
+
+<!--                            &lt;!&ndash; Default Input &ndash;&gt;-->
+<!--                            <input th:case="*" type="text" class="form-control"-->
+<!--                                   th:id="${field.name}" th:field="*{__${field.name}__}">-->
+<!--                        </th:block>-->
+<!--                    </div>-->
+<!--                </div>-->
+
+<!--                <div class="mt-3">-->
+<!--                    <button type="submit" class="btn btn-primary">-->
+<!--                        <i class="bi bi-save"></i> Save-->
+<!--                    </button>-->
+<!--                    <a th:href="@{/settings/{entityName}(entityName=${metadata.name})}"-->
+<!--                       class="btn btn-secondary">-->
+<!--                        <i class="bi bi-x"></i> Cancel-->
+<!--                    </a>-->
+<!--                </div>-->
+<!--            </form>-->
+<!--        -->
+        </div>
+    </div>
+
+    <!-- Dynamic Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 th:text="${metadata.displayName} + ' List'"></h5>
+            <div>
+                <a th:href="@{/settings/{entityName}(entityName=${metadata.name})}"
+                   class="btn btn-sm btn-success">
+                    <i class="bi bi-plus"></i> Add New
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered">
+                    <thead class="table-light">
+                    <tr>
+                        <th th:each="field : ${metadata.fields}" th:text="${field.displayName}"></th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="item : ${entities}">
+                        <td th:each="field : ${metadata.fields}">
+                            <span th:text="${item.__${field.name}__}"></span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a th:href="@{/settings/{entityName}(entityName=${metadata.name}, id=${item.id})}"
+                                   class="btn btn-primary">Edit
+                                </a>
+                                <form th:action="@{/settings/{entityName}/delete(entityName=${metadata.name})}"
+                                      method="post" class="d-inline">
+                                    <input type="hidden" name="id" th:value="${item.id}">
+                                    <button type="submit" class="btn btn-danger"
+                                            onclick="return confirm('Are you sure?')">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="/settings" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to General Settings
+        </a>
+    </div>
+
+</main>
+</body>
+
+</html>
