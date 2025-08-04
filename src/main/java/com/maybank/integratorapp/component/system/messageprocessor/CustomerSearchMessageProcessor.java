@@ -71,6 +71,16 @@ public class CustomerSearchMessageProcessor {
 
             // request validation (if needed)
             boolean validRequest = true;
+            if(request.getCustomerSearchRequest().getCustomerNumber().contains("-")){
+                String _cif = request.getCustomerSearchRequest().getCustomerNumber().split("-")[0];
+                String _operation = request.getCustomerSearchRequest().getCustomerNumber().split("-")[1];
+                if(_operation.equals("R")){
+                    // reload the data
+                    request.getCustomerSearchRequest().setCustomerNumber(_cif);
+                }
+
+            }
+
             if(request.getCustomerSearchRequest().getCustomerNumber() == null){
                 Details detailsResponse = new Details();
                 detailsResponse.setError("GCIF Is Empty");

@@ -132,7 +132,7 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
                 customerDetailsResponse.setCustomerExtraData(new CustometExtraData());
                 customerDetailsResponse.getCustomerExtraData().setCifNumber(cifNo);
                 customerDetailsResponse.getCustomerExtraData().setTaxId(customerInformationResponse.getnPWP());
-                customerDetailsResponse.getCustomerExtraData().setLineOfBusiness(customerInformationResponse.getLineOfBusiness());
+//                customerDetailsResponse.getCustomerExtraData().setLineOfBusiness(customerInformationResponse.getLineOfBusiness());
 
                 detailAddress.setZipCode(accountListResponse.getZipcode());
                 customerDetailsResponse.setResidenceCountry(customerInformationResponse.getNationality());

@@ -1,14 +1,18 @@
 package com.maybank.integratorapp.util;
 
 import com.jcraft.jsch.*;
+import com.maybank.integratorapp.component.system.messageprocessor.LimitFacilitiesMessageProcessor;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPReply;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 
 public class FileTransferManager {
+    private static Logger log = LoggerFactory.getLogger(FileTransferManager.class);
     private Session sftpSession;
     private ChannelSftp sftpChannel;
     private FTPClient ftpClient;
@@ -27,20 +31,30 @@ public class FileTransferManager {
     }
 
     private String detectProtocol() {
+        log.info("UID:"+username
+                +" | "
+                +"PWD:"+password
+                +" | "
+                +"HOST:"+host
+                +" | "
+                +"PORT:"+port
+        );
         // Try SFTP first
         try {
             JSch jsch = new JSch();
             Session testSession = jsch.getSession(username, host, port);
             testSession.setPassword(password);
             testSession.setConfig("StrictHostKeyChecking", "no");
-            testSession.connect(3000);
+            testSession.setConfig("PreferredAuthentications","publickey,keyboard-interactive,password");
+            testSession.connect();
             Channel testChannel = testSession.openChannel("sftp");
-            testChannel.connect(3000);
+            testChannel.connect();
             testChannel.disconnect();
             testSession.disconnect();
             return "sftp";
         } catch (JSchException e) {
             // SFTP failed, try FTP
+            log.error(e.getMessage());
             FTPClient testFtp = new FTPClient();
             try {
                 testFtp.connect(host, port);
@@ -51,6 +65,7 @@ public class FileTransferManager {
                     }
                 }
             } catch (IOException ex) {
+                log.error(ex.getMessage());
                 // Ignore, we'll return unknown
             }
         }
@@ -63,6 +78,7 @@ public class FileTransferManager {
             sftpSession = jsch.getSession(username, host, port);
             sftpSession.setPassword(password);
             sftpSession.setConfig("StrictHostKeyChecking", "no");
+            sftpSession.setConfig("PreferredAuthentications","publickey,keyboard-interactive,password");
             sftpSession.connect();
             sftpChannel = (ChannelSftp) sftpSession.openChannel("sftp");
             sftpChannel.connect();

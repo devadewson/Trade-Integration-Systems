@@ -72,9 +72,11 @@ public class SwiftInController {
                 fileContents.forEach((fileName, content) -> {
                     String date = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date());
                     String correlationId = "SwiftIn_"+date+"_"+MQUtil.generateRandomString(6);
+                    String swiftMessage = String.join("\n", content);
+                    swiftMessage = swiftIn.removeHeaderAck(swiftMessage);
 
                     ServiceRequest response = new ServiceRequest();
-                    response.getSwiftIn().setMessage(String.join("\n", content));
+                    response.getSwiftIn().setMessage(swiftMessage);
                     response.setRequestHeader(new RequestHeader());
                     response.getRequestHeader().setCorrelationID(correlationId);
                     response.getRequestHeader().setService("TI");

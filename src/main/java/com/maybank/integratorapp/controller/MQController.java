@@ -258,37 +258,40 @@ public class MQController {
         LogQueueData logQueueData = logQueueDataService.findById(id).get();
         List<LogInterfaceProcess> details = logInterfaceProcessService.getLogsByParentId(id);
 
-
         String relatedTransaction = "";
         String relatedLink = "/transactions?search=";
-        if(logQueueData.getReqMessage().contains("<reference>")){
-            Pattern pattern = Pattern.compile("<reference>(.*?)</reference>");
-            Matcher matcher = pattern.matcher(logQueueData.getReqMessage());
+        if(logQueueData.getReqMessage() !=null){
 
-            if (matcher.find()) {
-                relatedTransaction = matcher.group(1);
-                relatedLink+= relatedTransaction;
+            if(logQueueData.getReqMessage().contains("<reference>")){
+                Pattern pattern = Pattern.compile("<reference>(.*?)</reference>");
+                Matcher matcher = pattern.matcher(logQueueData.getReqMessage());
+
+                if (matcher.find()) {
+                    relatedTransaction = matcher.group(1);
+                    relatedLink+= relatedTransaction;
+                }
+
+            }else if(logQueueData.getReqMessage().contains("MasterReference>")){
+                Pattern pattern = Pattern.compile("<[^:>]+:MasterReference>(.*?)</[^:>]+:MasterReference>");
+                Matcher matcher = pattern.matcher(logQueueData.getReqMessage());
+
+                if (matcher.find()) {
+                    relatedTransaction = matcher.group(1);
+                    relatedLink+= relatedTransaction;
+                }
+
             }
+            else if(logQueueData.getOrigin().contains("swiftOutgoing")){
+                String text = logQueueData.getReqMessage();
+                int startIndex = text.indexOf(":20:") + 4; // `+4` to skip `:20:`
+                int endIndex = text.indexOf("\n", startIndex); // Find the next newline
 
-        }else if(logQueueData.getReqMessage().contains("MasterReference>")){
-            Pattern pattern = Pattern.compile("<[^:>]+:MasterReference>(.*?)</[^:>]+:MasterReference>");
-            Matcher matcher = pattern.matcher(logQueueData.getReqMessage());
+                if (startIndex >= 4 && endIndex != -1) {
+                    relatedTransaction = text.substring(startIndex, endIndex).trim();
 
-            if (matcher.find()) {
-                relatedTransaction = matcher.group(1);
-                relatedLink+= relatedTransaction;
-            }
+                    relatedLink+= relatedTransaction;
+                }
 
-        }
-        else if(logQueueData.getOrigin().contains("swiftOutgoing")){
-            String text = logQueueData.getReqMessage();
-            int startIndex = text.indexOf(":20:") + 4; // `+4` to skip `:20:`
-            int endIndex = text.indexOf("\n", startIndex); // Find the next newline
-
-            if (startIndex >= 4 && endIndex != -1) {
-                relatedTransaction = text.substring(startIndex, endIndex).trim();
-
-                relatedLink+= relatedTransaction;
             }
 
         }

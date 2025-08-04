@@ -62,6 +62,9 @@ public class LimitFacilitiesMessageProcessor {
     private final String ProcessName = "LimitFacilitiesProcess";
 
     private long LoggerId;
+    public void setLoggerId(long _loggerId){
+        this.LoggerId= _loggerId;
+    }
     public String processMessage(String message,Long loggerId) {
         String responseXml = "";
         this.LoggerId = loggerId;
@@ -91,7 +94,7 @@ public class LimitFacilitiesMessageProcessor {
                 // step 3.
                 SoapEnvelope msgRequest = mapCoreSystemRequest(cifno,branch);
 
-                //
+                MsCompanyLimit companyLimit;
 
                 // Cek apakah cifno ada di MsCompanyLimit
                 if (!mscompanylimitRepository.existsByCifno(cifno)) {
@@ -104,6 +107,7 @@ public class LimitFacilitiesMessageProcessor {
                     else
                         newLimit.setCbranch(branch);
                     MsCompanyLimit savedcompanyLimit = mscompanylimitRepository.save(newLimit);
+                    companyLimit = savedcompanyLimit;
 
                     // step 4.
                     ServiceResponse msgResponse = getMsgBodyResponse(msgRequest, savedcompanyLimit.getId());
@@ -115,8 +119,12 @@ public class LimitFacilitiesMessageProcessor {
                         _companyLimit.setIbranch(branch);
                     else
                         _companyLimit.setCbranch(branch);
+
+                    companyLimit = _companyLimit;
                     MsCompanyLimit savedcompanyLimit = mscompanylimitRepository.save(_companyLimit);
                 }
+
+                this.refreshFacilities(cifno,companyLimit.getId());
 
                 // Ambil data pada database MsFacility
                 List<MsFacility> facilities = msFacilityRepository.findByCompanyLimitId(
@@ -319,27 +327,30 @@ public class LimitFacilitiesMessageProcessor {
 
                                 // Mencari MsCompanyLimit berdasarkan cifno
 
-                                MsFacility msFacility = listFacilityfinal.stream().filter(z->z.getKeyDigitNote().equals(noteNumber)).findFirst().get();
+                                MsFacility msFacility = listFacilityfinal.stream().filter(z->z.getKeyDigitNote().equals(noteNumber)).findFirst().orElse(null);
 
-                                utilize.setFacilityId(msFacility.getId());
-                                utilize.setKeyDigitNote(splitKey[4]);
-                                utilize.setCurrency(splitKey[1]);
-                                utilize.setBranchCode(splitKey[2]);
-                                utilize.setCifNo(splitKey[3]);
-                                utilize.setCompanyLimitId(idcompanyLimit);
-                                utilize.setCommitmentBalance(s.getCommitmentbalance());
-                                utilize.setCommitmentBalanceSign(s.getCommitmentbalancesign());
-                                utilize.setDescription(s.getDescription());
-                                utilize.setKeyLoanAcc(s.getKey());
-                                utilize.setLoanCurrencyCode(s.getLoancurrencycode());
-                                utilize.setMaturityDate(s.getMaturitydate());
-                                utilize.setNoteDate(s.getNotedate());
-                                utilize.setNoteType(s.getNotetype());
-                                utilize.setPrincipalBalance(s.getPrincipalbalance());
-                                utilize.setPrincipalBalanceSign(s.getPrincipalbalancesign());
-                                utilize.setStatus(s.getStatus());
+                                if(msFacility != null){
+                                    utilize.setFacilityId(msFacility.getId());
+                                    utilize.setKeyDigitNote(splitKey[4]);
+                                    utilize.setCurrency(splitKey[1]);
+                                    utilize.setBranchCode(splitKey[2]);
+                                    utilize.setCifNo(splitKey[3]);
+                                    utilize.setCompanyLimitId(idcompanyLimit);
+                                    utilize.setCommitmentBalance(s.getCommitmentbalance());
+                                    utilize.setCommitmentBalanceSign(s.getCommitmentbalancesign());
+                                    utilize.setDescription(s.getDescription());
+                                    utilize.setKeyLoanAcc(s.getKey());
+                                    utilize.setLoanCurrencyCode(s.getLoancurrencycode());
+                                    utilize.setMaturityDate(s.getMaturitydate());
+                                    utilize.setNoteDate(s.getNotedate());
+                                    utilize.setNoteType(s.getNotetype());
+                                    utilize.setPrincipalBalance(s.getPrincipalbalance());
+                                    utilize.setPrincipalBalanceSign(s.getPrincipalbalancesign());
+                                    utilize.setStatus(s.getStatus());
 
-                                listFacilityUtilize.add(utilize);
+                                    listFacilityUtilize.add(utilize);
+                                }
+
                             });
                             List<MsFacilityUtilize> _listFacilityUtilize = (List<MsFacilityUtilize>) msFacilityUtilizeRepository.saveAll(listFacilityUtilize);
 
@@ -465,8 +476,19 @@ public class LimitFacilitiesMessageProcessor {
                                 listFacility.add(facility);
                             }else{
                                 MsFacility _existing = existingFacility.stream().filter(x->x.getKeyLoanAcc().equals(facility.getKeyLoanAcc())).findAny().get();
+                                _existing.setKeyDigitNote(splitKey[4]);
+                                _existing.setCurrency(splitKey[1]);
+                                _existing.setBranchCode(splitKey[2]);
+                                _existing.setCifNo(splitKey[3]);
                                 _existing.setCommitmentBalance(facility.getCommitmentBalance());
                                 _existing.setCommitmentBalanceSign(facility.getCommitmentBalanceSign());
+                                _existing.setDescription(facility.getDescription());
+                                _existing.setLoanCurrencyCode(facility.getLoanCurrencyCode());
+                                _existing.setMaturityDate(facility.getMaturityDate());
+                                _existing.setNoteDate(facility.getNoteDate());
+                                _existing.setNoteType(facility.getNoteType());
+                                _existing.setPrincipalBalance(facility.getPrincipalBalance());
+                                _existing.setPrincipalBalanceSign(facility.getPrincipalBalanceSign());
                                 _existing.setStatus(facility.getStatus());
                                 _existing =msFacilityRepository.save(_existing);
 
@@ -491,29 +513,31 @@ public class LimitFacilitiesMessageProcessor {
 
                             // Mencari MsCompanyLimit berdasarkan cifno
 
-                            MsFacility msFacility = existingFacility.stream().filter(z->z.getKeyDigitNote().equals(noteNumber)).findFirst().get();
+                            MsFacility msFacility = existingFacility.stream().filter(z->z.getKeyDigitNote().equals(noteNumber)).findFirst().orElse(null);
 
-                            utilize.setFacilityId(msFacility.getId());
-                            utilize.setKeyDigitNote(splitKey[4]);
-                            utilize.setCurrency(splitKey[1]);
-                            utilize.setBranchCode(splitKey[2]);
-                            utilize.setCifNo(splitKey[3]);
-                            utilize.setCompanyLimitId(idcompanyLimit);
-                            utilize.setCommitmentBalance(s.getCommitmentbalance());
-                            utilize.setCommitmentBalanceSign(s.getCommitmentbalancesign());
-                            utilize.setDescription(s.getDescription());
-                            utilize.setKeyLoanAcc(s.getKey());
-                            utilize.setLoanCurrencyCode(s.getLoancurrencycode());
-                            utilize.setMaturityDate(s.getMaturitydate());
-                            utilize.setNoteDate(s.getNotedate());
-                            utilize.setNoteType(s.getNotetype());
-                            utilize.setPrincipalBalance(s.getPrincipalbalance());
-                            utilize.setPrincipalBalanceSign(s.getPrincipalbalancesign());
-                            utilize.setStatus(s.getStatus());
+                            if(msFacility != null) {
+                                utilize.setFacilityId(msFacility.getId());
+                                utilize.setKeyDigitNote(splitKey[4]);
+                                utilize.setCurrency(splitKey[1]);
+                                utilize.setBranchCode(splitKey[2]);
+                                utilize.setCifNo(splitKey[3]);
+                                utilize.setCompanyLimitId(idcompanyLimit);
+                                utilize.setCommitmentBalance(s.getCommitmentbalance());
+                                utilize.setCommitmentBalanceSign(s.getCommitmentbalancesign());
+                                utilize.setDescription(s.getDescription());
+                                utilize.setKeyLoanAcc(s.getKey());
+                                utilize.setLoanCurrencyCode(s.getLoancurrencycode());
+                                utilize.setMaturityDate(s.getMaturitydate());
+                                utilize.setNoteDate(s.getNotedate());
+                                utilize.setNoteType(s.getNotetype());
+                                utilize.setPrincipalBalance(s.getPrincipalbalance());
+                                utilize.setPrincipalBalanceSign(s.getPrincipalbalancesign());
+                                utilize.setStatus(s.getStatus());
 
 
-                            if(existingUtilized.stream().filter(x->x.getKeyLoanAcc().equals(utilize.getKeyLoanAcc())).findAny().isEmpty()){
-                                listFacilityUtilize.add(utilize);
+                                if (existingUtilized.stream().filter(x -> x.getKeyLoanAcc().equals(utilize.getKeyLoanAcc())).findAny().isEmpty()) {
+                                    listFacilityUtilize.add(utilize);
+                                }
                             }
                         });
                         msFacilityUtilizeRepository.saveAll(listFacilityUtilize);
@@ -670,7 +694,7 @@ public class LimitFacilitiesMessageProcessor {
 
         // Print result
 //        highestByGroup.forEach((id, facility) ->
-//                log.info("Facility ID: " + id + ", Highest KeyLoanAcc: " + facility.getKeyLoanAcc()));
+//                logger.Log(this.LoggerId,ProcessName, "Facility ID: " + id + ", Highest KeyLoanAcc: " + facility.getKeyLoanAcc(), "DEBUG"));
 
         facilityGroupedById.forEach((facilityId, utilizes) -> {
             MsFacilityUtilize latestDraw = utilizes.stream()
@@ -687,11 +711,22 @@ public class LimitFacilitiesMessageProcessor {
                     runningNumber.setCompanyLimitId(latestDraw.getCompanyLimitId());
                 }
 //                runningNumber.setFacilityId(facilityId);
-                runningNumber.setRunningNumber(Integer.parseInt(latestDraw.getKeyLoanAcc().substring(26, 29)));
+                int newRunningNumber = Integer.parseInt(latestDraw.getKeyLoanAcc().substring(26, 29));
+                if(newRunningNumber != runningNumber.getRunningNumber()){
+
+                    logger.Log(this.LoggerId,ProcessName,
+                            "Facility ID: " + runningNumber.getFacilityId()
+                                    + ", Running Number Update : " + runningNumber.getRunningNumber()
+                            +" to "+newRunningNumber, "DEBUG");
+                    runningNumber.setRunningNumber(newRunningNumber);
+                    msUtilizeRunningNumberRepository.save(runningNumber);
+
+                }
+//                runningNumber.setRunningNumber();
 //                runningNumber.setCompanyLimitId(latestDraw.getCompanyLimitId());
 
 //                runningNumberList.add(runningNumber);
-                msUtilizeRunningNumberRepository.save(runningNumber);
+
             }
         });
 

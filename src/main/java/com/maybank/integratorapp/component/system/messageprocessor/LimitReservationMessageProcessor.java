@@ -385,6 +385,7 @@ public class LimitReservationMessageProcessor {
     public String processMessage(String message,Long loggerId) {
         String responseXml = "";
         this.LoggerId = loggerId;
+        processFacilities.setLoggerId(loggerId);
 //        logger.SetLogParent(loggerId);
 
         try {
@@ -427,7 +428,6 @@ public class LimitReservationMessageProcessor {
                     startdateRes=transDateRes;
                 if(expireDateRes==null)
                     expireDateRes=transDateRes;
-
 
                 LocalDate _startDate = LocalDate.parse(startdateRes, inputFormatter);
                 String startDate = _startDate.format(outputFormatter);
@@ -542,8 +542,8 @@ public class LimitReservationMessageProcessor {
 
                                 if(_dateFromReq != null){
                                     transactionDetails1 = transactionDetails.stream().filter(x ->
-                                            x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B")
-                                                    && x.getFtiEvent().equals(eventCode)
+                                            (x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B")) &&
+                                            x.getCoreSysStatus().equals("00")
                                     ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
                                     // sementara XL2B belum bisa ganti start date, maka hanya compare expiry nya saja
                                     if(transactionDetails1.getAdditionalInfo5() != null){
@@ -563,8 +563,8 @@ public class LimitReservationMessageProcessor {
                                     _transDate = LocalDate.parse(transDateRes, inputFormatter);
                                     expiryDate = _transDate.format(outputFormatter);
                                     transactionDetails1 = transactionDetails.stream().filter(x ->
-                                            x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B")
-                                                    && x.getFtiEvent().equals(eventCode)
+                                            (x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B")) &&
+                                                    x.getCoreSysStatus().equals("00")
                                     ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
                                     // sementara XL2B belum bisa ganti start date, maka hanya compare expiry nya saja
                                     if(transactionDetails1.getAdditionalInfo5() != null){

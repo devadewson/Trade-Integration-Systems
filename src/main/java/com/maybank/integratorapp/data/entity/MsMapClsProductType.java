@@ -15,12 +15,12 @@ public class MsMapClsProductType {
     private String ProductType999;
     private String ProductType001;
     @Nullable
-    private int IslamicFlag;
+    private Integer IslamicFlag;
     private String LineOfBusiness;
     private String EventCode;
     private String LiabilityCode;
     @Nullable
-    private int SpecialFlag;
+    private Integer SpecialFlag;
 
     public Long getId() {
         return id;
@@ -55,11 +55,12 @@ public class MsMapClsProductType {
     }
 
     public int getIslamicFlag() {
-        return IslamicFlag;
+        return IslamicFlag != null ? IslamicFlag : 0;
     }
 
     public void setIslamicFlag(int islamicFlag) {
-        IslamicFlag = islamicFlag;
+
+        this.IslamicFlag = IslamicFlag != null ? IslamicFlag : 0; // default value
     }
 
     public String getLineOfBusiness() {
@@ -71,11 +72,13 @@ public class MsMapClsProductType {
     }
 
     public int getSpecialFlag() {
-        return SpecialFlag;
+
+        return SpecialFlag != null ? SpecialFlag : 0;
     }
 
     public void setSpecialFlag(int specialFlag) {
-        SpecialFlag = specialFlag;
+        this.SpecialFlag = SpecialFlag != null ? SpecialFlag : 0; // default value
+
     }
 
     public String getEventCode() {

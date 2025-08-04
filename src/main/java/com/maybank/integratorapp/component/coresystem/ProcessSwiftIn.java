@@ -29,7 +29,15 @@ public class ProcessSwiftIn {
     
     @Autowired
     LogInterfaceProcessService logger;
-    
+    public String removeHeaderAck(String swiftMessage) {
+        // Define the pattern to match the header ACK tag
+        String headerAckPattern = "\\{1:F21[^}]*\\}\\{4:\\{177:[^}]*\\}\\{451:[^}]*\\}\\}";
+
+        // Remove the header ACK tag
+        String cleanedMessage = swiftMessage.replaceFirst(headerAckPattern, "");
+
+        return cleanedMessage.trim();
+    }
     public Map<String, List<String>> getFileContent(Long loggerId){
 //        Path folderPath = Paths.get("D:\\Agung\\Projects\\BankTrade Trade Transformation\\IntegrationList");
         Map<String, List<String>> fileContents = new HashMap<>();

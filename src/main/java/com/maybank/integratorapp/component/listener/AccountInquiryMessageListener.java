@@ -86,6 +86,7 @@ public class AccountInquiryMessageListener implements CustomMessageListener {
 //                System.out.println("===========================xmlResponse=================================");
 //                System.out.println(responseXml);
 //                System.out.println("============================================================\n");
+                _data.setDestination("MQ_"+publisher.getDestinationQueue());
                 _data.setResMessage(responseXml);
                 _data.setStatus("Success");
                 _data.setDelivery_date(new Date());

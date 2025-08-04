@@ -53,6 +53,7 @@ public class FtiTransactionController {
             @RequestParam("page") Optional<Integer> page,
             @RequestParam("size") Optional<Integer> size,
             @RequestParam("search") Optional<String> search,
+            @RequestParam("reservationid") Optional<String> reservationid,
             Model model) {
 
         // Set default values for pagination
@@ -63,19 +64,24 @@ public class FtiTransactionController {
         Pageable pageable = PageRequest.of(currentPage - 1, pageSize, Sort.by("id").descending());
 
         // Fetch a page of FtiTransactions
-        Page<FtiTransaction> transactionPage;
-        if (search.isPresent() && !search.get().isEmpty()) {
-            // If search term is provided, search by masterRefNo
-            transactionPage = ftiTransactionService.searchByMasterRefNo(search.get(), pageable);
-        } else {
-            // Otherwise, fetch all transactions with default sorting
-            transactionPage = ftiTransactionService.getAllFtiTransactions(pageable);
-        }
+        Page<FtiTransaction> transactionPage = ftiTransactionService.getAllWithSearch(pageable, search, reservationid);
+//        if (search.isPresent() && !search.get().isEmpty()) {
+//            // If search term is provided, search by masterRefNo
+//            transactionPage = ftiTransactionService.searchByMasterRefNo(search.get(), pageable);
+//        }else if (reservationid.isPresent() && !reservationid.get().isEmpty()) {
+//            // If search term is provided, search by masterRefNo
+//            transactionPage = ftiTransactionService.searchByReservationId(reservationid.get(), pageable);
+//        }
+//        else {
+//            // Otherwise, fetch all transactions with default sorting
+//            transactionPage = ftiTransactionService.getAllFtiTransactions(pageable);
+//        }
         // Add data to the model
         model.addAttribute("transactionPage", transactionPage);
         model.addAttribute("currentPage", currentPage);
         model.addAttribute("totalPages", transactionPage.getTotalPages());
         model.addAttribute("search", search.orElse(""));
+        model.addAttribute("reservationid", reservationid.orElse(""));
 
         return "layouts/transactions/index"; // Thymeleaf template name
     }
@@ -103,12 +109,12 @@ public class FtiTransactionController {
         return logQueueDataService.findById(transMessageLogId);
     }
 
-    @GetMapping("/transaction-details/{transMessageLogId}/postings")
+    @GetMapping("/transaction-details/{transLogId}/postings")
     @ResponseBody
-    public List<PostingExtender> getPostingsByTransMessageLogId(@PathVariable Long transMessageLogId) {
+    public List<PostingExtender> getPostingsByTransMessageLogId(@PathVariable Long transLogId) {
         List<PostingExtender> listOfPostingGroups = new ArrayList<>();
         // Fetch the list of postings from the database
-        List<FtiTransactionDetailPostingGroup> postingGroups = ftiPostingGroupService.getByDetailId(transMessageLogId);
+        List<FtiTransactionDetailPostingGroup> postingGroups = ftiPostingGroupService.getByDetailId(transLogId);
         postingGroups.forEach(x->{
             PostingExtender _new = new PostingExtender();
             _new.setFlagCrossValas(x.getFlagCrossValas());
@@ -123,7 +129,7 @@ public class FtiTransactionController {
             List<LogInterfaceProcess> _logInterfaceProcessList = new ArrayList<>();
             if (!_new.getGroupId().isEmpty()) {
                 _postings = ftiPostingService.getByIdGroup(_new.getId());
-                String activityName = "Posting "+_new.getGroupId();
+                String activityName = "Posting "+_new.getId();
                 _logInterfaceProcessList = logInterfaceProcessService.getLogsByActivityName(activityName);
 
             }
