@@ -785,6 +785,7 @@ public class ProcessCompositeTBR {
         try{
 
             String TripHO_Account = parameterService.findValueByPrmKey("TripHO_Account");
+            String TripBranch_Account = parameterService.findValueByPrmKey("TripBranch_Account");
             String branch = data.getPostings().get(0).getCoreSystemBranch();
             String clientUserId = data.getPostings().get(0).getCoreUid();
             String clientSpvUserId = data.getPostings().get(0).getCoreSpvUid();
@@ -825,7 +826,7 @@ public class ProcessCompositeTBR {
             List<Object> tbrData = new ArrayList<>();
             tbrData.add(instance);
 
-            //rtgs logic
+            //rtgs logic block
             if(postings.stream().filter(x -> x.getPaymentSystem() != null).anyMatch(x->x.getPaymentSystem().contains("RTGS") && x.getDebitCreditFlag().equals("C"))){
                 logger.Log(this.LoggerId,"Posting "+groupId, "RTGS Posting", "DATA-REQ");
 
@@ -839,8 +840,11 @@ public class ProcessCompositeTBR {
                 for (Posting p:
                      postings) {
                     if(p.getBackOfficeAccountNo().equals(TripHO_Account)){
-                        String _newAcc = "2"+branch;
-                        p.setBackOfficeAccountNo(TripHO_Account.replace("2999",_newAcc));
+
+                        String _newAcc = TripBranch_Account.replace("xxx",branch);
+                        _newAcc = _newAcc.replace("2999",("2"+branch));
+
+                        p.setBackOfficeAccountNo(_newAcc);
                     }
                 }
 
