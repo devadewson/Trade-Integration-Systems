@@ -18,6 +18,7 @@ public class MsMapClsProductType {
     private Integer IslamicFlag;
     private String LineOfBusiness;
     private String EventCode;
+    @Nullable
     private String LiabilityCode;
     @Nullable
     private Integer SpecialFlag;

@@ -1,4 +1,4 @@
-package com.maybank.integratorapp.model.mq.batchposting.request;
+package com.maybank.integratorapp.model.mq.limitutilization.request;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;

@@ -4,10 +4,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
-import com.maybank.integratorapp.component.coresystem.ProcessFacilities;
 import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.*;
 import com.maybank.integratorapp.data.service.*;
+import com.maybank.integratorapp.model.mq.reservation.request.ExtraDataFields;
 import com.maybank.integratorapp.model.mq.reservation.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.reservation.response.*;
 import com.maybank.integratorapp.model.soap.limit.XL01.request.SoapEnvelope;
@@ -414,12 +414,14 @@ public class LimitReservationMessageProcessor {
                 String debitCreditFlag = request.getReservationsRequest().getReservationRequestDetails().getDebitCreditFlag();
                 String branch = request.getReservationsRequest().getReservationRequestDetails().getBranch();
                 String FtiProductCode = request.getReservationsRequest().getReservationRequestDetails().getProduct();
+                String FtiSubProductCode = request.getReservationsRequest().getReservationRequestDetails().getProductSubType();
                 String eventCode = request.getReservationsRequest().getReservationRequestDetails().getEventReference();
                 String _eventCode = eventCode.substring(0,3);
                 String startdateRes = request.getReservationsRequest().getReservationRequestDetails().getTenorStartDate();
                 String expireDateRes =  request.getReservationsRequest().getReservationRequestDetails().getTenorEndDate();
                 String transDateRes = request.getReservationsRequest().getReservationRequestDetails().getValueDate();
                 String exposureAmmount =  request.getReservationsRequest().getReservationRequestDetails().getPostingAmount().getAmount();
+                List<ExtraDataFields> listExtraData =  request.getReservationsRequest().getExtraDataFieldss() ==null?new ArrayList<>():request.getReservationsRequest().getExtraDataFieldss().getExtraDataFields();
 
                 DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
                 DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("ddMMyy");
@@ -472,6 +474,7 @@ public class LimitReservationMessageProcessor {
                 boolean needXL01 = false;
                 boolean needXL2B = false;
                 boolean needXL31 = false;
+                boolean needXL01Accept = false;
 
 //                log.info("Facility ID: " + facilityId);
 //                log.info("LineOfBusiness: " + lineOfBusiness);
@@ -516,15 +519,19 @@ public class LimitReservationMessageProcessor {
 
                 if(ftiTransactionData.isPresent()){
                     FtiTransaction transaction = ftiTransactionData.get();
-                    String _facNew = splitKey(facilityIdentifier)[4];
+//                    String _facNew = splitKey(facilityIdentifier)[4];
+                    String _facNew = facilityIdentifier.substring(0,facilityIdentifier.length()-5);
                     List<FtiTransactionDetail> transactionDetails = ftiTransactionDetailService.getDetailsByHeaderId(transaction.getId());
-                    if(transactionDetails.stream().anyMatch(x->x.getFtiEvent().equals("ISS001"))){
+                    if(transactionDetails.stream().anyMatch(x->
+                            x.getCoreSysName().equals("CLS-XL01Draw001")&&
+                            x.getCoreSysStatus().equals("00"))){
 
                         FtiTransactionDetail transactionDetails1 = transactionDetails.stream().filter(x -> x.getAdditionalInfo4().equals("DRW")).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
                         logger.Log(this.LoggerId,ProcessName, "Get Old : " + transactionDetails1.getId(), "DEBUG");
 
                         if(transactionDetails1.getCoreSysStatus().equals("00")){
-                            String _facOld = splitKey(transactionDetails1.getAdditionalInfo1())[4];
+//                            String _facOld = splitKey(transactionDetails1.getAdditionalInfo1())[4];
+                            String _facOld = transactionDetails1.getAdditionalInfo1().substring(0,transactionDetails1.getAdditionalInfo1().length()-5);
 
                             if(_facOld.equals(_facNew)){
                                 logger.Log(this.LoggerId,ProcessName, "Previous KeyLoanAcc: " + transactionDetails1.getAdditionalInfo1(), "DEBUG");
@@ -582,10 +589,39 @@ public class LimitReservationMessageProcessor {
                                 if(exposureAmmount.equals("0")){
                                     needXL31 = false;
                                 }
-//                            String _amountOld = transactionDetails1.getAdditionalInfo2();
-//                            if(!_amountOld.equals(exposureAmmount)){
-//                                needXL31 = true;
-//                            }
+
+//                                CLM Accept logic
+                                if(_eventCode.equals("CLM") || _eventCode.equals("POC")){
+                                    if(debitCreditFlag.equals("D")){
+                                        if(!listExtraData.isEmpty()){
+                                            if(listExtraData.stream().anyMatch(x->x.getName().equals("PaymentOption"))){
+                                                if(listExtraData.stream().filter(x->x.getName().equals("PaymentOption")).findFirst().get().getValue().equals("Accept")){
+                                                    // kalau belum ada new draw untuk akseptasi
+                                                    if(transactionDetails.stream().noneMatch(x->
+                                                                    x.getCoreSysName().equals("CLS-XL01Draw001")
+                                                                            && x.getFtiEvent().equals(eventCode)
+                                                            )){
+                                                        needXL01=true;
+                                                        runningNumber = runningNumberEntry.getRunningNumber();
+                                                        formattedRunningNumber = String.format("%03d", runningNumber + 1);
+
+                                                        // Buat keyLoanAcc baru dengan mengganti bagian draw
+                                                        newKeyLoanAcc = buildNewKey(facilityIdentifier, formattedRunningNumber);
+
+                                                        // Buat formatted key untuk sistem proses
+                                                        acctReqXL01 = buildFormattedKey(facilityIdentifier, formattedRunningNumber);
+                                                        needXL2B = false;
+
+                                                    }
+
+                                                    needXL31 = true;
+                                                }
+                                            }
+
+                                        }
+                                    }
+                                }
+
 
                             }else {
                                 // handle facility change
@@ -599,10 +635,17 @@ public class LimitReservationMessageProcessor {
                         }
 
                     }
+                    else{
+                        needXL01= true;
+                    }
                 }
 
                 // treat anything except claim as issue for mapping purpose
-                if (!(_eventCode.equals("CLM") || _eventCode.equals("POC"))) {
+                String clsSpecialEvent = parameterService.findValueByPrmKey("CLSSpecialEvent");
+                String clsProductTypeSearch = parameterService.findValueByPrmKey("CLSProductTypeSearch");
+
+                String final_eventCode = _eventCode;
+                if (Arrays.stream(clsSpecialEvent.split(",")).noneMatch(z->z.equals(final_eventCode))) {
                     _eventCode = "ISS";
                 }
 
@@ -612,6 +655,8 @@ public class LimitReservationMessageProcessor {
 //                    lineOfBusiness= "07";
 
                 String cls001ProductType= "";
+                logger.Log(this.LoggerId,ProcessName, "CLS Product Type search criteria "+productType+"|"+lineOfBusiness+"|"+FtiProductCode+"|"+FtiSubProductCode+"|"+_eventCode, "DEBUG");
+
                 if(productType.startsWith("7")) // islamic limits
                 {
                     List<MsMapClsProductType> productTypeList = msMapClsProductTypeRepository.findDraw001Products(productType);
@@ -625,11 +670,16 @@ public class LimitReservationMessageProcessor {
                                     .findFirst().get().getProductType001();
                     }
 
-                }else{
+                }
+                else if(Arrays.asList(clsProductTypeSearch.split(",")).contains(FtiProductCode) && !lineOfBusiness.equals("07")){
+                    cls001ProductType = msMapClsProductTypeRepository.findDraw001ProductWithLiabCode(productType, lineOfBusiness,FtiSubProductCode,_eventCode);
+
+                }
+                else{
+
                     cls001ProductType = msMapClsProductTypeRepository.findDraw001Product(productType, lineOfBusiness,_eventCode);
 
                 }
-                logger.Log(this.LoggerId,ProcessName, "CLS Product Type search criteria "+productType+"|"+lineOfBusiness+"|"+_eventCode, "DEBUG");
 
 //                log.info("CLS Product Type : " + cls001ProductType);
                 logger.Log(this.LoggerId,ProcessName, "CLS Product Type : "+cls001ProductType, "DEBUG");
@@ -702,7 +752,15 @@ public class LimitReservationMessageProcessor {
                     }
                 }else if (_lastLimitAction!=null && reservedReservationIdentifier!=null){
                     // amend/adjust
-                    newKeyLoanAcc =reservedReservationIdentifier;
+                    // check dulu apakah facility nya sama/tidak
+                    String _fac = facilityIdentifier.substring(0,facilityIdentifier.length()-5);
+                    if(!reservedReservationIdentifier.isEmpty()){
+                        String _facReserved = reservedReservationIdentifier.substring(0,reservedReservationIdentifier.length()-5);
+
+                        if(_fac.equals(_facReserved))
+                            newKeyLoanAcc =reservedReservationIdentifier;
+                    }
+
                 }
 
                 if(needXL2B){
@@ -719,7 +777,10 @@ public class LimitReservationMessageProcessor {
                         FtiTransactionDetail _lastXL2B = lastXL2B.get();
 
                         Optional<FtiTransactionDetail> lastXL40 = transactionDetails.stream().filter(x ->
-                                x.getCoreSysName().equals("CLS-XL40") && x.getCoreSysStatus().equals("00") && x.getId()>_lastXL2B.getId()
+                                x.getCoreSysName().equals("CLS-XL40")
+                                && x.getCoreSysStatus().equals("00")
+                                && x.getFtiEvent().equals(eventCode)
+                                && x.getId()>_lastXL2B.getId()
                         ).max(Comparator.comparing(FtiTransactionDetail::getId));
                         // kalau masih ada XL2B gantung, kirim XL40 untuk XL2B yang gantung, next bikin baru
 
@@ -1435,6 +1496,7 @@ public class LimitReservationMessageProcessor {
 
         return new String[]{bank, currency, branchCode, cif, note, draw, seq};
     }
+
 
     //  key dengan format yang dimodifikasi
     private String buildFormattedKey(String originalKey, String formattedRunningNumber) {

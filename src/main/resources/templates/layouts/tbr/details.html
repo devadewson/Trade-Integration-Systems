@@ -117,20 +117,26 @@
                                     <thead class="thead-light">
                                     <tr>
                                         <th>Destination Field</th>
-                                        <th>Data Type</th>
                                         <th>Source Field</th>
                                         <th>Length</th>
                                         <th>Default Value</th>
+                                        <th>Map-Curr</th>
+                                        <th>Map-AcType</th>
+                                        <th>Map-DC</th>
+                                        <th>Map-Pos</th>
                                         <th>Actions</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr th:each="field : ${fields}">
                                         <td th:text="${field.DestinationField}"></td>
-                                        <td th:text="${field.DestinationFieldDataType}"></td>
                                         <td th:text="${field.SourceField}"></td>
                                         <td th:text="${field.FieldLength}"></td>
                                         <td th:text="${field.DefaultValue}"></td>
+                                        <td th:text="${field.MappingCurrency}"></td>
+                                        <td th:text="${field.MappingAccountType}"></td>
+                                        <td th:text="${field.MappingDebitCredit}"></td>
+                                        <td th:text="${field.MappingPosition}"></td>
                                         <td>
                                             <button class="btn btn-sm btn-primary edit-field-btn"
                                                     th:data-id="${field.id}"

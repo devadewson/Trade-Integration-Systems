@@ -87,6 +87,7 @@
                         <table class="table table-striped table-bordered">
                             <thead class="thead-light">
                             <tr>
+                                <th>Facility ID</th>
                                 <th>Note Number</th>
                                 <th>Description</th>
                                 <th>Currency</th>
@@ -98,6 +99,7 @@
                             </thead>
                             <tbody>
                             <tr th:each="utilize : ${facilityUtilizes}">
+                                <td th:text="${utilize.facilityId}"></td>
                                 <td th:text="${utilize.keyLoanAcc}"></td>
                                 <td th:text="${utilize.description}"></td>
                                 <td th:text="${utilize.loanCurrencyCode}"></td>

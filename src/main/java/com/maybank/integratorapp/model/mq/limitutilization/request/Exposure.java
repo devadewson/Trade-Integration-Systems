@@ -151,7 +151,7 @@ public class Exposure {
     private String addMntDelFlag;
 
     @JacksonXmlProperty(localName = "ExtraData")
-    private String extraData;
+    private ExtraData extraData;
 
     public String getTransactionId() {
         return transactionId;
@@ -545,11 +545,11 @@ public class Exposure {
         this.addMntDelFlag = addMntDelFlag;
     }
 
-    public String getExtraData() {
+    public ExtraData getExtraData() {
         return extraData;
     }
 
-    public void setExtraData(String extraData) {
+    public void setExtraData(ExtraData extraData) {
         this.extraData = extraData;
     }
 }

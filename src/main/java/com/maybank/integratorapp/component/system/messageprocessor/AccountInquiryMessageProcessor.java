@@ -228,7 +228,7 @@ public class AccountInquiryMessageProcessor {
 
         String availableBalance = String.valueOf(availableBalanceValue);
 
-        System.out.println(availableBalance);
+//        System.out.println(availableBalance);
 
 //        String formattedBalance = balance.substring(1).replace(".", "");
         String formattedBalance = balance.substring(1);

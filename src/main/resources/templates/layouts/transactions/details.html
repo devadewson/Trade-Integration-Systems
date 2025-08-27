@@ -3,6 +3,16 @@
 <body>
 <main>
     <style>
+        .wrap-table{
+            font-size: smaller;
+        }
+        tr {
+            transition: background-color 0.3s ease;
+        }
+
+        tr.highlighted {
+            --bs-table-bg: #d0f3f7 !important;
+        }
         .showDetailMessage {
           display: none;
         }
@@ -20,8 +30,17 @@
     <hr/>
     <script>
         $(document).ready(function () {
+
             // Handle "View Logs" button click
             $(".view-logs-btn").click(function () {
+                // Remove highlight from all rows
+                document.querySelectorAll('tr').forEach(row => {
+                    row.classList.remove('highlighted');
+                });
+
+                // Add highlight to the parent row of the clicked button
+                this.closest('tr').classList.add('highlighted');
+
                 const transMessageLogId = $(this).data("trans-message-log-id");
                 const transLogId = $(this).data("trans-log-id");
 
@@ -205,7 +224,10 @@
                     <div class="form-group row">
                         <label class="col-sm-4 col-form-label" for="masterRefNo">Master Ref No</label>
                         <div class="col-md-8">
-                            <input type="text" readonly="readonly" class="form-control" id="masterRefNo" th:value="${transaction.masterRefNo}">
+                            <div class="input-group">
+                                <input type="text" readonly="readonly" class="form-control" id="masterRefNo" th:value="${transaction.masterRefNo}">
+                                <a class="btn btn-primary" th:href="${relatedLink}">Go To Log</a>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group row">
@@ -287,8 +309,8 @@
                 </li>
             </ul>
             <div class="tab-content" id="myTabContent">
-                <div class="tab-pane fade show active" id="activity" role="tabpanel" aria-labelledby="activity-tab">
-                    <div id="logs-section" class="mt-4" style="display: none;">
+                <div class="tab-pane fade show active" id="activity" role="tabpanel" aria-labelledby="activity-tab" style="max-height: 500px;overflow: scroll;">
+                    <div id="logs-section" class="mt-4" style="display: none;" >
 
                         <table id="logs-table" class="table table-bordered">
                             <thead>

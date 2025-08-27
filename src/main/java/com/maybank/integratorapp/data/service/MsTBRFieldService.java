@@ -15,6 +15,9 @@ public class MsTBRFieldService {
     public List<MsTBRField> findFieldsByTbrCode(String tbrCode){
         return repo.findFieldsByTbrCode(tbrCode);
     }
+    public List<MsTBRField> findFieldsByTbrName(String tbrCode){
+        return repo.findFieldsByTbrName(tbrCode);
+    }
 
     public List<MsTBRField> findByTBRId(Long id) {
         return repo.findFieldsByTBRId(id);

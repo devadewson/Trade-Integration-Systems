@@ -34,10 +34,15 @@ public class LogQueueDataService {
             }
 
             if (transref.isPresent() && !transref.get().isEmpty()) {
-                predicates.add(cb.like(
+                Predicate reqMessagePredicate = cb.like(
                         root.get("reqMessage"),
                         "%" + transref.get().toLowerCase() + "%"
-                ));
+                );
+                Predicate resMessagePredicate = cb.like(
+                        root.get("resMessage"),
+                        "%" + transref.get().toLowerCase() + "%"
+                );
+                predicates.add(cb.or(reqMessagePredicate, resMessagePredicate));
             }
 
             if  (queueOrigin.isPresent() && !queueOrigin.get().isEmpty()) {

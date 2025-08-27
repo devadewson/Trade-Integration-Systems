@@ -84,9 +84,6 @@ public class BatchPostingMessageListener implements CustomMessageListener {
                 request.getBatchRequest().getServiceRequestChild().forEach(s->
                         _postings.add(s.getPosting())
                         );
-                if(_postings.get(0).getDebitCreditFlag().equals("C")){
-                    Collections.reverse(_postings);
-                }
 
 
                 processCompositeTBR.doPosting(_postings,_data.getId());

@@ -91,8 +91,10 @@ public class FtiTransactionController {
     public String getFtiTransactionDetails(@PathVariable Long id, Model model) {
         FtiTransaction transaction = ftiTransactionService.getFtiTransactionById(id);
         List<FtiTransactionDetail> details = ftiTransactionDetailService.getDetailsByHeaderId(id);
+        String relatedLink = "/log-queue?transref="+transaction.getMasterRefNo();
         model.addAttribute("transaction", transaction);
         model.addAttribute("details", details);
+        model.addAttribute("relatedLink", relatedLink);
         return "layouts/transactions/details"; // Thymeleaf template name
     }
 

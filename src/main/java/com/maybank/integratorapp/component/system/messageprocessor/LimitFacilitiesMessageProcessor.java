@@ -504,16 +504,14 @@ public class LimitFacilitiesMessageProcessor {
                         List<LoanAccounts> loanAccountsListUtilize = loanAccountsList.stream().filter(x->!splitKey(x.getKey())[5].equals("999")).toList();
                         loanAccountsListUtilize.forEach(s->{
                             String[] splitKey = splitKey(s.getKey());
-                            String companyLimitValue = splitKey[3];
-                            String noteNumber = splitKey[4];
-                            String draw = splitKey[5];
+                            String facilityHeader = splitKey[0]+splitKey[1]+splitKey[2]+splitKey[3]+splitKey[4];
 
                             MsFacilityUtilize utilize = new MsFacilityUtilize();
 
 
                             // Mencari MsCompanyLimit berdasarkan cifno
 
-                            MsFacility msFacility = existingFacility.stream().filter(z->z.getKeyDigitNote().equals(noteNumber)).findFirst().orElse(null);
+                            MsFacility msFacility = existingFacility.stream().filter(z->z.getKeyLoanAcc().contains(facilityHeader)).findFirst().orElse(null);
 
                             if(msFacility != null) {
                                 utilize.setFacilityId(msFacility.getId());
@@ -713,7 +711,6 @@ public class LimitFacilitiesMessageProcessor {
 //                runningNumber.setFacilityId(facilityId);
                 int newRunningNumber = Integer.parseInt(latestDraw.getKeyLoanAcc().substring(26, 29));
                 if(newRunningNumber != runningNumber.getRunningNumber()){
-
                     logger.Log(this.LoggerId,ProcessName,
                             "Facility ID: " + runningNumber.getFacilityId()
                                     + ", Running Number Update : " + runningNumber.getRunningNumber()

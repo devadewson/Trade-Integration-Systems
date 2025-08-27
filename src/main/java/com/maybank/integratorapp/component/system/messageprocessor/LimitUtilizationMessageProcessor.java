@@ -11,6 +11,7 @@ import com.maybank.integratorapp.data.entity.MsCompanyLimit;
 import com.maybank.integratorapp.data.repository.MsParameterRepository;
 import com.maybank.integratorapp.data.service.*;
 import com.maybank.integratorapp.model.mq.limitutilization.request.ServiceRequest;
+import com.maybank.integratorapp.model.mq.limitutilization.request.ServiceRequestChild;
 
 import com.maybank.integratorapp.model.soap.limit.XL41.request.SoapEnvelope;
 import com.maybank.integratorapp.service.EmailService;
@@ -83,99 +84,111 @@ public class LimitUtilizationMessageProcessor {
 
                 // step 2.
                 setInitialResponseHeader(request);
-                String accountNo = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getAccountNumber();
-//                String utilizationID = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getReservationIdentifier();
-                String utilizationID = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getFacilityExposureIdentifier();
-                String correlationID = request.getRequestHeader().getCorrelationID();
-                String masterReference = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getMasterReference();
-                String eventCode = request.getBatchRequest().getServiceRequestChild().get(0).getExposure().getEventReference();
+                for (ServiceRequestChild utilizationItem:
+                    request.getBatchRequest().getServiceRequestChild()) {
+                    String accountNo = utilizationItem.getExposure().getAccountNumber();
+//                String utilizationID = utilizationItem.getExposure().getReservationIdentifier();
+                    String utilizationID = utilizationItem.getExposure().getFacilityExposureIdentifier();
+                    if(!utilizationID.isEmpty()){
+                        String correlationID = request.getRequestHeader().getCorrelationID();
+                        String masterReference = utilizationItem.getExposure().getMasterReference();
+                        String eventCode = utilizationItem.getExposure().getEventReference();
 
-                FtiTransaction _header = new FtiTransaction();
-                List<FtiTransactionDetail> _listTransactionDetail = new ArrayList<>();
-                if(ftiTransactionService.findByMasterRefNo(masterReference).isPresent()){
-                    _header = ftiTransactionService.findByMasterRefNo(masterReference).get();
-                    _listTransactionDetail = ftiTransactionDetailService.getDetailsByHeaderId(_header.getId());
-                    _listTransactionDetail = _listTransactionDetail.stream().filter(x->x.getCoreSysName().startsWith("CLS"))
-                            .sorted(Comparator.comparingLong(FtiTransactionDetail::getId))
-                            .collect(Collectors.toList());
-                }
+                        FtiTransaction _header = new FtiTransaction();
+                        List<FtiTransactionDetail> _listTransactionDetail = new ArrayList<>();
+                        if(ftiTransactionService.findByMasterRefNo(masterReference).isPresent()){
+                            _header = ftiTransactionService.findByMasterRefNo(masterReference).get();
+                            _listTransactionDetail = ftiTransactionDetailService.getDetailsByHeaderId(_header.getId());
+                            _listTransactionDetail = _listTransactionDetail.stream().filter(x->
+                                            x.getCoreSysName().startsWith("CLS")
+                                                    && x.getFtiEvent().equals(eventCode)
+                                                    && x.getAdditionalInfo1().equals(utilizationID)
+                                    )
+                                    .sorted(Comparator.comparingLong(FtiTransactionDetail::getId))
+                                    .collect(Collectors.toList());
+                        }
 
-                boolean needXL40 = false;
-                boolean needXL41 = false;
-                boolean recreateTrans = false;
+                        boolean needXL40 = false;
+                        boolean needXL41 = false;
+                        boolean recreateTrans = false;
 
 
 
-                if(_listTransactionDetail.stream().count()>0){
+                        if(_listTransactionDetail.stream().count()>0){
 //                    logger.Log(this.LoggerId,ProcessName, "Transaction Detail Count : "+_listTransactionDetail.stream().count(), "DEBUG");
 
-                    LastLimitAction = _listTransactionDetail.get((int) (_listTransactionDetail.stream().count()-1));
-                    // cek dulu tanggal reservasinya
-                    // kalau bukan hari ini maka bikin ulang
-                    LocalDateTime today = LocalDateTime.now();
-                    LocalDateTime inputDate = LocalDateTime.ofInstant(
-                            LastLimitAction.getCreatedDate().toInstant(), ZoneId.systemDefault());
+                            LastLimitAction = _listTransactionDetail.get((int) (_listTransactionDetail.stream().count()-1));
+                            // cek dulu tanggal reservasinya
+                            // kalau bukan hari ini maka bikin ulang
+                            LocalDateTime today = LocalDateTime.now();
+                            LocalDateTime inputDate = LocalDateTime.ofInstant(
+                                    LastLimitAction.getCreatedDate().toInstant(), ZoneId.systemDefault());
 
-                    if(!(inputDate.getYear() == today.getYear() &&
-                            inputDate.getMonth() == today.getMonth() &&
-                            inputDate.getDayOfMonth() == today.getDayOfMonth())){
+                            if(!(inputDate.getYear() == today.getYear() &&
+                                    inputDate.getMonth() == today.getMonth() &&
+                                    inputDate.getDayOfMonth() == today.getDayOfMonth())){
 
-                        // bikin ulang last action nya
-                        // karena di cls sudah ilang
-                        recreateTrans = true;
-                    }
+                                // bikin ulang last action nya
+                                // karena di cls sudah ilang
+                                recreateTrans = true;
+                                logger.Log(this.LoggerId,ProcessName, "Recreate Trans", "DEBUG");
 
-                    if(LastLimitAction.getCoreSysName().contains("XL2B")){
-                        XL2BTransId = LastLimitAction.getId();
-                        needXL40 =true;
-                    }else if(LastLimitAction.getCoreSysName().contains("XL31")){
-                        XL31TransId = LastLimitAction.getId();
-                        needXL41 = true;
-                        // check whether before XL31 there is XL2B
-                        List<FtiTransactionDetail> _listTransaction = ftiTransactionDetailService.getDetailsByHeaderId(LastLimitAction.getHeaderId());
-                        Optional<FtiTransactionDetail> _beforeLastLimitAction = _listTransaction.stream().filter(x ->
-                                x.getCoreSysName().equals("CLS-XL2B") && x.getCoreSysStatus().equals("00") && x.getFtiEvent().equals(LastLimitAction.getFtiEvent()) && x.getId()< LastLimitAction.getId()
-                        ).max(Comparator.comparing(FtiTransactionDetail::getId));
+                            }
+
+                            if(LastLimitAction.getCoreSysName().contains("XL2B")){
+                                XL2BTransId = LastLimitAction.getId();
+                                needXL40 =true;
+                            }else if(LastLimitAction.getCoreSysName().contains("XL31")){
+                                XL31TransId = LastLimitAction.getId();
+                                needXL41 = true;
+                                // check whether before XL31 there is XL2B
+                                List<FtiTransactionDetail> _listTransaction = ftiTransactionDetailService.getDetailsByHeaderId(LastLimitAction.getHeaderId());
+                                Optional<FtiTransactionDetail> _beforeLastLimitAction = _listTransaction.stream().filter(x ->
+                                        x.getCoreSysName().equals("CLS-XL2B") && x.getCoreSysStatus().equals("00") && x.getFtiEvent().equals(LastLimitAction.getFtiEvent()) && x.getId()< LastLimitAction.getId()
+                                ).max(Comparator.comparing(FtiTransactionDetail::getId));
 //                        FtiTransactionDetail _beforeLastLimitAction = ftiTransactionDetailService.getById(_lastLimitAction.getId()-1);
-                        if(_beforeLastLimitAction.isPresent()){
-                            XL2BTransId = _beforeLastLimitAction.get().getId();
-                            needXL40 = true;
+                                if(_beforeLastLimitAction.isPresent()){
+                                    XL2BTransId = _beforeLastLimitAction.get().getId();
+                                    needXL40 = true;
+                                }
+                            }
+
+
+                        } else {
+                            LastLimitAction = null;
+                        }
+                        if(needXL40){
+                            if(recreateTrans){
+                                LastLimitAction = _listTransactionDetail.stream().filter(x->x.getId().equals(XL2BTransId)).findFirst().get();
+//                        how??
+                            }
+                            // step 3.
+                            com.maybank.integratorapp.model.soap.limit.XL40.request.SoapEnvelope msgRequest = mapXL40Request(utilizationID,masterReference);
+
+                            // step 4.
+                            com.maybank.integratorapp.model.soap.limit.XL40.response.SoapEnvelope msgResponse = getXL40Response(msgRequest,eventCode,masterReference,utilizationID);
+
+                        }
+
+                        if(needXL41){
+                            if(recreateTrans){
+                                LastLimitAction = _listTransactionDetail.stream().filter(x->x.getId().equals(XL31TransId)).findFirst().get();
+//                        how??
+                            }
+                            // step 3.
+                            com.maybank.integratorapp.model.soap.limit.XL41.request.SoapEnvelope msgRequest = mapXL41Request(utilizationID,masterReference);
+
+                            // step 4.
+                            com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope msgResponse = getXL41Response(msgRequest,eventCode,masterReference,utilizationID);
+
                         }
                     }
+                    else{
+                        logger.Log(this.LoggerId,ProcessName, "Empty FacilityExposureIdentifier", "ERROR-PROCESS-MESSAGE");
 
-
-                } else {
-                    LastLimitAction = null;
-                }
-                if(needXL40){
-                    if(recreateTrans){
-                        LastLimitAction = _listTransactionDetail.stream().filter(x->x.getId().equals(XL2BTransId)).findFirst().get();
-//                        how??
                     }
-                    // step 3.
-                    com.maybank.integratorapp.model.soap.limit.XL40.request.SoapEnvelope msgRequest = mapXL40Request(utilizationID,masterReference);
-
-                    // step 4.
-                    com.maybank.integratorapp.model.soap.limit.XL40.response.SoapEnvelope msgResponse = getXL40Response(msgRequest,eventCode,masterReference,utilizationID);
 
                 }
-
-                if(needXL41){
-                    if(recreateTrans){
-                        LastLimitAction = _listTransactionDetail.stream().filter(x->x.getId().equals(XL31TransId)).findFirst().get();
-//                        how??
-                    }
-                    // step 3.
-                    com.maybank.integratorapp.model.soap.limit.XL41.request.SoapEnvelope msgRequest = mapXL41Request(utilizationID,masterReference);
-
-                    // step 4.
-                    com.maybank.integratorapp.model.soap.limit.XL41.response.SoapEnvelope msgResponse = getXL41Response(msgRequest,eventCode,masterReference,utilizationID);
-
-                }
-
-
-
-
 
                 // step 5.
 //                mapExternalResponse(msgResponse,msgRequest);

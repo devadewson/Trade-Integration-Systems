@@ -109,18 +109,22 @@ public class JmsListenerService {
 
             // Choose the correct listener
 //            String listenerPackages = "com.maybank.integratorapp.component.listener."+config.getListenerName();
-            CustomMessageListener listener = (CustomMessageListener) context.getBean(chooseListener(config.getServiceName()));
+            Class listenerClass = chooseListener(config.getServiceName());
+
+            if(listenerClass !=null){
+                CustomMessageListener listener = (CustomMessageListener) context.getBean(listenerClass);
+                // If response queue exists, create a publisher
+                if (!config.getResponse_Queue_Address().isEmpty()) {
+                    MessagePublisher publisher = new MessagePublisher(config);
+                    listener.setPublisher(publisher);
+                }
+
+                consumer.setMessageListener(listener);
+                System.out.println("Listener started for queue: " + config.getRequest_Queue_Name());
+            }
 
 //            CustomMessageListener listener = (CustomMessageListener) chooseListener(config.getServiceName());
 
-            // If response queue exists, create a publisher
-            if (!config.getResponse_Queue_Address().isEmpty()) {
-                MessagePublisher publisher = new MessagePublisher(config);
-                listener.setPublisher(publisher);
-            }
-
-            consumer.setMessageListener(listener);
-            System.out.println("Listener started for queue: " + config.getRequest_Queue_Name());
         } catch (JMSException e) {
             e.printStackTrace();
         }
