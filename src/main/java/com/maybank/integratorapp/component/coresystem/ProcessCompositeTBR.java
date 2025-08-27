@@ -307,28 +307,36 @@ public class ProcessCompositeTBR {
                 if(postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("CA")&& x.getDebitCreditFlag().equals("D")).count()==1
                         && postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("NOSTRO")&& x.getDebitCreditFlag().equals("C")).count()==1
                         && postingGroup.getPostings().size() == 2){
-                    groupId = "999991";
-                    branch = findBranchPosting(postingGroup);
-                    account = TripBranch_Account.replace("xxx",branch);
-                    PostingExtender Debit_CA = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("CA")
+                        PostingExtender Debit_CA = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("CA")
                             && x.getDebitCreditFlag().equals("D")).findFirst().get();
-                    Debit_CA.getExtraData().setGroupID(groupId);
-                    PostingExtender Credit_CA_Trip_Cabang = makeShadowLeg(Debit_CA,"CCA","C",groupId,branch,account);
-                    data.add(Debit_CA);
-                    data.add(Credit_CA_Trip_Cabang);
+                        groupId = Debit_CA.getExtraData().getGroupID();
+                        account = PS_Account;
+                        branch = findBranchPosting(postingGroup);
+                        PostingExtender Debit_GL_0 = makeShadowLeg(Debit_CA,"A1166","C",groupId,branch,account);
+                        data.add(Debit_GL_0);
 
-                    groupId = "999992";
-//                branch = findBranchPosting(postingGroup);
-                    account = TripHO_Account;
-                    branch = "999";
-                    PostingExtender Credit_Nostro = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("NOSTRO")
-                            && x.getDebitCreditFlag().equals("C")).findFirst().get();
-                    Credit_Nostro.getExtraData().setGroupID(groupId);
-                    Credit_Nostro.setAccountType("A1165");
-                    Credit_Nostro.getExtraData().setCustBranchFacility(branch);
-                    PostingExtender Debit_CA_Trip_HO = makeShadowLeg(Credit_Nostro,"CCA","D",groupId,branch,account);
-                    data.add(Debit_CA_Trip_HO);
-                    data.add(Credit_Nostro);
+//                    groupId = "999991";
+//                    branch = findBranchPosting(postingGroup);
+//                    account = TripBranch_Account.replace("xxx",branch);
+//                    PostingExtender Debit_CA = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("CA")
+//                            && x.getDebitCreditFlag().equals("D")).findFirst().get();
+//                    Debit_CA.getExtraData().setGroupID(groupId);
+//                    PostingExtender Credit_CA_Trip_Cabang = makeShadowLeg(Debit_CA,"CCA","C",groupId,branch,account);
+//                    data.add(Debit_CA);
+//                    data.add(Credit_CA_Trip_Cabang);
+//
+//                    groupId = "999992";
+////                branch = findBranchPosting(postingGroup);
+//                    account = TripHO_Account;
+//                    branch = "999";
+//                    PostingExtender Credit_Nostro = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("NOSTRO")
+//                            && x.getDebitCreditFlag().equals("C")).findFirst().get();
+//                    Credit_Nostro.getExtraData().setGroupID(groupId);
+//                    Credit_Nostro.setAccountType("A1165");
+//                    Credit_Nostro.getExtraData().setCustBranchFacility(branch);
+//                    PostingExtender Debit_CA_Trip_HO = makeShadowLeg(Credit_Nostro,"CCA","D",groupId,branch,account);
+//                    data.add(Debit_CA_Trip_HO);
+//                    data.add(Credit_Nostro);
 
 
                 }
@@ -776,7 +784,7 @@ public class ProcessCompositeTBR {
     public void postTbr(String referenceID,PostingGroup data, Long groupId, Long idtransactiondetail){
         try{
 
-
+            String TripHO_Account = parameterService.findValueByPrmKey("TripHO_Account");
             String branch = data.getPostings().get(0).getCoreSystemBranch();
             String clientUserId = data.getPostings().get(0).getCoreUid();
             String clientSpvUserId = data.getPostings().get(0).getCoreSpvUid();
@@ -828,6 +836,13 @@ public class ProcessCompositeTBR {
                 String tbrName = "TBR EFTD-"+(isSKN?"SKN":"RTGS");
                 fieldsList = tbrFieldService.findFieldsByTbrName(tbrName).stream().filter(s->s.getSourceField()!=null || s.getDefaultValue()!=null).toList();
 
+                for (Posting p:
+                     postings) {
+                    if(p.getBackOfficeAccountNo().equals(TripHO_Account)){
+                        String _newAcc = "2"+branch;
+                        p.setBackOfficeAccountNo(TripHO_Account.replace("2999",_newAcc));
+                    }
+                }
 
                 List<DynamicClassPropertyMap> finalPropertyMapList = new ArrayList<>();
                 finalPropertyMapList.add(new DynamicClassPropertyMap("TBRNumber","String"));
