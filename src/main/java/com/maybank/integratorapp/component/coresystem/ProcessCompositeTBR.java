@@ -141,7 +141,51 @@ public class ProcessCompositeTBR {
 
         return listPosting;
     }
+    private String generateRTGSRefCode(String ftiProduct,String masterRefNo,String eventCode){
+        String _ref = "";
+        String _eventCode = eventCode.substring(eventCode.length()-2);
+//        max char = 10
+//        ILC:
+//        ILC906S1234567ID >>> S1234567​+ 2 last digit of Event Code (ISS/AMD/CLM/etc) = S123456701
+//
+//        ELC:
+//        ELC906A1234567ID >>> A1234567​+2 last digit of EventCode (ISS/AMD/CLM/etc)
+//
+//        FIL:
+//        I906CTR1234567ID >>> I1234567​+2 last digit of EventCode (ISS/AMD/CLM/etc)
+//
+//        FEL:
+//        E906CNL1234567ID >>> E1234567​+2 last digit of EventCode (ISS/AMD/CLM/etc)
+//
+//        SG/ETD:
+//        SSG906S1234567ID >>> G1234567​+2 last digit of EventCode (ISS/AMD/CLM/etc)
+//
+//        ODC/IDC:
+//        CDO906C1234567ID >>> O1234567​+2 last digit of EventCode (ISS/AMD/CLM/etc)
+//
+//        FSA:
+//        C906IFS1234567ID >>> C1234567​+2 last digit of EventCode (ISS/AMD/CLM/etc)
 
+        switch (ftiProduct){
+            case "ILC","ELC":
+                _ref="T"+masterRefNo.substring(6,14)+_eventCode;
+                break;
+            case "FIL","FEL","FSA":
+                _ref="T"+masterRefNo.substring(0,1)+masterRefNo.substring(7,14)+_eventCode;
+                break;
+            case "SHG","ETD":
+                _ref="T"+masterRefNo.substring(2,3)+masterRefNo.substring(7,14)+_eventCode;
+                break;
+            case "ODC","IDC":
+                _ref="TO"+masterRefNo.substring(7,14)+_eventCode;
+                break;
+            default:
+                _ref="T123123123";
+                break;
+        }
+
+        return _ref;
+    }
     private Long LoggerId;
     public void doPosting(List<Posting> data, Long idLogParent){
 
@@ -151,10 +195,15 @@ public class ProcessCompositeTBR {
 
             String referenceID = data.stream().findFirst().get().getMasterReference();
             String eventCode = data.stream().findFirst().get().getEventReference();
+            String productCode = data.stream().findFirst().get().getProductReference();
 
             // remove the 999 vs 07 posting
             List<Posting> removed = data.stream().filter(x->x.getBackOfficeAccountNo().startsWith("07") || x.getBackOfficeAccountNo().startsWith("999")).toList();
             data.removeAll(removed);
+
+            // remove the 333 posting
+            List<Posting> removed2 = data.stream().filter(x->x.getAccountType().equals("O3333")).toList();
+            data.removeAll(removed2);
 
             // RTGS Logic Block
 //        if(data.stream().anyMatch(x->x.getAccountType().equals("RPKP")))
@@ -249,7 +298,7 @@ public class ProcessCompositeTBR {
                     else{
                         // do cross valas logic here
                         logger.Log(this.LoggerId,"Posting - Posting Data to ESB", "Map and Posting Cross Valas Data the data into ESB", "START");
-
+                        postTbr(referenceID,postingGroup, _group.getId(),ftiTransactionDetail.getId());
                         logger.Log(this.LoggerId,"Posting - Posting Data to ESB", "Map and Posting Cross Valas Data the data into ESB", "END");
 
                     }
@@ -298,22 +347,22 @@ public class ProcessCompositeTBR {
         try{
             String _postingCurrency = postingGroup.getPostings().stream().findFirst().get().getPostingCcy();
             if (postingGroup.getPostings().stream().allMatch(x->x.getPostingCcy().equals(_postingCurrency))) {
-                /*      Case1
-                CA vs NOSTRO (Pair)
-                Menjadi
-                CA vs CA TRIP Cabang
-                GL TRIP HO vs NOSTRO
-                */
+
                 if(postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("CA")&& x.getDebitCreditFlag().equals("D")).count()==1
                         && postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("NOSTRO")&& x.getDebitCreditFlag().equals("C")).count()==1
                         && postingGroup.getPostings().size() == 2){
                         PostingExtender Debit_CA = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("CA")
                             && x.getDebitCreditFlag().equals("D")).findFirst().get();
+                        PostingExtender Credit_GL_Nostro = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("NOSTRO")
+                            && x.getDebitCreditFlag().equals("C")).findFirst().get();
                         groupId = Debit_CA.getExtraData().getGroupID();
                         account = PS_Account;
                         branch = findBranchPosting(postingGroup);
-                        PostingExtender Debit_GL_0 = makeShadowLeg(Debit_CA,"A1166","C",groupId,branch,account);
+                        PostingExtender Debit_GL_0 = makeShadowLeg(Debit_CA,"A1166","D",groupId,branch,account);
+                        Debit_GL_0.setPostingAmount("0");
                         data.add(Debit_GL_0);
+                        data.add(Debit_CA);
+                        data.add(Credit_GL_Nostro);
 
 //                    groupId = "999991";
 //                    branch = findBranchPosting(postingGroup);
@@ -340,15 +389,7 @@ public class ProcessCompositeTBR {
 
 
                 }
-                /*      Case2
-                CA vs NOSTRO (Pair)
-                Menjadi
-                CA vs GL PS
-                (Case2 Extra GL vs GL PS)
-                GL PS vs CA TRIP Cabang
-                GL TRIP HO vs NOSTRO
-                (Case2 Extra GL PS vs GL)
-                */
+
                 else if(postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("CA")&& x.getDebitCreditFlag().equals("D")).count()==1
                         && postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("NOSTRO")&& x.getDebitCreditFlag().equals("C")).count()==1
                         && postingGroup.getPostings().size() > 2){
@@ -371,10 +412,10 @@ public class ProcessCompositeTBR {
                         for (PostingExtender posting:
                                 postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("GL")
                                         && x.getDebitCreditFlag().equals("D")).toList()) {
-                            groupId = groupId+(String.valueOf(i));
+                            String _groupId = groupId+(String.valueOf(i));
                             PostingExtender Debit_GL = posting;
-                            Debit_GL.getExtraData().setGroupID(groupId);
-                            PostingExtender Credit_PS = makeShadowLeg(Debit_GL,"A1166","C",groupId,branch,account);
+                            Debit_GL.getExtraData().setGroupID(_groupId);
+                            PostingExtender Credit_PS = makeShadowLeg(Debit_GL,"A1166","C",_groupId,branch,account);
                             data.add(Debit_GL);
                             data.add(Credit_PS);
                             i++;
@@ -391,20 +432,8 @@ public class ProcessCompositeTBR {
 
 
                     PostingExtender Debit_GL_PS = makeShadowLeg(Credit_Nostro,"A1166","D",groupId,branch,account);
-                    account = TripBranch_Account.replace("xxx",branch);
-                    PostingExtender Credit_CA_Trip_Cabang = makeShadowLeg(Credit_Nostro,"CCA","C",groupId,branch,account);
                     data.add(Debit_GL_PS);
-                    data.add(Credit_CA_Trip_Cabang);
-
-                    // CA Trip HO vs Nostro
-                    groupId = "999993";
-//                    branch = findBranchPosting(postingGroup);
-                    account = TripHO_Account;
-                    branch = "999";
                     Credit_Nostro.getExtraData().setGroupID(groupId);
-                    Credit_Nostro.setAccountType("A1165");
-                    PostingExtender Debit_Trip_HO = makeShadowLeg(Credit_Nostro,"CCA","D",groupId,branch,account);
-                    data.add(Debit_Trip_HO);
                     data.add(Credit_Nostro);
 
 
@@ -418,10 +447,10 @@ public class ProcessCompositeTBR {
                         for (PostingExtender posting:
                         postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("GL")
                                 && x.getDebitCreditFlag().equals("C")).toList()) {
-                            groupId = groupId+(String.valueOf(i));
+                            String _groupId = groupId+(String.valueOf(i));
                             PostingExtender Credit_GL = posting;
-                            Credit_GL.getExtraData().setGroupID(groupId);
-                            PostingExtender Debit_PS = makeShadowLeg(Credit_GL,"A1166","D",groupId,branch,account);
+                            Credit_GL.getExtraData().setGroupID(_groupId);
+                            PostingExtender Debit_PS = makeShadowLeg(Credit_GL,"A1166","D",_groupId,branch,account);
                             data.add(Debit_PS);
                             data.add(Credit_GL);
                             i++;
@@ -429,19 +458,21 @@ public class ProcessCompositeTBR {
 
                     }
                 }
+
                 else if(postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("NOSTRO")&& x.getDebitCreditFlag().equals("D")).count()==1
                         && postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("CA")&& x.getDebitCreditFlag().equals("C")).count()==1
                         && postingGroup.getPostings().size() > 2){
-                    // NOSTRO vs GL TRIP
+                    // NOSTRO vs GL PS
                     groupId = "999991";
                     branch = "999";
-                    account = TripHO_Account;
+//                    account = TripHO_Account;
+                    account = PS_Account;
                     PostingExtender Debit_NOSTRO = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("NOSTRO")
                         && x.getDebitCreditFlag().equals("D")).findFirst().get();
                     Debit_NOSTRO.getExtraData().setGroupID(groupId);
-                    PostingExtender Credit_Trip_HO = makeShadowLeg(Debit_NOSTRO,"CCA","C",groupId,branch,account);
+                    PostingExtender Credit_GL_PS = makeShadowLeg(Debit_NOSTRO,"A1166","C",groupId,branch,account);
+                    data.add(Credit_GL_PS);
                     data.add(Debit_NOSTRO);
-                    data.add(Credit_Trip_HO);
                     // jika ada Debit GL
                     if(postingGroup.getPostings().stream().anyMatch(x->x.getAccountTypeAlias().equals("GL")
                             && x.getDebitCreditFlag().equals("D"))){
@@ -463,20 +494,11 @@ public class ProcessCompositeTBR {
 
                     }
 
-                    // CA TRIP CABANG vs GL PS
-                    groupId = "999992";
-                    branch = findBranchPosting(postingGroup);
-                    account = PS_Account;
-                    PostingExtender Credit_GL_PS = makeShadowLeg(Debit_NOSTRO,"A1166","C",groupId,branch,account);
-                    PostingExtender Debit_Trip_CABANG = makeShadowLeg(Debit_NOSTRO,"CCA","D",groupId,branch,account);
-                    data.add(Debit_Trip_CABANG);
-                    data.add(Credit_GL_PS);
-
                     // Trip Cabang vs Nostro
                     PostingExtender Credit_CA = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("CA")
                             && x.getDebitCreditFlag().equals("C")).findFirst().get();
                     Credit_CA.getExtraData().setGroupID(groupId);
-                    groupId = "999993";
+                    groupId = "999992";
                     branch = findBranchPosting(postingGroup);
                     account = PS_Account;
                     PostingExtender Debit_GL_PS = makeShadowLeg(Credit_CA,"A1166","D",groupId,branch,account);
@@ -504,191 +526,128 @@ public class ProcessCompositeTBR {
 
                     }
                 }
+
+                else if(postingGroup.getPostings().stream().anyMatch(x -> x.getAccountTypeAlias().equals("GL") && x.getDebitCreditFlag().equals("D"))
+                        && postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("NOSTRO")&& x.getDebitCreditFlag().equals("C")).count()==1
+                        && postingGroup.getPostings().size() > 2){
+                    // jika ada Debit GL
+                    if(postingGroup.getPostings().stream().anyMatch(x->x.getAccountTypeAlias().equals("GL")
+                            && x.getDebitCreditFlag().equals("D"))){
+                        groupId = "99996";
+//                        branch = findBranchPosting(postingGroup);
+                        account = PS_Account;
+                        int i = 1;
+                        for (PostingExtender posting:
+                                postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("GL")
+                                        && x.getDebitCreditFlag().equals("D")
+                                ).toList()) {
+                            String _groupId = groupId+(String.valueOf(i));
+                            PostingExtender Debit_Additional_GL = posting;
+                            Debit_Additional_GL.getExtraData().setGroupID(_groupId);
+                            PostingExtender Credit_PS = makeShadowLeg(Debit_Additional_GL,"A1166","C",_groupId,branch,account);
+                            data.add(Debit_Additional_GL);
+                            data.add(Credit_PS);
+                            i++;
+                        }
+
+                    }
+
+                    // GL PS vs C Nostro
+                    groupId = "999992";
+                    branch = findBranchPosting(postingGroup);
+                    account = PS_Account;
+                    PostingExtender Credit_Nostro = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("NOSTRO")
+                            && x.getDebitCreditFlag().equals("C")).findFirst().get();
+
+                    PostingExtender Debit_GL_PS = makeShadowLeg(Credit_Nostro,"A1166","D",groupId,branch,account);
+                    data.add(Debit_GL_PS);
+                    Credit_Nostro.getExtraData().setGroupID(groupId);
+                    data.add(Credit_Nostro);
+
+                    // jika ada Credit GL
+                    if(postingGroup.getPostings().stream().anyMatch(x->x.getAccountTypeAlias().equals("GL")
+                            && x.getDebitCreditFlag().equals("C"))){
+                        groupId = "99997";
+                        branch = findBranchPosting(postingGroup);
+                        account = PS_Account;
+                        int i = 1;
+                        for (PostingExtender posting:
+                                postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("GL")
+                                        && x.getDebitCreditFlag().equals("C")).toList()) {
+                            String _groupId = groupId+(String.valueOf(i));
+                            PostingExtender Credit_GL = posting;
+                            Credit_GL.getExtraData().setGroupID(_groupId);
+                            PostingExtender Debit_PS = makeShadowLeg(Credit_GL,"A1166","D",_groupId,branch,account);
+                            data.add(Debit_PS);
+                            data.add(Credit_GL);
+                            i++;
+                        }
+
+                    }
+                }
+
+                else if(postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("NOSTRO")&& x.getDebitCreditFlag().equals("D")).count()==1
+                        && postingGroup.getPostings().stream().anyMatch(x -> x.getAccountTypeAlias().equals("GL") && x.getDebitCreditFlag().equals("C"))
+                        && postingGroup.getPostings().size() > 2){
+                    // NOSTRO vs GL PS
+                    groupId = "999991";
+                    branch = "999";
+                    account = PS_Account;
+                    PostingExtender Debit_NOSTRO = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("NOSTRO")
+                            && x.getDebitCreditFlag().equals("D")).findFirst().get();
+                    Debit_NOSTRO.getExtraData().setGroupID(groupId);
+                    PostingExtender Credit_GL_PS = makeShadowLeg(Debit_NOSTRO,"A1166","C",groupId,branch,account);
+                    data.add(Credit_GL_PS);
+                    data.add(Debit_NOSTRO);
+
+                    // jika ada Debit GL
+                    if(postingGroup.getPostings().stream().anyMatch(x->x.getAccountTypeAlias().equals("GL")
+                            && x.getDebitCreditFlag().equals("D"))){
+                        groupId = "99996";
+                        branch = findBranchPosting(postingGroup);
+                        account = PS_Account;
+                        int i = 1;
+                        for (PostingExtender posting:
+                                postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("GL")
+                                        && x.getDebitCreditFlag().equals("D")).toList()) {
+                            groupId = groupId+(String.valueOf(i));
+                            PostingExtender Debit_GL = posting;
+                            Debit_GL.getExtraData().setGroupID(groupId);
+                            PostingExtender Credit_PS = makeShadowLeg(Debit_GL,"A1166","C",groupId,branch,account);
+                            data.add(Debit_GL);
+                            data.add(Credit_PS);
+                            i++;
+                        }
+
+                    }
+
+                    // jika ada Credit GL
+                    if(postingGroup.getPostings().stream().anyMatch(x->x.getAccountTypeAlias().equals("GL")
+                            && x.getDebitCreditFlag().equals("C"))){
+                        groupId = "99997";
+                        branch = findBranchPosting(postingGroup);
+                        account = PS_Account;
+                        int i = 1;
+                        for (PostingExtender posting:
+                                postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("GL")
+                                        && x.getDebitCreditFlag().equals("C")
+                                ).toList()) {
+                            groupId = groupId+(String.valueOf(i));
+                            PostingExtender Credit_Additional_GL = posting;
+                            Credit_Additional_GL.getExtraData().setGroupID(groupId);
+                            PostingExtender Debit_PS = makeShadowLeg(Credit_Additional_GL,"A1166","D",groupId,branch,account);
+                            data.add(Debit_PS);
+                            data.add(Credit_Additional_GL);
+                            i++;
+                        }
+
+                    }
+                }
             }
         }catch (Exception ex){
             logger.Log(this.LoggerId,"CA-NOSTRO LOGIC", "Error :"+ex.getMessage(), "ERROR");
 
         }
-
-
-
-/*
-        Case2
-        CA vs NOSTRO (With Extra GL Leg(s))
-        Menjadi
-        CA vs GL PS
-        GL PS vs CA TRIP CABANG
-        GL TRIP HO vs NOSTRO
-        GL PS vs GL Leg(s)
-
-        Case3 (Normal)
-        Nostro vs CA (Pair)
-
-        Case4
-        Nostro vs CA (With extra GL Leg(s))
-        Menjadi
-        Nostro vs GL Trip HO
-        CA Trip Cabang vs GL PS
-        GL PS vs CA
-        GL PS vs GL Leg(s)
-
-        Case5
-        Nostro & CA vs GL
-
-*/
-
-        return data;
-    }
-    private List<Posting> ccaNostroLogic(PostingGroup postingGroup) {
-        List<Posting> data = new ArrayList<>();
-/*      Case1
-        CA vs NOSTRO (Pair)
-        Menjadi
-        CA vs CA TRIP Cabang
-        GL TRIP HO vs NOSTRO
-
-        Case2
-        CA vs NOSTRO (With Extra GL Leg(s))
-        Menjadi
-        CA vs GL PS
-        GL PS vs CA TRIP CABANG
-        GL TRIP HO vs NOSTRO
-        GL PS vs GL Leg(s)
-
-        Case3 (Normal)
-        Nostro vs CA (Pair)
-
-        Case4
-        Nostro vs CA (With extra GL Leg(s))
-        Menjadi
-        Nostro vs GL Trip HO
-        CA Trip Cabang vs GL PS
-        GL PS vs CA
-        GL PS vs GL Leg(s)
-
-        Case5
-        Nostro & CA vs GL
-
-*/
-
-        try{
-            String _postingCurrency = postingGroup.getPostings().stream().findFirst().get().getPostingCcy();
-//                logger.Log(this.LoggerId,"CA-NOSTRO LOGIC", "Currency : "+_postingCurrency, "DEBUG");
-            if (postingGroup.getPostings().stream().allMatch(x->x.getPostingCcy().equals(_postingCurrency))){
-//                    logger.Log(this.LoggerId,"CA-NOSTRO LOGIC", "Con1 : "+postingGroup.getPostings().stream().anyMatch(x->x.getAccountTypeAlias().equals("NOSTRO")), "DEBUG");
-                if(postingGroup.getPostings().stream().anyMatch(x->x.getAccountTypeAlias().equals("NOSTRO")&& x.getDebitCreditFlag().equals("C"))){
-//                        logger.Log(this.LoggerId,"CA-NOSTRO LOGIC", "Con2 : "+postingGroup.getPostings().stream().anyMatch(x->x.getAccountTypeAlias().equals("CA")), "DEBUG");
-
-                    if(postingGroup.getPostings().stream().anyMatch(x->x.getAccountTypeAlias().equals("CA")&& x.getDebitCreditFlag().equals("D"))){
-//                            logger.Log(this.LoggerId,"CA-NOSTRO LOGIC", "Pair1 Start", "DEBUG");
-                        String _groupId = "99999";
-
-                        String cifno = postingGroup.getPostings().stream().findFirst().get().getCustomerMnemonic();
-                        if (postingGroup.getPostings().stream().findFirst().get().getCustomerMnemonic() == null){
-                            cifno = postingGroup.getPostings().stream().findFirst().get().getRelatedParty();
-                        }
-                        String postingBranch = postingGroup.getPostings().stream().findFirst().get().getPostingBranch();
-//            String postingBranch = data.getPostings().stream().findFirst().get().getExtraData().getCustBranchFacility();
-//                        String _branch = _newDebit.getExtraData().getCustBranchFacility();
-
-                        String _branch = "003";
-
-                        if(postingBranch.startsWith("9"))
-                        {
-                            MsCompanyLimit _company = msCompanyLimitService.searchByCIFNo(cifno);
-                            if(postingBranch.equals("906"))
-                                _branch = _company.getCbranch();
-                            else
-                                _branch = _company.getIbranch();
-
-                        }
-
-                        // CA v GL Penampungan Sementara
-                        Posting _newDebit = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("CA")).findFirst().get();
-                        _newDebit.getExtraData().setGroupID("91"+_groupId);
-                        PostingExtender _newCreditPair = new PostingExtender();
-                        ReflectionUtils.copyProperties(_newDebit,_newCreditPair);
-                        _newCreditPair.setPostingCcy(_newDebit.getPostingCcy());
-                        _newCreditPair.setPostingAmount(_newDebit.getPostingAmount());
-                        _newCreditPair.setAccountType("A1166");
-//                            _newCreditPair.setBackOfficeAccountNo("299999"+_branch+"0");
-                        _newCreditPair.setBackOfficeAccountNo("0116600001");
-                        if(_newDebit.getDebitCreditFlag().equals("C")){
-                            _newCreditPair.setDebitCreditFlag("D");
-                        }
-                        else{
-                            _newCreditPair.setDebitCreditFlag("C");
-
-                        }
-                        _newCreditPair.setExtraData(new ExtraData());
-                        _newCreditPair.getExtraData().setGroupID("91"+_groupId);
-                        _newCreditPair.getExtraData().setCustBranchFacility(_branch);
-//                            logger.Log(this.LoggerId,"CA-NOSTRO LOGIC", "Pair1 End", "DEBUG");
-
-                        // GL v CA Trip
-                        PostingExtender _newGhostPair = new PostingExtender();
-                        ReflectionUtils.copyProperties(_newCreditPair,_newGhostPair);
-                        _newGhostPair.setPostingCcy(_newDebit.getPostingCcy());
-                        _newGhostPair.setPostingAmount(_newDebit.getPostingAmount());
-                        _newGhostPair.setAccountType("A1166");
-//                            _newCreditPair.setBackOfficeAccountNo("299999"+_branch+"0");
-                        _newGhostPair.setBackOfficeAccountNo("0116600001");
-                        _newGhostPair.setDebitCreditFlag("D");
-                        _newGhostPair.setExtraData(new ExtraData());
-                        _newGhostPair.getExtraData().setGroupID("92"+_groupId);
-                        _newGhostPair.getExtraData().setCustBranchFacility(_branch);
-
-                        PostingExtender _newGhostPair2 = new PostingExtender();
-                        ReflectionUtils.copyProperties(_newGhostPair,_newGhostPair2);
-                        _newGhostPair2.setPostingCcy(_newDebit.getPostingCcy());
-                        _newGhostPair2.setPostingAmount(_newDebit.getPostingAmount());
-                        _newGhostPair2.setAccountType("A1115");
-                        _newGhostPair2.setBackOfficeAccountNo("299999"+_branch+"0");
-//                            _newGhostPair2.setBackOfficeAccountNo("0116600001");
-                        _newGhostPair2.setDebitCreditFlag("C");
-                        _newGhostPair2.setExtraData(new ExtraData());
-                        _newGhostPair2.getExtraData().setGroupID("92"+_groupId);
-                        _newGhostPair2.getExtraData().setCustBranchFacility(_branch);
-
-//                            logger.Log(this.LoggerId,"CA-NOSTRO LOGIC", "Pair2 Start", "DEBUG");
-
-                        // GL Trip v Nostro
-                        Posting _newCredit = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("NOSTRO")).findFirst().get();
-                        _newCredit.getExtraData().setGroupID("93"+_groupId);
-                        PostingExtender _newDebitPair = new PostingExtender();
-                        ReflectionUtils.copyProperties(_newCredit,_newDebitPair);
-
-                        _newDebitPair.setAccountType("A1166");
-                        _newDebitPair.setBackOfficeAccountNo("2999998880");
-//                            _newDebitPair.setBackOfficeAccountNo("0116600001");
-                        if(_newCredit.getDebitCreditFlag().equals("C")){
-                            _newDebitPair.setDebitCreditFlag("D");
-                        }
-                        else{
-                            _newDebitPair.setDebitCreditFlag("C");
-
-                        }
-                        _newDebitPair.setExtraData(new ExtraData());
-                        _newDebitPair.getExtraData().setGroupID("93"+_groupId);
-                        _newDebitPair.getExtraData().setCustBranchFacility(_branch);
-//                            logger.Log(this.LoggerId,"CA-NOSTRO LOGIC", "Pair2 End", "DEBUG");
-
-                        data.add(_newDebit);
-                        data.add(_newCreditPair);
-                        data.add(_newGhostPair);
-                        data.add(_newGhostPair2);
-                        data.add(_newCredit);
-                        data.add(_newDebitPair);
-                    }
-                }
-            }
-
-        }catch (Exception e){
-            logger.Log(this.LoggerId,"CA-NOSTRO LOGIC", "Error :"+e.getMessage(), "ERROR");
-
-        }
-
-//        logger.Log(this.LoggerId,"CA-NOSTRO LOGIC", "Test", "END");
 
         return data;
     }
@@ -737,41 +696,7 @@ public class ProcessCompositeTBR {
 
         return _newShadowLeg;
     }
-    private List<Posting> rtgsLogic(List<Posting> data) {
-        List<Posting> finalPosting = new ArrayList<>();
-
-        try {
-
-            String product = data.stream().findFirst().get().getProductReference();
-            // ambil semua RPKP
-            List<Posting> allRPKP = data.stream().filter(x->x.getAccountType().equals("RPKP")).toList();
-
-            //
-
-            // case IFB
-            if(product.equals("IFB")){
-
-
-
-                // takeout Debit GL
-                // takeout Credit GL
-            }else if(product.equals("IBS")){
-                // ambil semua RPKP
-                // takeout Debit GL
-                // takeout Credit CA
-            }else{
-                // normal posting
-            }
-
-        }
-        catch(Exception ex){
-            logger.Log(this.LoggerId,"Posting - Posting Data to ESB", "RTGS Logic Block", "ERROR",ex.getMessage());
-
-        }
-
-        return finalPosting;
-    }
-    private void postRtgs(PostingGroup postingGroup) {
+   private void postRtgs(PostingGroup postingGroup) {
         try{
             PostingExtender rpkpPosting = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("RPKP")).findFirst().get();
 
@@ -784,8 +709,7 @@ public class ProcessCompositeTBR {
     public void postTbr(String referenceID,PostingGroup data, Long groupId, Long idtransactiondetail){
         try{
 
-            String TripHO_Account = parameterService.findValueByPrmKey("TripHO_Account");
-            String TripBranch_Account = parameterService.findValueByPrmKey("TripBranch_Account");
+
             String branch = data.getPostings().get(0).getCoreSystemBranch();
             String clientUserId = data.getPostings().get(0).getCoreUid();
             String clientSpvUserId = data.getPostings().get(0).getCoreSpvUid();
@@ -836,17 +760,6 @@ public class ProcessCompositeTBR {
                         && x.getDebitCreditFlag().equals("C")).findFirst().get().getMainTransferMethod().equals("RS");
                 String tbrName = "TBR EFTD-"+(isSKN?"SKN":"RTGS");
                 fieldsList = tbrFieldService.findFieldsByTbrName(tbrName).stream().filter(s->s.getSourceField()!=null || s.getDefaultValue()!=null).toList();
-
-                for (Posting p:
-                     postings) {
-                    if(p.getBackOfficeAccountNo().equals(TripHO_Account)){
-
-                        String _newAcc = TripBranch_Account.replace("xxx",branch);
-                        _newAcc = _newAcc.replace("2999",("2"+branch));
-
-                        p.setBackOfficeAccountNo(_newAcc);
-                    }
-                }
 
                 List<DynamicClassPropertyMap> finalPropertyMapList = new ArrayList<>();
                 finalPropertyMapList.add(new DynamicClassPropertyMap("TBRNumber","String"));
@@ -963,6 +876,8 @@ public class ProcessCompositeTBR {
     public List<PostingGroup> groupPosting(List<Posting> listPosting){
 //        List<Posting> listPosting = new ArrayList<>();
         List<PostingGroup> groupedPostings = new ArrayList<>();
+        String TripHO_Account = parameterService.findValueByPrmKey("TripHO_Account");
+        String TripBranch_Account = parameterService.findValueByPrmKey("TripBranch_Account");
 
         try{
 // for sample only
@@ -1007,13 +922,9 @@ public class ProcessCompositeTBR {
                 String clientSpvUserId = "7766";
 
 
-                if(posting.getExtraData()!=null){
-                    if(!posting.getExtraData().getCustBranchFacility().isEmpty()){
-
-                        postingBranch = posting.getExtraData().getCustBranchFacility();
-                        branch = postingBranch;
-
-                    }
+                if(posting.getExtraData()!=null && posting.getExtraData().getCustBranchFacility()!=null){
+                    postingBranch = posting.getExtraData().getCustBranchFacility();
+                    branch = postingBranch;
                 }else{
                     if(postingBranch.startsWith("9"))
                     {
@@ -1040,9 +951,45 @@ public class ProcessCompositeTBR {
                 }
 
                 //case RTGS
-                if(data.getSettlementAccountPartyCustId()!=null){
-                    if(data.getSettlementAccountPartyCustId().startsWith("LCUS-R"))
-                        data.setRtgsBankCode(data.getSettlementAccountPartyCustId().replace("LCUS-R",""));
+                if(data.getPaymentSystem()!=null){
+
+                    if(data.getPaymentSystem().contains("RTGS")){
+
+//                        data.setRtgsReference("T"+MQUtil.generateRandomString(10));
+//                        data.setRtgsReference(generateRTGSRefCode());
+
+                        List<String> _addressRtgs = List.of(data.getSettlementAccountPartyAddress().split("\n"));
+                        data.setRtgsBankName(ListUtils.getOrDefault(_addressRtgs,0,"-"));
+                        data.setRtgsBankKey(ListUtils.getOrDefault(_addressRtgs,2,"-"));
+                        data.setRtgsReference(generateRTGSRefCode(data.getProductReference(), data.getMasterReference(),data.getEventReference() ));
+                        data.setRtgsSpecialReference(data.getRtgsReference() +" YR REF "+data.getPostingNarrative1());
+
+                        if(data.getSenderToReceiverInfo()!= null){
+                            List<String> _SenderToReceiverInfo = List.of(data.getSenderToReceiverInfo().split("\n"));
+                            data.setSenderToReceiverInfo1(ListUtils.getOrDefault(_SenderToReceiverInfo,0,"-"));
+                            data.setSenderToReceiverInfo2(ListUtils.getOrDefault(_SenderToReceiverInfo,1,"-"));
+                            data.setSenderToReceiverInfo3(ListUtils.getOrDefault(_SenderToReceiverInfo,2,"-"));
+                            data.setSenderToReceiverInfo4(ListUtils.getOrDefault(_SenderToReceiverInfo,3,"-"));
+
+                        }
+
+                        List<String> _recevierRtgs = List.of(data.getOrderingCustomerAddress().split("\n"));
+                        data.setRtgsReceiver(ListUtils.getOrDefault(_recevierRtgs,0,"-"));
+
+                        logger.Log(this.LoggerId,"Posting", "RTGS Posting", "DEBUG");
+
+                        if(data.getBackOfficeAccountNo().equals(TripHO_Account)){
+
+                            String _newAcc = TripBranch_Account.replace("xxx",branch);
+                            logger.Log(this.LoggerId,"Posting", "RTGS Posting "+_newAcc, "DEBUG");
+
+                            data.setBackOfficeAccountNo(_newAcc);
+                        }
+
+                        if(data.getSettlementAccountPartyCustId().startsWith("LCUS-R"))
+                            data.setRtgsBankCode(data.getSettlementAccountPartyCustId().replace("LCUS-R",""));
+                    }
+
                 }
 
                 data.setCoreSystemBranch(branch);
@@ -1065,16 +1012,16 @@ public class ProcessCompositeTBR {
                 if (!allSameCurrencies) {
                     // Logic for when all postings have different currencies
 
-                    Map<String, Integer> currencyCountMap = new HashMap<>();
+                    List<String> currencyMap = new ArrayList<>();
 
                     finalListPosting.forEach(posting -> {
                         String currency = posting.getPostingCcy();
-                        // Get the current count for this currency, or start from 1 if it's the first occurrence
-                        int count = currencyCountMap.getOrDefault(currency, 0) + 1;
-                        currencyCountMap.put(currency, count);
+                        if(!currencyMap.contains(currency)){
+                            currencyMap.add(currency);
+                        }
 
                         // Set PostingCcyAlias based on the count
-                        posting.setPostingCcyAlias("FCY" + count);
+                        posting.setPostingCcyAlias("FCY" + (currencyMap.indexOf(currency)+1));
                     });
                 }else{
                     finalListPosting.forEach(posting -> {
@@ -1181,9 +1128,20 @@ public class ProcessCompositeTBR {
             // check & set cross valas flag logic
             groupedPostings.forEach(x->
             {
-                if(x.getPostings().stream().anyMatch(s->s.getPostingCcyAlias().equals("FCY1"))){
+                String firstPostingCcyAlias = x.getPostings().get(0).getPostingCcyAlias();
+
+                boolean allSameCurrencies = x.getPostings().stream()
+                        .map(PostingExtender::getPostingCcyAlias) // Extract PostingCcy from each object
+                        .allMatch(ccy -> Objects.equals(ccy, firstPostingCcyAlias)) ;// Compare with original list size
+
+                if(!allSameCurrencies){
                     x.setFlagCrossValas("Y");
                 }else{
+                    if(firstPostingCcyAlias.length()>3){
+                        x.getPostings().forEach(z->{
+                            z.setPostingCcyAlias("FCY");
+                        });
+                    }
                     x.setFlagCrossValas("N");
                 }
             });
@@ -1223,194 +1181,6 @@ public class ProcessCompositeTBR {
                         +" | "+
                         "Cross Valas : " + group.getFlagCrossValas()
                         , "PROCESS");
-                for (PostingExtender posting : group.getPostings()) {
-                    logger.Log(this.LoggerId,"Posting - Group Posting Data", " - Sequence: " + posting.getPostingSeqNo() +
-                            ", Account: " + posting.getBackOfficeAccountNo() +
-                            ", Type: " + posting.getAccountTypeAlias() +
-                            ", Currency: " + posting.getPostingCcy() +
-                            ", DebitCredit: " + posting.getDebitCreditFlag(), "PROCESS");
-
-                }
-
-            }
-        } catch (Exception e){
-            logger.Log(this.LoggerId,"Posting - Group Posting Data","Grouped posting into pair of debit credit","ERROR",e.getMessage());
-        }
-
-
-        return groupedPostings;
-
-    }
-    public List<PostingGroup> groupPostingOld(List<Posting> listPosting){
-//        List<Posting> listPosting = new ArrayList<>();
-        List<PostingGroup> groupedPostings = new ArrayList<>();
-
-        try{
-// for sample only
-//            listPosting = populateSamplePosting2();
-
-            List<PostingExtender> finalListPosting = new ArrayList<>();
-            for (Posting posting : listPosting) {
-                PostingExtender data = new PostingExtender();
-                ReflectionUtils.copyProperties(posting,data);
-
-                MsAccountType accountType = ftiAccountTypeService.findByFtiAccountType(data.getAccountType());
-
-                if(accountType!=null){
-                    data.setAccountTypeAlias(accountType.getAccountType());
-                }
-
-                MsCurrency currency = msCurrencyService.findByIsoCode(data.getPostingCcy());
-
-                if(currency!=null){
-                    data.setPostingCcyNumber(currency.getInternalCode());
-                }
-
-                finalListPosting.add(data);
-            }
-
-            // check cross valas
-            if(finalListPosting.stream().allMatch(x->!x.getPostingCcy().equals("IDR"))){
-                String firstPostingCcy = finalListPosting.get(0).getPostingCcy();
-
-                boolean allSameCurrencies = finalListPosting.stream()
-                        .map(PostingExtender::getPostingCcy) // Extract PostingCcy from each object
-                        .allMatch(ccy -> Objects.equals(ccy, firstPostingCcy)) ;// Compare with original list size
-
-                if (!allSameCurrencies) {
-                    // Logic for when all postings have different currencies
-
-                    Map<String, Integer> currencyCountMap = new HashMap<>();
-
-                    finalListPosting.forEach(posting -> {
-                        String currency = posting.getPostingCcy();
-                        // Get the current count for this currency, or start from 1 if it's the first occurrence
-                        int count = currencyCountMap.getOrDefault(currency, 0) + 1;
-                        currencyCountMap.put(currency, count);
-
-                        // Set PostingCcyAlias based on the count
-                        posting.setPostingCcyAlias("FCY" + count);
-                    });
-                }else{
-                    finalListPosting.forEach(posting -> {
-                        posting.setPostingCcyAlias("FCY");
-                    });
-                }
-            }else{
-                // Mixed currency (with IDR and non-IDR)
-                finalListPosting.forEach(posting -> {
-                    if (posting.getPostingCcy().equals("IDR")) {
-                        posting.setPostingCcyAlias("IDR");
-                    } else {
-                        posting.setPostingCcyAlias("FCY");
-                    }
-                });
-            }
-
-            List<vw_tbr_mapping> listMapping = (List<vw_tbr_mapping>)dataDTO.findAll();
-
-            // Group the list by TbrCode and MappingType
-            Map<String, Map<String, List<vw_tbr_mapping>>> groupedMapping = listMapping.stream()
-                    .collect(Collectors.groupingBy(
-                            vw_tbr_mapping::getTbrcode,
-                            Collectors.groupingBy(vw_tbr_mapping::getMapping_type)
-//                        Collectors.groupingBy(vw_tbr_mapping::getMapping_type,
-//                                Collectors.collectingAndThen(
-//                                        Collectors.toMap(
-//                                                vw_tbr_mapping::g,   // Use the `id` as a key to ensure distinct values
-//                                                Function.identity(),     // Map to the `vw_tbr_mapping` itself
-//                                                (existing, replacement) -> existing // If duplicate, keep the existing one
-//                                        ),
-//                                        map -> new ArrayList<>(map.values()) // Convert the map values back to a list
-//                                )
-//                        )
-                    ));
-            List<PostingGroup> finalGroupedMapping = new ArrayList<>();
-
-            for (Map.Entry<String, Map<String, List<vw_tbr_mapping>>> tbrEntry : groupedMapping.entrySet()) {
-                String tbrCode = tbrEntry.getKey();
-                for (Map.Entry<String, List<vw_tbr_mapping>> mappingEntry : tbrEntry.getValue().entrySet()) {
-                    PostingGroup group = new PostingGroup();
-                    group.setTbrCode(tbrCode);
-                    group.setMappingType(mappingEntry.getKey());
-                    group.setMappings(mappingEntry.getValue());
-                    group.setPostings(new ArrayList<>()); // Initialize the postings list
-
-                    finalGroupedMapping.add(group);
-                }
-            }
-
-            List<PostingGroup> finalData = new ArrayList<>();
-
-            int groupId = 1;
-
-            // grouping posting
-            for (int i = 0; i < finalListPosting.size(); i++) {
-                if ("D".equals(finalListPosting.get(i).getDebitCreditFlag())) {
-                    PostingExtender found = finalListPosting.get(i);
-
-                    boolean alreadyGrouped = groupedPostings.stream()
-                            .anyMatch(pg -> pg.getPostings().contains(found));
-
-                    if (!alreadyGrouped) {
-                        PostingGroup group = new PostingGroup();
-                        group.setGroupId(groupId++);
-                        group.getPostings().add(found);
-
-                        // continue to look for subsequent C postings until the next D is encountered
-                        for (int j = i + 1; j < finalListPosting.size(); j++) {
-                            group.getPostings().add(finalListPosting.get(j));
-
-                            if ("C".equals(finalListPosting.get(j).getDebitCreditFlag()) &&
-                                    (j + 1 < finalListPosting.size() && "D".equals(finalListPosting.get(j + 1).getDebitCreditFlag()))) {
-                                break;
-                            }
-                        }
-
-                        groupedPostings.add(group);
-                    }
-                }
-            }
-
-
-            // check & set cross valas flag logic
-            groupedPostings.forEach(x->
-            {
-                if(x.getPostings().stream().anyMatch(s->s.getPostingCcyAlias().equals("FCY1"))){
-                    x.setFlagCrossValas("Y");
-                }else{
-                    x.setFlagCrossValas("N");
-                }
-            });
-
-            // find respective TBR grouping
-            for (PostingGroup group:groupedPostings) {
-                for (PostingGroup groupCondition:finalGroupedMapping) {
-                    if(isGroupConditionMet(group,groupCondition)){
-                        group.setTbrCode(groupCondition.getTbrCode());
-                        group.setMappingType(groupCondition.getMappingType());
-                        group.setMappings(groupCondition.getMappings());
-                        break;
-                    }
-                }
-            }
-
-            //check mdmc flag
-            for (PostingGroup group : groupedPostings) {
-                long debitCount = group.getPostings().stream().filter(x->x.getDebitCreditFlag().equals("D")).count();
-                long creditCount = group.getPostings().stream().filter(x->x.getDebitCreditFlag().equals("C")).count();
-
-                if(debitCount> 1 || creditCount>1)
-                    group.setFlagMdmc("Y");
-                else
-                    group.setFlagMdmc("N");
-            }
-
-            for (PostingGroup group : groupedPostings) {
-                logger.Log(this.LoggerId,"Posting - Group Posting Data", "TbrCode: " + group.getTbrCode(), "PROCESS");
-                logger.Log(this.LoggerId,"Posting - Group Posting Data", "MappingType: " + group.getMappingType(), "PROCESS");
-                logger.Log(this.LoggerId,"Posting - Group Posting Data", "MDMC: " + group.getFlagMdmc(), "PROCESS");
-
                 for (PostingExtender posting : group.getPostings()) {
                     logger.Log(this.LoggerId,"Posting - Group Posting Data", " - Sequence: " + posting.getPostingSeqNo() +
                             ", Account: " + posting.getBackOfficeAccountNo() +
@@ -1617,128 +1387,6 @@ public class ProcessCompositeTBR {
 
         return instance;
     }
-    public Object mapFieldTBR(Object instance, Class<?> dynamicClass,List<PostingExtender> postings, List<MsTBRField> listMapping){
-
-        // Get the source's getter method and the destination's setter method
-        try {
-            for (MsTBRField mapping : listMapping) {
-                String destinationPropertyName = mapping.getDestinationField();
-                String destinationSetterName = "set" + capitalize(destinationPropertyName);
-
-                // Get source property name and destination property name from mapping
-                if(mapping.getSourceField() != null && !mapping.getSourceField().isEmpty()){
-                    String sourcePropertyName = mapping.getSourceField();
-                    logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Map "+sourcePropertyName+" data into "+destinationPropertyName+" ESB", "PROCESS");
-
-                    // Generate method names for the source's getter and the destination's setter
-                    String sourceGetterName = "get" + capitalize(sourcePropertyName);
-
-                    // Get Posting Object for mapping
-                    PostingExtender _postingData = new PostingExtender();
-                    _postingData = null;
-
-                    List<PostingExtender> posting = postings.stream().filter(p ->
-                            p.getDebitCreditFlag().equals(mapping.getMappingDebitCredit())
-                    ).toList();
-                    long legCount = postings.stream().count();
-
-                    if(legCount>=Long.parseLong(mapping.getMappingPosition())){
-                        posting = postings.stream().filter(p ->
-                                p.getAccountTypeAlias().equals(mapping.getMappingAccountType())
-                        ).toList();
-                        if(posting.stream().count()>=Long.parseLong(mapping.getMappingPosition())){
-                            _postingData = posting.get(Integer.parseInt( mapping.getMappingPosition())-1);
-
-                        }
-
-                    }
-
-
-//                    List<PostingExtender> posting = postings.stream().filter(p ->
-//                            p.getAccountTypeAlias().equals(mapping.getMappingAccountType())
-////                            && p.getPostingCcy().equals(mapping.getMappingCurrency())
-//                            && p.getDebitCreditFlag().equals(mapping.getMappingDebitCredit())
-//                            ).toList();
-//                    logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Map Posting data count : "+posting.stream().count(), "PROCESS");
-//
-//                    // jika multiple debit/credit found
-//                    if(posting.stream().count() > 0){
-//                        if(posting.stream().count() == 1
-//                                && posting.stream().count() > (Integer.parseInt( mapping.getMappingPosition())-1)){
-//                            _postingData = posting.get(0);
-//                        }else if(posting.stream().count() > 1
-//                                && posting.stream().count() > (Integer.parseInt( mapping.getMappingPosition())-1)){
-//                            _postingData = posting.get(Integer.parseInt( mapping.getMappingPosition())-1);
-//
-//                        }else{
-//                            _postingData = null;
-//                        }
-//                    }else{
-//                        _postingData = null;
-//                    }
-
-
-                    if(_postingData!= null){
-                        logger.Log(this.LoggerId,"Posting - Map Data to ESB", destinationPropertyName +" mapped to Posting Data :"
-                                        +_postingData.getPostingSeqNo()+"|"
-                                        +_postingData.getPostingCcyAlias()+"|"
-                                        +_postingData.getDebitCreditFlag()+"|"
-                                        +_postingData.getAccountTypeAlias()+"|"
-                                , "PROCESS");
-
-                        Class<?> sourceClass = _postingData.getClass();
-                        Class<?> destinationClass = dynamicClass;
-
-                        Method sourceGetter = sourceClass.getMethod(sourceGetterName);
-//                    Method destinationSetter = destinationClass.getMethod(destinationSetterName, mapping.getDestinationFieldDataType().equals("Integer")?Integer.class:String.class);
-
-                        // Invoke the source getter method to get the value
-                        Object value = sourceGetter.invoke(_postingData);
-
-                        if((mapping.getDestinationFieldDataType() != null && !mapping.getDestinationFieldDataType().isEmpty())){
-                            if(mapping.getDestinationFieldDataType().equals("Integer")){
-                                dynamicClass.getMethod(destinationSetterName, mapping.getDestinationFieldDataType().equals("Integer")?Integer.class:String.class).invoke(instance, Integer.parseInt(value.toString()));
-
-                            }
-                        }else{
-                            dynamicClass.getMethod(destinationSetterName, String.class).invoke(instance, value);
-
-                        }
-                    }else{
-                        logger.Log(this.LoggerId,"Posting - Map Data to ESB", "Posting data not found for "+destinationPropertyName, "PROCESS");
-                        dynamicClass.getMethod(destinationSetterName, String.class).invoke(instance, "");
-
-                    }
-
-
-
-                    // Invoke the destination setter method to set the value
-//                    destinationSetter.invoke(dynamicClass, value);
-                }else{
-                    Object value = mapping.getDefaultValue();
-//                    set the default value
-                    if((mapping.getDestinationFieldDataType() != null && !mapping.getDestinationFieldDataType().isEmpty())){
-                        if(mapping.getDestinationFieldDataType().equals("Integer")){
-                            dynamicClass.getMethod(destinationSetterName, mapping.getDestinationFieldDataType().equals("Integer")?Integer.class:String.class).invoke(instance, Integer.parseInt(value.toString()));
-
-                        }
-                    }else{
-                        dynamicClass.getMethod(destinationSetterName, String.class).invoke(instance, value);
-
-                    }
-                }
-
-            }
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-
-        return instance;
-    }
     public boolean isGroupConditionMet(PostingGroup group, PostingGroup groupCondition) {
         if (group.getPostings().size() != groupCondition.getMappings().size()) {
             return false;
@@ -1765,9 +1413,65 @@ public class ProcessCompositeTBR {
         private String CoreUid;
         private String CoreSpvUid;
         private String RtgsReference;
+        private String RtgsSpecialReference;
         private String RtgsTransDate;
         private String RtgsTransTime;
+        private String RtgsBankName;
         private String RtgsBankCode;
+        private String RtgsBankKey;
+        private String RtgsReceiver;
+        private String SenderToReceiverInfo1;
+        private String SenderToReceiverInfo2;
+        private String SenderToReceiverInfo3;
+        private String SenderToReceiverInfo4;
+
+        public String getRtgsReceiver() {
+            return RtgsReceiver;
+        }
+
+        public void setRtgsReceiver(String rtgsReceiver) {
+            RtgsReceiver = rtgsReceiver;
+        }
+
+        public String getRtgsSpecialReference() {
+            return RtgsSpecialReference;
+        }
+
+        public void setRtgsSpecialReference(String rtgsSpecialReference) {
+            RtgsSpecialReference = rtgsSpecialReference;
+        }
+
+        public String getSenderToReceiverInfo1() {
+            return SenderToReceiverInfo1;
+        }
+
+        public void setSenderToReceiverInfo1(String senderToReceiverInfo1) {
+            SenderToReceiverInfo1 = senderToReceiverInfo1;
+        }
+
+        public String getSenderToReceiverInfo2() {
+            return SenderToReceiverInfo2;
+        }
+
+        public void setSenderToReceiverInfo2(String senderToReceiverInfo2) {
+            SenderToReceiverInfo2 = senderToReceiverInfo2;
+        }
+
+        public String getSenderToReceiverInfo3() {
+            return SenderToReceiverInfo3;
+        }
+
+        public void setSenderToReceiverInfo3(String senderToReceiverInfo3) {
+            SenderToReceiverInfo3 = senderToReceiverInfo3;
+        }
+
+        public String getSenderToReceiverInfo4() {
+            return SenderToReceiverInfo4;
+        }
+
+        public void setSenderToReceiverInfo4(String senderToReceiverInfo4) {
+            SenderToReceiverInfo4 = senderToReceiverInfo4;
+        }
 
         public String getPostingCcyAlias() {
             return PostingCcyAlias;
@@ -1847,6 +1551,22 @@ public class ProcessCompositeTBR {
 
         public void setRtgsBankCode(String rtgsBankCode) {
             RtgsBankCode = rtgsBankCode;
+        }
+
+        public String getRtgsBankName() {
+            return RtgsBankName;
+        }
+
+        public void setRtgsBankName(String rtgsBankName) {
+            RtgsBankName = rtgsBankName;
+        }
+
+        public String getRtgsBankKey() {
+            return RtgsBankKey;
+        }
+
+        public void setRtgsBankKey(String rtgsBankKey) {
+            RtgsBankKey = rtgsBankKey;
         }
     }
     public class PostingGroup{

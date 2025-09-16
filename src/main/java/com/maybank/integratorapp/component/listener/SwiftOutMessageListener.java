@@ -7,16 +7,20 @@ import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.SystemProcess;
 import com.maybank.integratorapp.component.coresystem.ProcessSwiftOut;
+import com.maybank.integratorapp.component.system.messageprocessor.AccountInquiryMessageProcessor;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
 import com.maybank.integratorapp.model.mq.swiftout.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.customersearch.response.CustomerSearchResult;
 //import com.maybank.integratorapp.model.mq.swiftout.response.ServiceResponse;
 import com.maybank.integratorapp.util.MQUtil;
+import com.maybank.integratorapp.util.MTtoMXConverter;
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.Queue;
 import jakarta.jms.TextMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -26,6 +30,8 @@ import java.util.List;
 
 @Component
 public class SwiftOutMessageListener implements CustomMessageListener {
+    private static Logger log = LoggerFactory.getLogger(SwiftOutMessageListener.class);
+
     @Autowired
     private LogQueueDataRepository dataDTO;
 
@@ -49,7 +55,7 @@ public class SwiftOutMessageListener implements CustomMessageListener {
             LogQueueData _data = new LogQueueData();
 
             try {
-                System.out.println("SwiftOut Received Message With CorrelationID : "+message.getJMSCorrelationID());
+                log.info("SwiftOut Received Message With CorrelationID : "+message.getJMSCorrelationID());
 
                 String _message = message.getBody(String.class);
 

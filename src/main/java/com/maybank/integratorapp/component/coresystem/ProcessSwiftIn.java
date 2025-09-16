@@ -19,6 +19,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 public class ProcessSwiftIn {
@@ -37,6 +39,13 @@ public class ProcessSwiftIn {
         String cleanedMessage = swiftMessage.replaceFirst(headerAckPattern, "");
 
         return cleanedMessage.trim();
+    }
+    public boolean isIncoming(String swiftMessage) {
+        // Check for incoming pattern in basic header block 1
+        Pattern incomingPattern = Pattern.compile("\\{2:O[0-9]{2}[A-Z0-9]{12}");
+        Matcher matcher = incomingPattern.matcher(swiftMessage);
+
+        return matcher.find();
     }
     public Map<String, List<String>> getFileContent(Long loggerId){
 //        Path folderPath = Paths.get("D:\\Agung\\Projects\\BankTrade Trade Transformation\\IntegrationList");
