@@ -244,6 +244,21 @@ public class LimitReservationMessageProcessor {
 //                                        _dateOld = transactionDetails1.getAdditionalInfo5();
                                         _dateOld = transactionDetails1.getAdditionalInfo5().split("#")[1];
                                     }
+                                    // jika setelah XL2B Terakhir ada XL41 D, maka bikin ulang XL2B nya
+                                    FtiTransactionDetail finalTransactionDetails = transactionDetails1;
+                                    FtiTransactionDetail _transDetailXL41 = transactionDetails.stream().filter(x ->
+                                            x.getCoreSysName().equals("CLS-XL41")&&
+                                                    x.getCoreSysStatus().equals("00") &&
+                                                    x.getId()> finalTransactionDetails.getId()
+                                    ).toList().isEmpty()?null:
+                                            transactionDetails.stream().filter(x ->
+                                                    x.getCoreSysName().equals("CLS-XL41")&&
+                                                            x.getCoreSysStatus().equals("00") &&
+                                                            x.getId()> finalTransactionDetails.getId()
+                                            ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
+                                    if(_transDetailXL41 !=null){
+                                        needXL2B=true;
+                                    }
 
 
 //                                    if(!_dateOld.equals(_dateNew)){
