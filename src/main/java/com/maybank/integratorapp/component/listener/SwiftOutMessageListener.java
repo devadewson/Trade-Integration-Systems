@@ -63,6 +63,7 @@ public class SwiftOutMessageListener implements CustomMessageListener {
                 _data.setOrigin("MQ_"+sourceQueue.getQueueName());
                 _data.setMessageUID(new MQUtil().getMessageUID());
                 _data.setReqMessage(_message);
+                _data.setRelatedTransRef(MQUtil.findTransRef(_data.getOrigin(),_message));
                 _data.setCreated_date(new Date());
                 _data.setCorrelationID(message.getJMSCorrelationID());
 

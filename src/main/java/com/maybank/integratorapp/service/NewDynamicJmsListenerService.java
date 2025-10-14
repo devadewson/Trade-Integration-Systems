@@ -9,6 +9,8 @@ import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.listener.*;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import jakarta.jms.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
@@ -22,10 +24,7 @@ import java.util.Map;
 
 @Service
 public class NewDynamicJmsListenerService {
-    @Autowired
-    private AccountBalanceMessageListener accountBalanceMessageListener;
-    @Autowired
-    private AccountInformationMessageListener accountInformationMessageListener;
+    private static Logger log = LoggerFactory.getLogger(NewDynamicJmsListenerService.class);
     @Autowired
     private CustomerSearchMessageListener customerSearchMessageListener;
     @Autowired
@@ -41,11 +40,7 @@ public class NewDynamicJmsListenerService {
     @Autowired
     private FacilitiesMessageListener facilitiesMessageListener;
     @Autowired
-    private FacilitiesDetailMessageListener facilitiesDetailMessageListener;
-    @Autowired
     private ReservationListener reservationListener;
-    @Autowired
-    private ReservationReversalListener reservationReversalListener;
     @Autowired
     private LimitUtilizationListener utilizationListener;
 
@@ -77,7 +72,7 @@ public class NewDynamicJmsListenerService {
         MessageListenerContainer container = registry.getListenerContainer(config.getServiceName());
         if (container != null && container.isRunning()) {
             container.stop();
-            System.out.println("Stopped listener for queue " + config.getRequest_Queue_Name());
+            log.info("Stopped listener for queue " + config.getRequest_Queue_Name());
         }
     }
     private void createAndRegisterNewListener(MsQueueConfig config) {
@@ -126,7 +121,7 @@ public class NewDynamicJmsListenerService {
 
             // Set the message listener
             consumer.setMessageListener(listener);
-            System.out.println("Reconfigured and started listener for queue " + config.getRequest_Queue_Name());
+            log.info("Reconfigured and started listener for queue " + config.getRequest_Queue_Name());
 
         } catch (JMSException e) {
             e.printStackTrace();
@@ -199,7 +194,7 @@ public class NewDynamicJmsListenerService {
             try {
                 existingSession.close(); // Close the session
                 sessions.remove(config.getServiceName());
-                System.out.println("Stopping listener session for queue " + config.getRequest_Queue_Name());
+                log.info("Stopping listener session for queue " + config.getRequest_Queue_Name());
 
             } catch (JMSException e) {
                 e.printStackTrace(); // Handle exception
@@ -207,7 +202,7 @@ public class NewDynamicJmsListenerService {
         }
         if (existingConnection != null) {
             try {
-                System.out.println("Stopping listener connection for queue " + config.getRequest_Queue_Name());
+                log.info("Stopping listener connection for queue " + config.getRequest_Queue_Name());
                 existingConnection.close(); // Close the connection
                 connections.remove(config.getServiceName());
             } catch (JMSException e) {
@@ -278,12 +273,8 @@ public class NewDynamicJmsListenerService {
                 return facilitiesMessageListener;
             case "FacilityReservation":
                 return reservationListener;
-            case "ReservationReversal":
-                return reservationReversalListener;
             case "FacilityUtilization":
                 return utilizationListener;
-            case "FacilitiesDetails":
-                return facilitiesDetailMessageListener;
             case "AccountBalance":
                 return accountInquiryMessageListener;
 

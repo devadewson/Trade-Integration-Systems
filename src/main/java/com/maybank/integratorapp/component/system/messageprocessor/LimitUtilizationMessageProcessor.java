@@ -26,6 +26,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -60,8 +62,8 @@ public class LimitUtilizationMessageProcessor {
     @Autowired
     EmailService emailService;
     private Long LoggerId;
-    private long XL2BTransId;
-    private long XL31TransId;
+    private long XL2BTransId = 0;
+    private long XL31TransId = 0;
     private FtiTransactionDetail LastLimitAction;
 
     public String processMessage(String message,Long loggerId) {
@@ -144,7 +146,9 @@ public class LimitUtilizationMessageProcessor {
                                 // check whether before XL31 there is XL2B
                                 List<FtiTransactionDetail> _listTransaction = ftiTransactionDetailService.getDetailsByHeaderId(LastLimitAction.getHeaderId());
                                 Optional<FtiTransactionDetail> _beforeLastLimitAction = _listTransaction.stream().filter(x ->
-                                        x.getCoreSysName().equals("CLS-XL2B") && x.getCoreSysStatus().equals("00") && x.getFtiEvent().equals(LastLimitAction.getFtiEvent()) && x.getId()< LastLimitAction.getId()
+                                        x.getCoreSysName().equals("CLS-XL2B") && x.getCoreSysStatus().equals("00")
+                                                && x.getFtiEvent().equals(LastLimitAction.getFtiEvent())
+                                                && x.getId()< LastLimitAction.getId()
                                 ).max(Comparator.comparing(FtiTransactionDetail::getId));
 //                        FtiTransactionDetail _beforeLastLimitAction = ftiTransactionDetailService.getById(_lastLimitAction.getId()-1);
                                 if(_beforeLastLimitAction.isPresent()){
@@ -158,8 +162,9 @@ public class LimitUtilizationMessageProcessor {
                             LastLimitAction = null;
                         }
                         if(needXL40){
-                            if(recreateTrans){
+                            if(recreateTrans && XL2BTransId>0){
                                 LastLimitAction = _listTransactionDetail.stream().filter(x->x.getId().equals(XL2BTransId)).findFirst().get();
+                                recreateTransaction(LastLimitAction,masterReference);
 //                        how??
                             }
                             // step 3.
@@ -171,8 +176,9 @@ public class LimitUtilizationMessageProcessor {
                         }
 
                         if(needXL41){
-                            if(recreateTrans){
+                            if(recreateTrans && XL31TransId>0){
                                 LastLimitAction = _listTransactionDetail.stream().filter(x->x.getId().equals(XL31TransId)).findFirst().get();
+                                recreateTransaction(LastLimitAction,masterReference);
 //                        how??
                             }
                             // step 3.
@@ -526,41 +532,80 @@ public class LimitUtilizationMessageProcessor {
 
         emailService.sendTransactionNotification(_transaction,_transDetail);
     }
-    // step 5. Map core system data to external Response
-//    private void mapExternalResponse(com.maybank.integratorapp.model.restv2.AccountInquiry.response.MsgWraper res,MsgWraper req) {
-//        AccountInquiryResponse accountInquiryResponse = new AccountInquiryResponse();
-//
-////            Details detailsResponse = new Details();
-////            detailsResponse.setInfo(res.getMsg().getMsgHeader().getStatusDesc());
-//
-//        AvailBalResponse availBalResponse = new AvailBalResponse();
-//
-//        String balance = res.getMsg().getMsgBody().getAccountInformationResponseData().getAccountData().getcADataRecord().getAvailableBalance();
-////        String formattedBalance = balance.substring(1).replace(".", "");
-//        String formattedBalance = balance.substring(1);
-//        String holdCode = res.getMsg().getMsgBody().getAccountInformationResponseData().getAccountStatus();
-//        String cifNo = res.getMsg().getMsgBody().getAccountInformationResponseData().getCifNo();
-//        String accountName = res.getMsg().getMsgBody().getAccountInformationResponseData().getAccountName();
-//        if(accountName.length()>75){
-//            accountName= accountName.substring(0,75);
-//        }
-//        String infoMessage = "#CIF:"+cifNo+" NAME:"+accountName;
-////        String infoMessage = "";
-//
-//        formattedBalance = String.format("%015.2f",Double.parseDouble(formattedBalance));
-//
-//        if (balance.startsWith("+"))
-//            availBalResponse.setNegative("N");
-//        else
-//            availBalResponse.setNegative("Y");
-//        availBalResponse.setBlocked("N");
-//        availBalResponse.setApplies("Y");
-//        availBalResponse.setErrorOrWarning("N");
-//        availBalResponse.setCheckedInBackOffice("Y");
-//        availBalResponse.setErrorCode("N");
-//        availBalResponse.setErrorMessage("HOLDCODE-" + holdCode+infoMessage);
-//        availBalResponse.setBalance(formattedBalance);
-//
-//        response.setAvailBalResponse(availBalResponse);
-//    }
+
+    private void recreateTransaction(FtiTransactionDetail transactionDetail,String referenceId){
+        String soapUrl = parameterService.findValueByPrmKey("XL31Request");
+        String responseCode = null;
+        String responseMessage = "";
+        String xmlMessage = transactionDetail.getReqMessage();
+
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpPost httpPost = new HttpPost(soapUrl);
+            httpPost.setHeader("Content-Type", "text/xml");
+            httpPost.setEntity(new StringEntity(xmlMessage, ContentType.TEXT_XML));
+            String _response = "";
+
+            try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+
+                // Handle response if needed
+                var _res = response.getEntity();
+                var _resStream = _res.getContent();
+                var outputResponse = new String(_resStream.readAllBytes(), StandardCharsets.UTF_8);
+                _response = outputResponse;
+                logger.Log(this.LoggerId,ProcessName, "Response ESB Message", "ESB-MESSAGE", _response);
+                if (_response.contains("Fault")) {
+                    log.info(_response);
+                }
+
+                responseMessage = parseWithRegex(outputResponse,"general_message");
+                responseCode = parseWithRegex(outputResponse,"responsecode");
+
+                if(outputResponse.contains("exception") && responseCode == null)
+                    responseCode= "99";
+
+                FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
+                ftiTransactionDetail.setTransMessageLogId(LoggerId);
+                ftiTransactionDetail.setFtiEvent(transactionDetail.getFtiEvent());
+                ftiTransactionDetail.setCoreSysName(transactionDetail.getCoreSysName());
+                ftiTransactionDetail.setTransName("Reservation R-"+transactionDetail.getId());
+                ftiTransactionDetail.setCoreSysStatus(responseCode);
+                ftiTransactionDetail.setCoreSysMessage(responseMessage);
+                ftiTransactionDetail.setAdditionalInfo1(transactionDetail.getAdditionalInfo1());
+                ftiTransactionDetail.setAdditionalInfo2(transactionDetail.getAdditionalInfo2());
+                ftiTransactionDetail.setAdditionalInfo3(transactionDetail.getAdditionalInfo3());
+                ftiTransactionDetail.setAdditionalInfo4(transactionDetail.getAdditionalInfo4());
+                ftiTransactionDetail.setAdditionalInfo5(transactionDetail.getAdditionalInfo5());
+                ftiTransactionDetail.setReqMessage(transactionDetail.getReqMessage());
+                ftiTransactionDetail.setResMessage(outputResponse);
+                ftiTransactionDetailService.createDetailByMasterRefNo(referenceId, ftiTransactionDetail);
+
+            }
+        } catch (Exception e) {
+
+            logger.Log(this.LoggerId,ProcessName, "Error Hit ESB Message", "ESB-MESSAGE", e.getMessage());
+
+        }
+    }
+
+    String parseWithRegex(String xml, String tag) {
+        if ("general_message".equals(tag)) {
+            // Pattern for additionalData with param="general_message"
+            Pattern pattern = Pattern.compile("<additionalData param=\"general_message\">(.*?)</additionalData>");
+            Matcher matcher = pattern.matcher(xml);
+            if (matcher.find()) {
+                String value = matcher.group(1).trim();
+                return value.isEmpty() ? null : value;
+            }
+        } else if ("responsecode".equals(tag)) {
+            // Pattern for responsecode tag (not inside additionalData)
+            Pattern pattern = Pattern.compile("<responsecode>(.*?)</responsecode>");
+            Matcher matcher = pattern.matcher(xml);
+            if (matcher.find()) {
+                String value = matcher.group(1).trim();
+                return value.isEmpty() ? null : value;
+            }
+        }
+        return null;
+    }
+
 }

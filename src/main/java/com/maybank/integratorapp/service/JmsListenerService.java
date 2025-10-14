@@ -8,6 +8,8 @@ import com.maybank.integratorapp.component.MessagePublisher;
 import com.maybank.integratorapp.component.listener.*;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import jakarta.jms.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.jms.connection.CachingConnectionFactory;
@@ -18,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 @Service
 public class JmsListenerService {
+    private static Logger log = LoggerFactory.getLogger(JmsListenerService.class);
 //    @Autowired
 //    private AccountBalanceMessageListener accountBalanceMessageListener;
 //    @Autowired
@@ -71,7 +74,7 @@ public class JmsListenerService {
             try {
                 existingSession.close(); // Close the session
                 sessions.remove(config.getServiceName());
-                System.out.println("Stopping listener session for queue " + config.getRequest_Queue_Name());
+                log.info("Stopping listener session for queue " + config.getRequest_Queue_Name());
 
             } catch (JMSException e) {
                 e.printStackTrace(); // Handle exception
@@ -79,7 +82,7 @@ public class JmsListenerService {
         }
         if (existingConnection != null) {
             try {
-                System.out.println("Stopping listener connection for queue " + config.getRequest_Queue_Name());
+                log.info("Stopping listener connection for queue " + config.getRequest_Queue_Name());
                 existingConnection.close(); // Close the connection
                 connections.remove(config.getServiceName());
             } catch (JMSException e) {
@@ -120,7 +123,7 @@ public class JmsListenerService {
                 }
 
                 consumer.setMessageListener(listener);
-                System.out.println("Listener started for queue: " + config.getRequest_Queue_Name());
+                log.info("Listener started for queue: " + config.getRequest_Queue_Name());
             }
 
 //            CustomMessageListener listener = (CustomMessageListener) chooseListener(config.getServiceName());
@@ -213,10 +216,6 @@ public class JmsListenerService {
                 return ReservationReversalListenerXL41.class;
             case "FacilityUtilization":
                 return LimitUtilizationListener.class;
-            case "FacilitiesDetails":
-                return FacilitiesDetailMessageListener.class;
-            case "AccountBalance":
-                return AccountBalanceMessageListener.class;
 
         }
         return null;

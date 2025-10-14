@@ -5,6 +5,8 @@ import com.maybank.integratorapp.data.service.*;
 import com.maybank.integratorapp.model.soap.fcclimit.response.Limit;
 import com.maybank.integratorapp.model.soap.fcclimit.response.OFAResponse;
 import com.maybank.integratorapp.service.SendingEmailServiceImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,6 +26,7 @@ import java.util.Optional;
 public class FtiTransactionController {
 //    @Autowired
 //    EmailService emailService;
+    private static Logger log = LoggerFactory.getLogger(FtiTransactionController.class);
     @Autowired
     SendingEmailServiceImpl emailService;
     @Autowired
@@ -92,6 +95,8 @@ public class FtiTransactionController {
         FtiTransaction transaction = ftiTransactionService.getFtiTransactionById(id);
         List<FtiTransactionDetail> details = ftiTransactionDetailService.getDetailsByHeaderId(id);
         String relatedLink = "/log-queue?transref="+transaction.getMasterRefNo();
+        List<LogQueueData> logQueue = logQueueDataService.searchByTransactionId(transaction.getMasterRefNo());
+        model.addAttribute("logQueuePage", logQueue);
         model.addAttribute("transaction", transaction);
         model.addAttribute("details", details);
         model.addAttribute("relatedLink", relatedLink);
@@ -171,7 +176,7 @@ public class FtiTransactionController {
 
         }
         catch (Exception e){
-            System.out.println(e.getMessage());
+            log.info(e.getMessage());
             return new ResponseEntity<OFAResponse>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 

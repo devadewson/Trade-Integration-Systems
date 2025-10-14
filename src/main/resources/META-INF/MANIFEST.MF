@@ -53,5 +53,5 @@ Class-Path: lib/jakarta.mail-1.1.0.jar lib/spring-boot-starter-mail-3.1.
  lib/jakarta.persistence-api-3.1.0.jar lib/HikariCP-5.0.1.jar lib/jakart
  a.inject-api-2.0.1.jar lib/commons-lang3-3.12.0.jar lib/classmate-1.5.1
  .jar lib/commons-logging-1.2.jar lib/commons-net-3.11.1.jar lib/freemar
- ker-2.3.34.jar
+ ker-2.3.34.jar lib/pw-swift-core-SRU2024-10.2.13.jar
 

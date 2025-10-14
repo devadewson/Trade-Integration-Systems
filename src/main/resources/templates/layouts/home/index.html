@@ -1,25 +1,179 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: layout(~{::main})}">
 <body>
+
 <main>
+    <style>
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+        .badge-success {
+            background-color: #28a745;
+        }
+        .badge-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .badge-danger {
+            background-color: #dc3545;
+        }
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 8px 20px;
+        }
+    </style>
     <div class="row">
         <div class="container">
+
+            <div class="row mt-4">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title mb-0">
+                            Queue Performance
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Summary Cards -->
+                        <div class="row">
+                            <div class="col-md-3 col-sm-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h6 class="card-title">Total Queues</h6>
+                                                <h3 th:text="${#lists.size(queueStats)}">0</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h6 class="card-title">Total Messages</h6>
+                                                <h3 th:text="${#aggregates.sum(queueStats.![totalMessages])}">0</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h6 class="card-title">Avg Processing Time</h6>
+                                                <h3>
+                                                    <span th:text="${#aggregates.avg(queueStats.![avgProcessingSeconds])}">0</span>s
+                                                </h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr/>
+                        <div th:if="${#lists.isEmpty(queueStats)}" class="text-center py-5">
+                            <h4 class="text-muted mt-3">No queue data available for today</h4>
+                            <p class="text-muted">No messages have been processed today or delivery dates are not set.</p>
+                        </div>
+
+                        <div th:unless="${#lists.isEmpty(queueStats)}" class="table-responsive">
+                            <table class="table table-hover table-striped">
+                                <thead class="table-light">
+                                <tr>
+                                    <th scope="col">Queue Name</th>
+                                    <th scope="col" class="text-center">Total Messages</th>
+                                    <th scope="col" class="text-center">Avg Processing Time (s)</th>
+                                    <th scope="col" class="text-center">Min Processing Time (s)</th>
+                                    <th scope="col" class="text-center">Max Processing Time (s)</th>
+                                    <th scope="col" class="text-center">Status</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="stat : ${queueStats}">
+                                    <td>
+                                        <strong th:text="${stat.queueName}">Queue Name</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary rounded-pill" th:text="${stat.totalMessages}">0</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span th:text="${stat.avgProcessingSeconds}">0</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-success" th:text="${stat.minProcessingSeconds}">0</span>
+                                    </td>
+                                    <td class="text-center">
+                                            <span th:class="${stat.maxProcessingSeconds > 300 ? 'badge badge-danger' : 'badge badge-warning'}"
+                                                  th:text="${stat.maxProcessingSeconds}">0</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <th:block th:if="${stat.totalMessages > 0}">
+                                                <span th:if="${stat.avgProcessingSeconds < 60}" class="badge bg-success">
+                                                    Optimal
+                                                </span>
+                                            <span th:if="${stat.avgProcessingSeconds >= 60 and stat.avgProcessingSeconds < 300}"
+                                                  class="badge bg-warning text-dark">
+                                                    Warning
+                                                </span>
+                                            <span th:if="${stat.avgProcessingSeconds >= 300}" class="badge bg-danger">
+                                                    Critical
+                                                </span>
+                                        </th:block>
+                                        <span th:unless="${stat.totalMessages > 0}" class="badge bg-secondary">
+                                                Inactive
+                                            </span>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white text-muted" th:if="${not #lists.isEmpty(queueStats)}">
+                        <small>
+                            Showing queue performance for <span th:text="${#temporals.format(lastChecked, 'yyyy-MM-dd HH:mm:ss')}"></span>.
+                            Data updates when page is refreshed.
+                        </small>
+                    </div>
+                </div>
+
+            </div>
             <div class="row mt-4">
 
                 <div class="card">
                     <div class="card-header">
-                        Hourly Message Monitoring
+                        <h5 class="card-title mb-0">
+                            Queue Statistics
+                        </h5>
                     </div>
                     <div class="card-body">
-                        <p class="text-muted">Last checked:
-                            <span th:text="${#temporals.format(lastChecked, 'yyyy-MM-dd HH:mm:ss')}"></span>
-                            <a href="#" onclick="location.reload()" class="ms-2">⟳ Refresh</a>
-                        </p>
-
                         <div class="row">
                             <canvas id="hourlyMessagesChart"></canvas>
 
                         </div>
+                    </div>
+                    <div class="card-footer bg-white text-muted">
+                        <small>
+                            Showing queue statistics for <span th:text="${#temporals.format(lastChecked, 'yyyy-MM-dd HH:mm:ss')}"></span>.
+                            Data updates when page is refreshed.
+                        </small>
                     </div>
                 </div>
                 <script th:inline="javascript">
@@ -112,7 +266,9 @@
             <div class="row mt-4">
                 <div class="card">
                     <div class="card-header">
-                        Cron Logs Monitoring
+                        <h5 class="card-title mb-0">
+                            Logs
+                        </h5>
                     </div>
                     <div class="card-body">
                         <p class="text-muted">Last checked:
@@ -143,6 +299,12 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <div class="card-footer bg-white text-muted">
+                        <small>
+                            Showing logs for <span th:text="${#temporals.format(lastChecked, 'yyyy-MM-dd HH:mm:ss')}"></span>.
+                            Data updates when page is refreshed.
+                        </small>
                     </div>
                 </div>
             </div>

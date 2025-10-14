@@ -1,17 +1,21 @@
 package com.maybank.integratorapp.util;
 
+import com.maybank.integratorapp.service.NewDynamicJmsListenerService;
 import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
 public class EmailSender {
+    private static Logger log = LoggerFactory.getLogger(EmailSender.class);
     public void sendEmail(String smtpHost,String smtpPort,String fromEmail ,String toEmail, String subject, String htmlContent) {
         // Set up mail server properties
         Properties props = new Properties();
@@ -55,11 +59,11 @@ public class EmailSender {
             // Send the email
             Transport.send(message);
 
-            System.out.println("Email sent successfully to " + toEmail);
+            log.info("Email sent successfully to " + toEmail);
 
         } catch (Exception e) {
 //            e.printStackTrace();
-            System.out.println("Failed to send email " + e.getMessage());
+            log.error("Failed to send email " + e.getMessage());
         }
     }
 }

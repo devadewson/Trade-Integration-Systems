@@ -109,7 +109,7 @@ public class ProcessSwiftIn {
             File folder = new File(completeBackupPath);
             if (!folder.exists()) {
                 if (folder.mkdirs()) {
-                    System.out.println("Folder created successfully.");
+                    log.info("Folder created successfully.");
                 }
             }
             Path sourceDir = Paths.get(localpath);
@@ -122,7 +122,7 @@ public class ProcessSwiftIn {
                         Files.move(file, targetPath, StandardCopyOption.REPLACE_EXISTING);
                         logger.Log(loggerId,"SwiftIn - Backup Files","File Moved to backup folder","BACKUP",file.getFileName().toString());
 
-                        System.out.println("Moved: " + file.getFileName() + " to " + targetPath);
+                        log.info("Moved: " + file.getFileName() + " to " + targetPath);
                     }
                 }
             } catch (IOException e) {

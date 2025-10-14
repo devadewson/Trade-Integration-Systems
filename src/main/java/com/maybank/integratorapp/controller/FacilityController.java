@@ -8,6 +8,8 @@ import com.maybank.integratorapp.data.service.MsCompanyLimitService;
 import com.maybank.integratorapp.data.service.MsFacilityService;
 import com.maybank.integratorapp.data.service.MsFacilityUtilizeService;
 import com.maybank.integratorapp.data.service.MsUtilizeRunningNumberService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,7 +27,7 @@ import java.util.Optional;
 @Controller
 @RequestMapping("/limit")
 public class FacilityController {
-
+    private static Logger log = LoggerFactory.getLogger(FacilityController.class);
     @Autowired
     MsCompanyLimitService msCompanyLimitService;
     @Autowired
@@ -41,6 +43,7 @@ public class FacilityController {
     public String lists( @RequestParam("page") Optional<Integer> page,
                                  @RequestParam("size") Optional<Integer> size,
                                  @RequestParam("search") Optional<String> search,
+                                 @RequestParam("facility") Optional<String> facility,
                                  Model model) {
 
         // Set default values for pagination
@@ -49,7 +52,12 @@ public class FacilityController {
 
         // Fetch a page of FtiTransactions
         Pageable pageable = PageRequest.of(currentPage - 1, pageSize, Sort.by("id").descending());
+        if (facility.isPresent() && !facility.get().isEmpty()) {
 
+            if(facility.get().length()>18)
+                search = Optional.of(facility.get().substring(8, 18));
+
+        }
         // Fetch a page of FtiTransactions
         Page<MsCompanyLimit> limitPage;
         if (search.isPresent() && !search.get().isEmpty()) {
@@ -64,6 +72,7 @@ public class FacilityController {
         model.addAttribute("currentPage", currentPage);
         model.addAttribute("totalPages", limitPage.getTotalPages());
         model.addAttribute("search", search.orElse(""));
+        model.addAttribute("facility", facility.orElse(""));
 
         return "layouts/limit/index";
     }

@@ -587,7 +587,7 @@ public class LimitFacilitiesMessageProcessor {
                     fac.setCurrency(s.getLoanCurrencyCode());
 //                            fac.setCurrency(currencies.stream().filter(x->x.getInternalCode().equals(s.getCurrency())).findFirst().get().getIsoCode());
                     String balance = s.getPrincipalBalance().split("\\.")[0];
-                    String utilizedBalance = s.getCommitmentBalance().split("\\.")[0];
+                    String utilizedBalance = (s.getCommitmentBalanceSign().equals("-")?"-":"")+s.getCommitmentBalance().split("\\.")[0];
                     String remainingBalance = String.valueOf((Long.parseLong(balance) - Long.parseLong(utilizedBalance)));
 
                     fac.setStatus(s.getNoteType());

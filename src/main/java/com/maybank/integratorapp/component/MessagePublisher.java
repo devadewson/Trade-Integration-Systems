@@ -2,8 +2,11 @@ package com.maybank.integratorapp.component;
 
 import com.ibm.mq.jakarta.jms.MQConnectionFactory;
 import com.ibm.msg.client.jakarta.wmq.WMQConstants;
+import com.maybank.integratorapp.component.coresystem.ProcessCompositeTBR;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import jakarta.jms.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.jms.connection.CachingConnectionFactory;
@@ -12,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 //@Component
 public class MessagePublisher {
+    private static Logger log = LoggerFactory.getLogger(MessagePublisher.class);
 
     public MessagePublisher(String brokerUrl,int port, String manager,String channel, String username,String password,String destinationQueue){
         this.connectionFactory= createIBMConnectionFactory(brokerUrl,port,manager,channel,username,password);
@@ -174,7 +178,7 @@ public class MessagePublisher {
             // Send the message
             producer.send(_message);
 
-            System.out.println("Message sent successfully With CorrelationID : "+_message.getJMSCorrelationID());
+            log.info("Message sent successfully With CorrelationID : "+_message.getJMSCorrelationID());
 
             // Clean up
             if(this.config == null){

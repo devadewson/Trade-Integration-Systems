@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
-import com.maybank.integratorapp.component.coresystem.ProcessFacilities;
 import com.maybank.integratorapp.component.system.messageprocessor.AccountInquiryMessageProcessor;
 import com.maybank.integratorapp.component.system.messageprocessor.LimitFacilitiesMessageProcessor;
 import com.maybank.integratorapp.data.entity.*;
@@ -200,10 +199,10 @@ public class LimitController {
             List<MsCompanyLimit> allCompany = (List<MsCompanyLimit>) mscompanylimitRepository.findAll();
             processFacilities.setLoggerId(_data.getId());
 
-            allCompany.forEach(x->{
-                processFacilities.refreshFacilities(x.getCifno(),x.getId());
-
-            });
+//            allCompany.forEach(x->{
+//                processFacilities.refreshFacilities(x.getCifno(),x.getId());
+//
+//            });
             log.info("Refresh Limit completed");
             return new ResponseEntity<OFAResponse>(response, HttpStatus.OK);
 

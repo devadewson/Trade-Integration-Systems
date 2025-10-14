@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.data.service;
 
+import com.maybank.integratorapp.controller.DashboardController;
 import com.maybank.integratorapp.data.entity.FtiTransaction;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.repository.LogQueueDataRepository;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -33,17 +35,24 @@ public class LogQueueDataService {
                 ));
             }
 
-            if (transref.isPresent() && !transref.get().isEmpty()) {
-                Predicate reqMessagePredicate = cb.like(
-                        root.get("reqMessage"),
-                        "%" + transref.get().toLowerCase() + "%"
-                );
-                Predicate resMessagePredicate = cb.like(
-                        root.get("resMessage"),
-                        "%" + transref.get().toLowerCase() + "%"
-                );
-                predicates.add(cb.or(reqMessagePredicate, resMessagePredicate));
-            }
+//            if (transref.isPresent() && !transref.get().isEmpty()) {
+//                predicates.add(cb.like(
+//                        cb.lower(root.get("relatedTransRef")),
+//                        "%" + transref.get().toLowerCase() + "%"
+//                ));
+//            }
+
+//            if (transref.isPresent() && !transref.get().isEmpty()) {
+//                Predicate reqMessagePredicate = cb.like(
+//                        root.get("reqMessage"),
+//                        "%" + transref.get().toLowerCase() + "%"
+//                );
+//                Predicate resMessagePredicate = cb.like(
+//                        root.get("resMessage"),
+//                        "%" + transref.get().toLowerCase() + "%"
+//                );
+//                predicates.add(cb.or(reqMessagePredicate, resMessagePredicate));
+//            }
 
             if  (queueOrigin.isPresent() && !queueOrigin.get().isEmpty()) {
                 predicates.add(cb.like(
@@ -57,9 +66,21 @@ public class LogQueueDataService {
                     : cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        Page<LogQueueData> result = repo.findAll(spec, pageable);
+        if ((correlationId.isPresent() && !correlationId.get().isEmpty())
+                || (queueOrigin.isPresent() && !queueOrigin.get().isEmpty())) {
+            // Use your Specification filter
+            return repo.findAll(spec, pageable);
+        } else if (transref.isPresent()) {
+            // Use native query (optimized for TEXT search)
+            return repo.findByTransactionIdContainingIgnoreCase(transref.get(), pageable);
+        } else {
+            // No filters at all — get all paginated
+            return repo.findAll(pageable);
+        }
 
-        return result;
+//        Page<LogQueueData> result = repo.findAll(spec, pageable);
+
+//        return result;
     }
     public Page<LogQueueData> getAll(Pageable pageable) {
         return repo.findAll(pageable);
@@ -69,6 +90,9 @@ public class LogQueueDataService {
     }
     public Page<LogQueueData> searchByTransactionId(String transref, Pageable pageable) {
         return repo.findByTransactionIdContainingIgnoreCase(transref, pageable);
+    }
+    public List<LogQueueData> searchByTransactionId(String transref) {
+        return repo.findByTransactionIdContainingIgnoreCase(transref);
     }
     public LogQueueData findByCorrelationId(String correlationId){
         return repo.findByCorrelationId(correlationId);
@@ -109,5 +133,23 @@ public class LogQueueDataService {
 
     public Page<LogQueueData> searchByQueueOrigin(String queueOrigin, Pageable pageable) {
         return repo.findByQueueOriginContainingIgnoreCase(queueOrigin, pageable);
+    }
+
+    public List<DashboardController.QueueStats> getTodayQueueStats() {
+        List<Object[]> results = repo.getTodayQueueStats();
+        List<DashboardController.QueueStats> queueStatsList = new ArrayList<>();
+
+        for (Object[] result : results) {
+            DashboardController.QueueStats stats = new DashboardController.QueueStats();
+            stats.setQueueName((String) result[0]);
+            stats.setTotalMessages(((Number) result[1]).longValue());
+            stats.setAvgProcessingSeconds(result[2] != null ? ((Number) result[2]).longValue() : 0L);
+            stats.setMaxProcessingSeconds(result[3] != null ? ((Number) result[3]).longValue() : 0L);
+            stats.setMinProcessingSeconds(result[4] != null ? ((Number) result[4]).longValue() : 0L);
+            queueStatsList.add(stats);
+        }
+
+        return queueStatsList;
+//        return repo.getTodayQueueStats();
     }
 }

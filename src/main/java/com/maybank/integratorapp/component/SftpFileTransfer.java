@@ -6,6 +6,8 @@ import com.maybank.integratorapp.util.FileTransferManager;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPReply;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -16,7 +18,7 @@ import java.util.List;
 import java.util.Vector;
 
 public class SftpFileTransfer {
-
+    private static Logger log = LoggerFactory.getLogger(SftpFileTransfer.class);
     private String sftpHost = "";
     private int sftpPort = 22;
     private String sftpUser;
@@ -335,7 +337,7 @@ public class SftpFileTransfer {
                     }
                 }
             } else {
-                System.out.println(localDirectoryPath + " is not a directory.");
+                log.info(localDirectoryPath + " is not a directory.");
             }
 
         } catch (IOException e) {
@@ -394,7 +396,7 @@ public class SftpFileTransfer {
                     }
                 }
             } else {
-                System.out.println(localDirectoryPath + " is not a directory.");
+                log.info(localDirectoryPath + " is not a directory.");
             }
 
             // Download file from the SFTP server

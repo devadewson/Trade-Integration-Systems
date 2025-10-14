@@ -109,6 +109,21 @@ public class LimitReservationMessageProcessor {
                 String transDateRes = request.getReservationsRequest().getReservationRequestDetails().getValueDate();
                 String exposureAmmount =  request.getReservationsRequest().getReservationRequestDetails().getPostingAmount().getAmount();
                 List<ExtraDataFields> listExtraData =  request.getReservationsRequest().getExtraDataFieldss() ==null?new ArrayList<>():request.getReservationsRequest().getExtraDataFieldss().getExtraDataFields();
+                String affiliateAccount = "";
+                String allInInterestRate = "";
+                if(!listExtraData.isEmpty()) {
+                    if(listExtraData.stream().anyMatch(x->x.getName().equals("IndexRateCode"))){
+                        affiliateAccount = listExtraData.stream().filter(x->x.getName().equals("IndexRateCode")).findFirst().get().getValue();
+
+                    }
+                    if(listExtraData.stream().anyMatch(x->x.getName().equals("AllInRate"))){
+                        allInInterestRate = listExtraData.stream().filter(x->x.getName().equals("AllInRate")).findFirst().get().getValue();
+
+                    }
+
+                }
+
+
 
                 DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
                 DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("ddMMyy");
@@ -249,11 +264,15 @@ public class LimitReservationMessageProcessor {
                                     FtiTransactionDetail _transDetailXL41 = transactionDetails.stream().filter(x ->
                                             x.getCoreSysName().equals("CLS-XL41")&&
                                                     x.getCoreSysStatus().equals("00") &&
+                                                    x.getAdditionalInfo2().equals("D") &&
+                                                    x.getFtiEvent().equals(eventCode) &&
                                                     x.getId()> finalTransactionDetails.getId()
                                     ).toList().isEmpty()?null:
                                             transactionDetails.stream().filter(x ->
                                                     x.getCoreSysName().equals("CLS-XL41")&&
                                                             x.getCoreSysStatus().equals("00") &&
+                                                            x.getAdditionalInfo2().equals("D") &&
+                                                            x.getFtiEvent().equals(eventCode) &&
                                                             x.getId()> finalTransactionDetails.getId()
                                             ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
                                     if(_transDetailXL41 !=null){
@@ -292,43 +311,7 @@ public class LimitReservationMessageProcessor {
                                     needXL31 = false;
                                 }
 
-//                                CLM Accept logic
-                                if(_eventCode.equals("CLM") || _eventCode.equals("POC")){
-                                    if(!listExtraData.isEmpty()){
-                                        if(listExtraData.stream().anyMatch(x->x.getName().equals("PaymentOption"))){
-                                            if(listExtraData.stream().filter(x->x.getName().equals("PaymentOption")).findFirst().get().getValue().equals("Accept")){
-                                                // kalau belum ada new draw untuk akseptasi
-                                                if(debitCreditFlag.equals("D")){
-                                                    if(transactionDetails.stream().noneMatch(x->
-                                                            x.getCoreSysName().equals("CLS-XL01Draw001")
-                                                                    && x.getFtiEvent().equals(eventCode)
-                                                                    && x.getCoreSysStatus().equals("00")
-                                                    )){
-                                                        needXL01=true;
-                                                        runningNumber = runningNumberEntry.getRunningNumber();
-                                                        formattedRunningNumber = String.format("%03d", runningNumber + 1);
-
-                                                        // Buat keyLoanAcc baru dengan mengganti bagian draw
-                                                        newKeyLoanAcc = buildNewKey(facilityIdentifier, formattedRunningNumber);
-
-                                                        // Buat formatted key untuk sistem proses
-                                                        acctReqXL01 = buildFormattedKey(facilityIdentifier, formattedRunningNumber);
-                                                        needXL2B = false;
-
-                                                    }
-
-                                                    needXL31 = true;
-                                                }else{
-                                                    needXL01= false;
-                                                    needXL31 = true;
-                                                }
-
-                                            }
-                                        }
-
-                                    }
-
-                                }
+//
 
 
                             }else {
@@ -345,6 +328,67 @@ public class LimitReservationMessageProcessor {
                     }
                     else{
                         needXL01= true;
+                    }
+
+                    //CLM Accept logic
+                    if(_eventCode.equals("CLM") || _eventCode.equals("POC")){
+                        if(!listExtraData.isEmpty()){
+                            if(listExtraData.stream().anyMatch(x->x.getName().equals("PaymentOption"))){
+                                if(listExtraData.stream().filter(x->x.getName().equals("PaymentOption")).findFirst().get().getValue().equals("Accept")){
+                                    // kalau belum ada new draw untuk akseptasi
+                                    if(debitCreditFlag.equals("D")){
+                                        if(transactionDetails.stream().noneMatch(x->
+                                                x.getCoreSysName().equals("CLS-XL01Draw001")
+                                                        && x.getFtiEvent().equals(eventCode)
+                                                        && x.getCoreSysStatus().equals("00")
+                                        )){
+                                            needXL01=true;
+                                            runningNumber = runningNumberEntry.getRunningNumber();
+                                            formattedRunningNumber = String.format("%03d", runningNumber + 1);
+
+                                            // Buat keyLoanAcc baru dengan mengganti bagian draw
+                                            newKeyLoanAcc = buildNewKey(facilityIdentifier, formattedRunningNumber);
+
+                                            // Buat formatted key untuk sistem proses
+                                            acctReqXL01 = buildFormattedKey(facilityIdentifier, formattedRunningNumber);
+                                            needXL2B = false;
+
+                                        }else{
+                                            FtiTransactionDetail _found = transactionDetails.stream().filter(x->
+                                                    x.getCoreSysName().equals("CLS-XL01Draw001")
+                                                            && x.getFtiEvent().equals(eventCode)
+                                                            && x.getCoreSysStatus().equals("00")
+                                            ).findFirst().get();
+                                            needXL01=false;
+                                            needXL2B = false;
+                                            newKeyLoanAcc = _found.getAdditionalInfo1();
+
+                                            _found = transactionDetails.stream().filter(x->
+                                                    (x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B"))
+                                                            && x.getFtiEvent().equals(eventCode)
+                                                            && x.getCoreSysStatus().equals("00")
+                                            ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
+                                            String _dateOld = _found.getAdditionalInfo5().split("#")[1];
+                                            if(!_dateOld.equals(expiryDate)){
+                                                needXL2B = true;
+                                            }
+
+
+
+                                        }
+
+                                        needXL31 = true;
+                                    }else{
+                                        newKeyLoanAcc = reservedReservationIdentifier;
+                                        needXL01= false;
+                                        needXL31 = true;
+                                    }
+
+                                }
+                            }
+
+                        }
+
                     }
                 }
 
@@ -418,6 +462,16 @@ public class LimitReservationMessageProcessor {
 //                log.info("CLS Product Type : " + cls001ProductType);
                 logger.Log(this.LoggerId,ProcessName, "CLS Product Type : "+cls001ProductType, "DEBUG");
 
+                if(cls001ProductType == null){
+                    mapExternalResponse("99","INT-Product Type Not Found",facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
+                    XmlMapper xmlMapper = new XmlMapper();
+                    xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+                    responseXml = xmlMapper.writeValueAsString(response);
+
+                    return responseXml;
+
+                }
+
 
                 // new reservation logic
 
@@ -446,7 +500,8 @@ public class LimitReservationMessageProcessor {
                 if(needXL01){
                     //draw 001
                     // step 3.
-                    SoapEnvelope msgRequestXL01 = mapCoreSystemXl01Request(masterReference,acctReqXL01,newKeyLoanAcc,currency,startDate,expiryDate,transactionDate,cls001ProductType,branch);
+                    
+                    SoapEnvelope msgRequestXL01 = mapCoreSystemXl01Request(masterReference,acctReqXL01,newKeyLoanAcc,currency,startDate,expiryDate,transactionDate,cls001ProductType,branch,affiliateAccount,allInInterestRate);
 
                     // step 4.
 //                    logger.Log(this.LoggerId,ProcessName, "CLS BEFORE HIT XL01", "DEBUG");
@@ -463,8 +518,12 @@ public class LimitReservationMessageProcessor {
 //                    logger.Log(this.LoggerId,ProcessName, "CLS AFTER HIT XL01 RESPONSE CODE :"+xl01responseCode, "DEBUG");
 
 //                    logger.Log(this.LoggerId,ProcessName, "CLS AFTER HIT XL01 RESPONSE MESSAGE :"+xl01responseMessage, "DEBUG");
-                    if(xl01responseMessage.contains("exception") || xl01responseCode == null)
+
+                    if((xl01responseMessage!=null && xl01responseMessage.contains("exception")) || xl01responseCode == null)
                         xl01responseCode= "99";
+
+                    if(xl01responseCode.equals("99") && xl01responseMessage == null)
+                        xl01responseMessage = "[INTG]-Unknown Error";
 
                     if(xl01responseCode.equals("00")){
 //                        logger.Log(this.LoggerId,ProcessName, "CLS BEFORE REFRESH FACILITIES", "DEBUG");
@@ -486,18 +545,19 @@ public class LimitReservationMessageProcessor {
                         mapExternalResponse(xl01responseCode,xl01responseMessage,facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
 
                     }
-                }else if (_lastLimitAction!=null && reservedReservationIdentifier!=null){
-                    // amend/adjust
-                    // check dulu apakah facility nya sama/tidak
-                    String _fac = facilityIdentifier.substring(0,facilityIdentifier.length()-5);
-                    if(!reservedReservationIdentifier.isEmpty()){
-                        String _facReserved = reservedReservationIdentifier.substring(0,reservedReservationIdentifier.length()-5);
-
-                        if(_fac.equals(_facReserved))
-                            newKeyLoanAcc =reservedReservationIdentifier;
-                    }
-
                 }
+//                else if (_lastLimitAction!=null && reservedReservationIdentifier!=null){
+//                    // amend/adjust
+//                    // check dulu apakah facility nya sama/tidak
+//                    String _fac = facilityIdentifier.substring(0,facilityIdentifier.length()-5);
+//                    if(!reservedReservationIdentifier.isEmpty()){
+//                        String _facReserved = reservedReservationIdentifier.substring(0,reservedReservationIdentifier.length()-5);
+//
+//                        if(_fac.equals(_facReserved))
+//                            newKeyLoanAcc =reservedReservationIdentifier;
+//                    }
+//
+//                }
 
                 if(needXL2B){
                     // cek dulu apakah sebelumnya masih ada XL2B yang masih gantung,
@@ -563,8 +623,14 @@ public class LimitReservationMessageProcessor {
                     String xl2BresponseMessage = msgResponseXL2B
                             .getBody().getXl2BResponse().
                             getCmsXl2BResponse().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
-                    if(xl2BresponseCode.contains("exception") && xl2BresponseMessage == null)
+
+                    if((xl2BresponseMessage!= null && xl2BresponseMessage.contains("exception")) || xl2BresponseCode == null)
                         xl2BresponseCode= "99";
+
+                    if(xl2BresponseCode.equals("99") && xl2BresponseMessage == null)
+                        xl2BresponseMessage = "[INTG]-Unknown Error";
+
+
 
                     if(xl2BresponseCode.equals("00")) {
                         processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
@@ -575,10 +641,20 @@ public class LimitReservationMessageProcessor {
 
 //                if((xl01responseCode.equals("00") || !eventCode.startsWith("ISS")) || needXL31){
                 if(needXL31){
-
+                    String chgMethodSpecialCase = parameterService.findValueByPrmKey("CLSChgMethodProdTypeList");
+                    String trancode60ProdTypeList = parameterService.findValueByPrmKey("CLSTrancode60ProdTypeList");
                     String debit_credit = "62";
                     if(debitCreditFlag.equals("C"))
                         debit_credit = "67";
+
+                    if(Arrays.asList(chgMethodSpecialCase.split(",")).contains(cls001ProductType)
+                    && Arrays.asList(trancode60ProdTypeList.split(",")).contains(FtiSubProductCode)) {
+                        if(debitCreditFlag.equals("D"))
+                            debit_credit = "60";
+
+                    }
+
+
                     String clsCustomReference = generateCLSRefCode(FtiProductCode,masterReference,_eventCode);
 
                     //draw 31
@@ -595,8 +671,13 @@ public class LimitReservationMessageProcessor {
                             getCmsXl31Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
 
                     formattedRunningNumber = splitKey(newKeyLoanAcc)[5];
-                    if(xl31responseMessage.contains("exception") && xl31responseCode == null)
+
+                    if((xl31responseMessage!= null && xl31responseMessage.contains("exception")) || xl31responseCode == null)
                         xl31responseCode= "99";
+
+                    if(xl31responseCode.equals("99") && xl31responseMessage == null)
+                        xl31responseMessage = "[INTG]-Unknown Error";
+
                     if(xl31responseCode.equals("00")) {
                         processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
                     }
@@ -667,10 +748,13 @@ public class LimitReservationMessageProcessor {
             String expiryDate,
             String transactionDate,
             String cls001ProductType,
-            String branch
+            String branch,
+            String affiliateAcct,
+            String allInInterestRate
     ) {
         SoapEnvelope soapReqXL01 = new SoapEnvelope();
         String clsChannelId = parameterService.findValueByPrmKey("CLSChannelId");
+        String chgMethodSpecialCase = parameterService.findValueByPrmKey("CLSChgMethodProdTypeList");
         String correlationID = "FTI";
         String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
@@ -679,6 +763,12 @@ public class LimitReservationMessageProcessor {
         String limitBranch = splittedKey[2];
         String limitCif = splittedKey[3];
         String limitRunningNumber = splittedKey[5];
+
+        String chgMethod = "0";
+        if(Arrays.asList(chgMethodSpecialCase.split(",")).contains(cls001ProductType)) {
+            chgMethod = "1";
+
+        }
 
         String currencyNumber = msCurrencyRepository.findByIsoCode(currency).getInternalCode();
 
@@ -708,7 +798,7 @@ public class LimitReservationMessageProcessor {
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setAppl("XL");
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setBatch(limitBranch+"01");
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setBranch(limitBranch);
-        soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setChgmeth("0");
+        soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setChgmeth(chgMethod);
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setCifNo(limitCif);
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setCommitmentCode("3");
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setCommitmentType("1");
@@ -719,10 +809,18 @@ public class LimitReservationMessageProcessor {
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setDepartement(limitBranch);
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setIntstart(startDate);
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setMatdate(expiryDate);
+        if(affiliateAcct.length() == 20){
+
+            soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setNbrAcct1("16"+affiliateAcct);
+            soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setSysAcct1("5");
+            soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setRate(reformatRateString(allInInterestRate));
+        }else{
+            soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setRate("000.000010");
+        }
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setNotedate(transactionDate);
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setPrinamt("000000000000.00");
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setProductType(cls001ProductType);
-        soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setRate("000.000010");
+
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setRelCd("01");
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setStatus("A");
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setUseAcct1("2");
@@ -730,6 +828,17 @@ public class LimitReservationMessageProcessor {
 
 
         return soapReqXL01;
+    }
+    public String reformatRateString(String input) {
+        String[] parts = input.split("\\.");
+        String integerPart = parts[0];
+        String decimalPart = parts.length > 1 ? parts[1] : "";
+
+        // Pad integer part to 3 digits and decimal part to 6 digits
+        String formattedInteger = String.format("%03d", Integer.parseInt(integerPart));
+        String formattedDecimal = String.format("%-6s", decimalPart).replace(' ', '0');
+
+        return formattedInteger + "." + formattedDecimal;
     }
 
     // step 4. Request data from core system
@@ -784,15 +893,46 @@ public class LimitReservationMessageProcessor {
                     String xmlResponseXL01 = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cmsResponseXL01);
 //                    log.info(xmlResponseXL01);
 
+
                     // Extract  response code
                     String responseCode = cmsResponseXL01
                             .getBody().getXl01Draw001Response().
                             getCmsXL01Draw001Response().getResponsecode();
-                    String responseMessage = cmsResponseXL01
-                            .getBody().getXl01Draw001Response().
-                            getCmsXL01Draw001Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
-                    if(outputResponse.contains("exception") && responseCode == null)
-                        responseCode= "99";
+                    String responseMessage = "";
+                    if(responseCode!=null){
+                        if(responseCode.equals("99")){
+                            if(xmlResponseXL01.contains("xmlnsc"))
+                                responseMessage = "Connection Refused";
+                            else if(!cmsResponseXL01
+                                    .getBody().getXl01Draw001Response().
+                                    getCmsXL01Draw001Response().getResponseDetail().getAdditionalData().isEmpty()){
+                                responseMessage = cmsResponseXL01
+                                        .getBody().getXl01Draw001Response().
+                                        getCmsXL01Draw001Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+                                if(responseMessage == null)
+                                    responseMessage = "Unknown Error";
+
+                            }else{
+                                responseMessage = "Unknown Error";
+                            }
+                        }else{
+                            if(!cmsResponseXL01
+                                    .getBody().getXl01Draw001Response().
+                                    getCmsXL01Draw001Response().getResponseDetail().getAdditionalData().isEmpty()){
+                                responseMessage = cmsResponseXL01
+                                        .getBody().getXl01Draw001Response().
+                                        getCmsXL01Draw001Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+
+                            }else{
+                                responseMessage = "Unknown Error";
+                            }
+                        }
+
+                    } else{
+                        responseCode = "99";
+                        responseMessage = "Unknown Error";
+                    }
+
 
                     FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
                     ftiTransactionDetail.setTransMessageLogId(LoggerId);
@@ -882,16 +1022,42 @@ public class LimitReservationMessageProcessor {
 //                    log.info(xmlResponseXL01);
 
                     // Extract  response code
-
-                    String responseMessage = serviceResponse
-                            .getBody().getXl31Response().
-                            getCmsXl31Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
                     String responseCode = serviceResponse
                             .getBody().getXl31Response().
-                            getCmsXl31Response().getResponsecode() ;
+                            getCmsXl31Response().getResponsecode();
+                    String responseMessage = "";
+                    if(responseCode!=null){
+                        if(responseCode.equals("99")){
+                            if(xmlResponseXL31.contains("xmlnsc"))
+                                responseMessage = "Connection Refused";
+                            else if(!serviceResponse
+                                    .getBody().getXl31Response().
+                                    getCmsXl31Response().getResponseDetail().getAdditionalData().isEmpty()){
+                                responseMessage = serviceResponse
+                                        .getBody().getXl31Response().
+                                        getCmsXl31Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+                                if(responseMessage == null)
+                                    responseMessage = "Unknown Error";
+                            }else{
+                                responseMessage = "Unknown Error";
+                            }
+                        }else{
+                            if(!serviceResponse
+                                    .getBody().getXl31Response().
+                                    getCmsXl31Response().getResponseDetail().getAdditionalData().isEmpty()){
+                                responseMessage = serviceResponse
+                                        .getBody().getXl31Response().
+                                        getCmsXl31Response().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
 
-                    if(responseMessage.contains("exception") && responseCode == null)
-                        responseCode= "99";
+                            }else{
+                                responseMessage = "Unknown Error";
+                            }
+                        }
+
+                    } else{
+                        responseCode = "99";
+                        responseMessage = "Unknown Error";
+                    }
 
                     FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
                     ftiTransactionDetail.setTransMessageLogId(LoggerId);
@@ -984,7 +1150,8 @@ public class LimitReservationMessageProcessor {
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setDepartement(limitBranch);
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setDescription(clsCustomReference);
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setNotenumber(newKeyloanAcc);
-        soapReqXL31.getBody().getXl31().getCmsXl31Request().setQual("0");
+        if(!debit_credit.equals("60"))
+            soapReqXL31.getBody().getXl31().getCmsXl31Request().setQual("0");
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setTran(debit_credit);
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setTransactiondate(transactionDate);
 
@@ -1094,12 +1261,40 @@ public class LimitReservationMessageProcessor {
                     String responseCode = serviceResponse
                             .getBody().getXl2BResponse().
                             getCmsXl2BResponse().getResponsecode();
-                    String responseMessage = serviceResponse
-                            .getBody().getXl2BResponse().
-                            getCmsXl2BResponse().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+                    String responseMessage = "";
+                    if(responseCode!=null){
+                        if(responseCode.equals("99")){
+                            if(xmlResponseXL2B.contains("xmlnsc"))
+                                responseMessage = "Connection Refused";
+                            else if(!serviceResponse
+                                    .getBody().getXl2BResponse().
+                                    getCmsXl2BResponse().getResponseDetail().getAdditionalData().isEmpty()){
+                                responseMessage = serviceResponse
+                                        .getBody().getXl2BResponse().
+                                        getCmsXl2BResponse().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
+                                if(responseMessage == null)
+                                    responseMessage = "Unknown Error";
+                            }else{
+                                responseMessage = "Unknown Error";
+                            }
+                        }else{
+                            if(!serviceResponse
+                                    .getBody().getXl2BResponse().
+                                    getCmsXl2BResponse().getResponseDetail().getAdditionalData().isEmpty()){
+                                responseMessage = serviceResponse
+                                        .getBody().getXl2BResponse().
+                                        getCmsXl2BResponse().getResponseDetail().getAdditionalData().stream().filter(x -> x.getParam().equals("general_message")).findFirst().get().getValue();
 
-                    if(responseMessage.contains("exception") && responseCode == null)
-                        responseCode= "99";
+                            }else{
+                                responseMessage = "Unknown Error";
+                            }
+                        }
+
+                    } else{
+                        responseCode = "99";
+                        responseMessage = "Unknown Error";
+                    }
+
                     FtiTransactionDetail ftiTransactionDetail = new FtiTransactionDetail();
                     ftiTransactionDetail.setTransMessageLogId(LoggerId);
                     ftiTransactionDetail.setFtiEvent(eventCode);

@@ -1,11 +1,14 @@
 package com.maybank.integratorapp.component.coresystem;
 
+import com.maybank.integratorapp.component.SftpFileTransfer;
 import com.maybank.integratorapp.model.mq.fxratefcc.response.ExchangeRateRecord;
 import com.maybank.integratorapp.model.rest.fxrate.request.FxRateRequest;
 import com.maybank.integratorapp.model.rest.fxrate.response.FxRateResponse;
 import com.maybank.integratorapp.model.rest.fxratelist.request.FxRateListRequest;
 import com.maybank.integratorapp.model.rest.fxratelist.response.FxRateListData;
 import com.maybank.integratorapp.model.rest.fxratelist.response.FxRateListResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -19,6 +22,7 @@ import java.util.List;
 
 public class ProcessFXRate {
 
+    private static Logger log = LoggerFactory.getLogger(ProcessFXRate.class);
 //    @Autowired
 //    private RestTemplate restTemplate;
     public ExchangeRateRecord getExchangeRateRecords(String base, String currency){
@@ -42,7 +46,7 @@ public class ProcessFXRate {
             ResponseEntity<FxRateResponse> response = restTemplate.postForEntity(apiUrl,request, FxRateResponse.class);
 
             if(response.hasBody()){
-                System.out.println(response.getBody().getRespCode());
+                log.info(response.getBody().getRespCode());
             }
         }catch (Exception e){
             throw e;
@@ -74,7 +78,7 @@ public class ProcessFXRate {
             ResponseEntity<String> _response = restTemplate.postForEntity(ApiUrl,request, String.class);
 
             if(response.hasBody()){
-                System.out.println(response.getBody().getRespCode());
+                log.info(response.getBody().getRespCode());
 
                 FxRateListResponse responseList = response.getBody();
 
