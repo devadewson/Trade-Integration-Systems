@@ -54,7 +54,16 @@ public class MQUtil {
                 }
 
             }
-            else if(queueName.contains("swiftOutgoing")){
+            else if(message.contains("<BizMsgIdr>") && queueName.contains("swiftOutgoing")){
+                Pattern pattern = Pattern.compile("<[^:>]+:BizMsgIdr>(.*?)</[^:>]+:BizMsgIdr>");
+                Matcher matcher = pattern.matcher(message);
+
+                if (matcher.find()) {
+                    relatedTransaction = matcher.group(1);
+                }
+
+            }
+            else if(!message.contains("<BizMsgIdr>") && queueName.contains("swiftOutgoing")){
                 String text = message;
                 int startIndex = text.indexOf(":20:") + 4; // `+4` to skip `:20:`
                 int endIndex = text.indexOf("\n", startIndex); // Find the next newline

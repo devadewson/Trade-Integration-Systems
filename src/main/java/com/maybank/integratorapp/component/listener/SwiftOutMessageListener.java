@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -70,9 +71,17 @@ public class SwiftOutMessageListener implements CustomMessageListener {
                 _data = dataDTO.save(_data);
 
                 XmlMapper xmlMapper = new XmlMapper();
-                ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);
+                if(_message.contains("<DataPDU")){
+                    List<String> _newList = new ArrayList<>();
+                    _newList.add(_message);
+                    process.putFileContent(_newList, "9999", _data.getId());
 
-                process.putFileContent(request.getSwiftOut().getMessages().getMessage(), request.getRequestHeader().getCorrelationID(), _data.getId());
+                }else{
+                    ServiceRequest request = xmlMapper.readValue(_message, ServiceRequest.class);
+
+                    process.putFileContent(request.getSwiftOut().getMessages().getMessage(), request.getRequestHeader().getCorrelationID(), _data.getId());
+
+                }
 
                 _data.setStatus("Success");
                 _data.setDelivery_date(new Date());

@@ -575,6 +575,7 @@ public class LimitFacilitiesMessageProcessor {
                     FacilityDetails fac = new FacilityDetails();
                     fac.setIdentifier(s.getKeyLoanAcc());
                     fac.setFacilityCode(s.getKeyDigitNote());
+                    fac.setSequenceNumber(s.getKeyDigitNote());
                     fac.setCustomer(cifno);
 
                     Date NoteDate = inputFormat.parse(s.getNoteDate());

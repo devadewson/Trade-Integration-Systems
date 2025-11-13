@@ -123,7 +123,15 @@ public class LimitReservationMessageProcessor {
 
                 }
 
-
+//                if(startdateRes == null|| expireDateRes == null){
+//                    mapExternalResponse("99","[Integrator]-Start Date or End Date NULL","","","","",customerRes,startdateRes,expireDateRes,"","",exposureAmmount,"","");
+//                    XmlMapper xmlMapper = new XmlMapper();
+//                    xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+//                    responseXml = xmlMapper.writeValueAsString(response);
+//
+//                    return responseXml;
+//
+//                }
 
                 DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
                 DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("ddMMyy");
@@ -251,7 +259,7 @@ public class LimitReservationMessageProcessor {
 
                                 if(_dateFromReq != null){
                                     transactionDetails1 = transactionDetails.stream().filter(x ->
-                                            (x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B")) &&
+                                            (x.getCoreSysName().equals("CLS-XL01Draw001")|| x.getCoreSysName().equals("CLS-XL2B")) &&
                                             x.getCoreSysStatus().equals("00")
                                     ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
                                     // sementara XL2B belum bisa ganti start date, maka hanya compare expiry nya saja
@@ -261,23 +269,26 @@ public class LimitReservationMessageProcessor {
                                     }
                                     // jika setelah XL2B Terakhir ada XL41 D, maka bikin ulang XL2B nya
                                     FtiTransactionDetail finalTransactionDetails = transactionDetails1;
-                                    FtiTransactionDetail _transDetailXL41 = transactionDetails.stream().filter(x ->
-                                            x.getCoreSysName().equals("CLS-XL41")&&
-                                                    x.getCoreSysStatus().equals("00") &&
-                                                    x.getAdditionalInfo2().equals("D") &&
-                                                    x.getFtiEvent().equals(eventCode) &&
-                                                    x.getId()> finalTransactionDetails.getId()
-                                    ).toList().isEmpty()?null:
-                                            transactionDetails.stream().filter(x ->
-                                                    x.getCoreSysName().equals("CLS-XL41")&&
-                                                            x.getCoreSysStatus().equals("00") &&
-                                                            x.getAdditionalInfo2().equals("D") &&
-                                                            x.getFtiEvent().equals(eventCode) &&
-                                                            x.getId()> finalTransactionDetails.getId()
-                                            ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
-                                    if(_transDetailXL41 !=null){
-                                        needXL2B=true;
+                                    if(finalTransactionDetails.getCoreSysName().equals("CLS-XL2B")){
+                                        FtiTransactionDetail _transDetailXL41 = transactionDetails.stream().filter(x ->
+                                                x.getCoreSysName().equals("CLS-XL41")&&
+                                                        x.getCoreSysStatus().equals("00") &&
+                                                        x.getAdditionalInfo2().equals("D") &&
+                                                        x.getFtiEvent().equals(eventCode) &&
+                                                        x.getId()> finalTransactionDetails.getId()
+                                        ).toList().isEmpty()?null:
+                                                transactionDetails.stream().filter(x ->
+                                                        x.getCoreSysName().equals("CLS-XL41")&&
+                                                                x.getCoreSysStatus().equals("00") &&
+                                                                x.getAdditionalInfo2().equals("D") &&
+                                                                x.getFtiEvent().equals(eventCode) &&
+                                                                x.getId()> finalTransactionDetails.getId()
+                                                ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
+                                        if(_transDetailXL41 !=null){
+                                            needXL2B=true;
+                                        }
                                     }
+
 
 
 //                                    if(!_dateOld.equals(_dateNew)){
@@ -294,6 +305,7 @@ public class LimitReservationMessageProcessor {
                                             (x.getCoreSysName().equals("CLS-XL01Draw001") || x.getCoreSysName().equals("CLS-XL2B")) &&
                                                     x.getCoreSysStatus().equals("00")
                                     ).max(Comparator.comparing(FtiTransactionDetail::getId)).get();
+                                    newKeyLoanAcc = reservedReservationIdentifier;
                                     // sementara XL2B belum bisa ganti start date, maka hanya compare expiry nya saja
                                     if(transactionDetails1.getAdditionalInfo5() != null){
 //                                        _dateOld = transactionDetails1.getAdditionalInfo5();
@@ -305,6 +317,13 @@ public class LimitReservationMessageProcessor {
                                     if(!_dateOld.equals(expiryDate)){
                                         needXL2B = true;
                                     }
+                                }
+                                if(_eventCode.equals("EXP") || _eventCode.equals("ADJ") || _eventCode.equals("AMD")){
+                                    newKeyLoanAcc = reservedReservationIdentifier;
+                                }
+                                if(_eventCode.equals("BNR")){
+                                    newKeyLoanAcc = reservedReservationIdentifier;
+                                    needXL2B = false;
                                 }
 
                                 if(exposureAmmount.equals("0")){
@@ -334,7 +353,8 @@ public class LimitReservationMessageProcessor {
                     if(_eventCode.equals("CLM") || _eventCode.equals("POC")){
                         if(!listExtraData.isEmpty()){
                             if(listExtraData.stream().anyMatch(x->x.getName().equals("PaymentOption"))){
-                                if(listExtraData.stream().filter(x->x.getName().equals("PaymentOption")).findFirst().get().getValue().equals("Accept")){
+                                if(listExtraData.stream().filter(x->x.getName().equals("PaymentOption")).findFirst().get().getValue().equals("Accept")
+                                || listExtraData.stream().filter(x->x.getName().equals("PaymentOption")).findFirst().get().getValue().equals("Bill Settlement (mixed)")){
                                     // kalau belum ada new draw untuk akseptasi
                                     if(debitCreditFlag.equals("D")){
                                         if(transactionDetails.stream().noneMatch(x->
@@ -378,12 +398,24 @@ public class LimitReservationMessageProcessor {
                                         }
 
                                         needXL31 = true;
-                                    }else{
+                                    }
+                                    else{
                                         newKeyLoanAcc = reservedReservationIdentifier;
                                         needXL01= false;
                                         needXL31 = true;
                                     }
 
+                                }
+                                else if(listExtraData.stream().filter(x->x.getName().equals("PaymentOption")).findFirst().get().getValue().equals("Bill Settlement")){
+                                    if(!listExtraData.stream().filter(x -> x.getName().equals("LinkedClaimResId")).findFirst().isEmpty()){
+                                        reservedReservationIdentifier =listExtraData.stream().filter(x -> x.getName().equals("LinkedClaimResId")).findFirst().get().getValue();
+                                    }
+                                    if(debitCreditFlag.equals("C")){
+                                        newKeyLoanAcc = reservedReservationIdentifier;
+                                        needXL01 = false;
+                                        needXL2B = false;
+                                        needXL31 = true;
+                                    }
                                 }
                             }
 
@@ -421,7 +453,7 @@ public class LimitReservationMessageProcessor {
                                                     x.getLiabilityCode().equals("IGT"))
                                     .findFirst().get().getProductType001();
                         else{
-                            cls001ProductType = msMapClsProductTypeRepository.findDraw001Product(productType, lineOfBusiness,_eventCode);
+                            cls001ProductType = msMapClsProductTypeRepository.findDraw001ProductWithLiabCode(productType, lineOfBusiness,FtiSubProductCode,_eventCode);
 
                         }
                     }
@@ -463,7 +495,7 @@ public class LimitReservationMessageProcessor {
                 logger.Log(this.LoggerId,ProcessName, "CLS Product Type : "+cls001ProductType, "DEBUG");
 
                 if(cls001ProductType == null){
-                    mapExternalResponse("99","INT-Product Type Not Found",facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
+                    mapExternalResponse("99","[Integrator]-Product Type Not Found",facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
                     XmlMapper xmlMapper = new XmlMapper();
                     xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
                     responseXml = xmlMapper.writeValueAsString(response);
@@ -523,7 +555,7 @@ public class LimitReservationMessageProcessor {
                         xl01responseCode= "99";
 
                     if(xl01responseCode.equals("99") && xl01responseMessage == null)
-                        xl01responseMessage = "[INTG]-Unknown Error";
+                        xl01responseMessage = "[Integrator]-Unknown CLS Error";
 
                     if(xl01responseCode.equals("00")){
 //                        logger.Log(this.LoggerId,ProcessName, "CLS BEFORE REFRESH FACILITIES", "DEBUG");
@@ -546,18 +578,6 @@ public class LimitReservationMessageProcessor {
 
                     }
                 }
-//                else if (_lastLimitAction!=null && reservedReservationIdentifier!=null){
-//                    // amend/adjust
-//                    // check dulu apakah facility nya sama/tidak
-//                    String _fac = facilityIdentifier.substring(0,facilityIdentifier.length()-5);
-//                    if(!reservedReservationIdentifier.isEmpty()){
-//                        String _facReserved = reservedReservationIdentifier.substring(0,reservedReservationIdentifier.length()-5);
-//
-//                        if(_fac.equals(_facReserved))
-//                            newKeyLoanAcc =reservedReservationIdentifier;
-//                    }
-//
-//                }
 
                 if(needXL2B){
                     // cek dulu apakah sebelumnya masih ada XL2B yang masih gantung,
@@ -628,7 +648,7 @@ public class LimitReservationMessageProcessor {
                         xl2BresponseCode= "99";
 
                     if(xl2BresponseCode.equals("99") && xl2BresponseMessage == null)
-                        xl2BresponseMessage = "[INTG]-Unknown Error";
+                        xl2BresponseMessage = "[Integrator]-Unknown CLS Error";
 
 
 
@@ -639,7 +659,6 @@ public class LimitReservationMessageProcessor {
                     mapExternalResponse(xl2BresponseCode,xl2BresponseMessage,facilityIdentifier,facilitySequence,newKeyLoanAcc,formattedRunningNumber,customerRes,startdateRes,expireDateRes,currency,limitAmount,exposureAmmount,reservedAmount,availableAmount);
                 }
 
-//                if((xl01responseCode.equals("00") || !eventCode.startsWith("ISS")) || needXL31){
                 if(needXL31){
                     String chgMethodSpecialCase = parameterService.findValueByPrmKey("CLSChgMethodProdTypeList");
                     String trancode60ProdTypeList = parameterService.findValueByPrmKey("CLSTrancode60ProdTypeList");
@@ -651,7 +670,8 @@ public class LimitReservationMessageProcessor {
                     && Arrays.asList(trancode60ProdTypeList.split(",")).contains(FtiSubProductCode)) {
                         if(debitCreditFlag.equals("D"))
                             debit_credit = "60";
-
+                        if(debitCreditFlag.equals("C"))
+                            debit_credit = "65";
                     }
 
 
@@ -676,7 +696,7 @@ public class LimitReservationMessageProcessor {
                         xl31responseCode= "99";
 
                     if(xl31responseCode.equals("99") && xl31responseMessage == null)
-                        xl31responseMessage = "[INTG]-Unknown Error";
+                        xl31responseMessage = "[Integrator]-Unknown CLS Error";
 
                     if(xl31responseCode.equals("00")) {
                         processFacilities.refreshFacilities(facilities.getCifNo(), facilities.getCompanyLimitId());
@@ -801,7 +821,7 @@ public class LimitReservationMessageProcessor {
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setChgmeth(chgMethod);
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setCifNo(limitCif);
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setCommitmentCode("3");
-        soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setCommitmentType("1");
+//        soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setCommitmentType("0");
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setCtl2(limitCurrency);
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setCtl3(limitBranch);
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setCtl4("0000");
@@ -1150,7 +1170,7 @@ public class LimitReservationMessageProcessor {
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setDepartement(limitBranch);
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setDescription(clsCustomReference);
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setNotenumber(newKeyloanAcc);
-        if(!debit_credit.equals("60"))
+        if(debit_credit.equals("62") || debit_credit.equals("67"))
             soapReqXL31.getBody().getXl31().getCmsXl31Request().setQual("0");
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setTran(debit_credit);
         soapReqXL31.getBody().getXl31().getCmsXl31Request().setTransactiondate(transactionDate);
@@ -1346,33 +1366,14 @@ public class LimitReservationMessageProcessor {
     ) {
         ResponseHeader responseHeader = response.getResponseHeader();
 //set reservation response
-        ReservationsResponse reservationsResponse =  new ReservationsResponse();
-        reservationsResponse.setFacilityIdentifier(facilityIdentifier);
-        reservationsResponse.setFacilitySequence(facilitySequence);
-        reservationsResponse.setReservationIdentifier(newKeyLoanAcc);
-        reservationsResponse.setReservationSequence(formattedRunningNumber);
-        reservationsResponse.setCustomer(customerRes);
-        reservationsResponse.setFacilityExposureIdentifier(newKeyLoanAcc);
 
-//        limitAmount = limitAmount.replaceAll("\\.","");
-        exposureAmount = exposureAmount.replaceAll("\\.","");
-//        reservedAmount = reservedAmount.replaceAll("\\.","");
-//        availableAmount = availableAmount.replaceAll("\\.","");
-        String balance = limitAmount.split("\\.")[0];
-        String utilizedBalance = reservedAmount.split("\\.")[0];
+        ReservationsResponse reservationsResponse =  new ReservationsResponse();
 
         //set Reservation Details
         ReservationResponseDetails reservationResponseDetails = new ReservationResponseDetails();
-        reservationResponseDetails.setStartDate(startdateRes);
-        reservationResponseDetails.setExpiryDate(expireDateRes);
-        reservationResponseDetails.setCurrency(currency);
-        reservationResponseDetails.setLimitAmount(balance+"00");
-        reservationResponseDetails.setAvailableAmount(utilizedBalance+"00");
-//        reservationResponseDetails.setLimitAmount(limitAmount);
-        reservationResponseDetails.setExposureAmount(exposureAmount);
-//        reservationResponseDetails.setReservedAmount(reservedAmount);
-//        reservationResponseDetails.setAvailableAmount(availableAmount);
-        reservationResponseDetails.setLimitCheckStatus("S");
+        ReservationResponseDetailss reservationResponseDetailss = new ReservationResponseDetailss();
+        ReservationResponseExtraDetails reservationResponseExtraDetails = new ReservationResponseExtraDetails();
+        ReservationResponseExtraDetailss reservationResponseExtraDetailss = new ReservationResponseExtraDetailss();
 
         if(!clsResponseCode.equals("00")){
             reservationResponseDetails.setLimitCheckStatus("E");
@@ -1382,16 +1383,45 @@ public class LimitReservationMessageProcessor {
             _details.setError("[CLS ERROR] "+clsResponseMessage);
             responseHeader.setDetails(_details);
         }
+        else {
+            reservationsResponse.setFacilityIdentifier(facilityIdentifier);
+            reservationsResponse.setFacilitySequence(facilitySequence);
+            reservationsResponse.setReservationIdentifier(newKeyLoanAcc);
+            reservationsResponse.setReservationSequence(formattedRunningNumber);
+            reservationsResponse.setCustomer(customerRes);
+            reservationsResponse.setFacilityExposureIdentifier(newKeyLoanAcc);
+
+//        limitAmount = limitAmount.replaceAll("\\.","");
+            exposureAmount = exposureAmount.replaceAll("\\.","");
+//        reservedAmount = reservedAmount.replaceAll("\\.","");
+//        availableAmount = availableAmount.replaceAll("\\.","");
+            String balance = limitAmount.split("\\.")[0];
+            String utilizedBalance = reservedAmount.split("\\.")[0];
+
+            reservationResponseDetails.setStartDate(startdateRes);
+            reservationResponseDetails.setExpiryDate(expireDateRes);
+            reservationResponseDetails.setCurrency(currency);
+            reservationResponseDetails.setLimitAmount(balance+"00");
+            reservationResponseDetails.setAvailableAmount(utilizedBalance+"00");
+//        reservationResponseDetails.setLimitAmount(limitAmount);
+            reservationResponseDetails.setExposureAmount(exposureAmount);
+//        reservationResponseDetails.setReservedAmount(reservedAmount);
+//        reservationResponseDetails.setAvailableAmount(availableAmount);
+            reservationResponseDetails.setLimitCheckStatus("S");
 
 
-        // Set ReservationResponseDetailss
-        ReservationResponseDetailss reservationResponseDetailss = new ReservationResponseDetailss();
-        reservationResponseDetailss.setReservationResponseDetails(reservationResponseDetails);
+            // Set ReservationResponseDetailss
 
-        ReservationResponseExtraDetails reservationResponseExtraDetails = new ReservationResponseExtraDetails();
-        ReservationResponseExtraDetailss reservationResponseExtraDetailss = new ReservationResponseExtraDetailss();
-        reservationResponseExtraDetails.setName("Name");
-        reservationResponseExtraDetails.setValue("value");
+            reservationResponseDetailss.setReservationResponseDetails(reservationResponseDetails);
+
+            
+            reservationResponseExtraDetails.setName("Name");
+            reservationResponseExtraDetails.setValue("value");
+
+        }
+
+
+
 
         reservationResponseExtraDetailss.getReservationResponseExtraDetails().add(reservationResponseExtraDetails);
 

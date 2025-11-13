@@ -78,7 +78,7 @@ public class ProcessSwiftOut {
             for (String str: fileContent) {
 //                String formattedString = str.substring(header.length(),(str.length() - header.length() - footer.length()));
                 String endingFile =  "_"+i+".txt";
-                boolean isXml = str.contains("urn:swift:xsd");
+                boolean isXml = str.contains("urn:swift:saa");
                 if(isXml){
                     endingFile = "_"+i+".xml";
                     sftpPath = sftpPathMX;
