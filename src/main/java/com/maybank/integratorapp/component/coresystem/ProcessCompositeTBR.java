@@ -164,23 +164,32 @@ public class ProcessCompositeTBR {
 //        FSA:
 //        C906IFS1234567ID >>> C1234567​+2 last digit of EventCode (ISS/AMD/CLM/etc)
 
-        switch (ftiProduct){
-            case "ILC","ELC":
-                _ref="T"+masterRefNo.substring(6,14)+_eventCode;
-                break;
-            case "FIL","FEL","FSA":
-                _ref="T"+masterRefNo.substring(0,1)+masterRefNo.substring(7,14)+_eventCode;
-                break;
-            case "SHG","ETD":
-                _ref="T"+masterRefNo.substring(2,3)+masterRefNo.substring(7,14)+_eventCode;
-                break;
-            case "ODC","IDC":
-                _ref="TO"+masterRefNo.substring(7,14)+_eventCode;
-                break;
-            default:
-                _ref="T123123123";
-                break;
+        if(masterRefNo.length() == 16){
+            switch (ftiProduct){
+                case "ILC","ELC":
+                    _ref="T"+masterRefNo.substring(6,14)+_eventCode;
+                    break;
+                case "FIL","FEL","FSA":
+                    _ref="T"+masterRefNo.substring(0,1)+masterRefNo.substring(7,14)+_eventCode;
+                    break;
+                case "SHG","ETD","IGT":
+                    _ref="T"+masterRefNo.substring(2,3)+masterRefNo.substring(7,14)+_eventCode;
+                    break;
+                case "ODC","IDC":
+                    _ref="TO"+masterRefNo.substring(7,14)+_eventCode;
+                    break;
+                default:
+                    _ref="T123123123";
+                    break;
+            }
+
         }
+        else{
+//            IFUL027655000
+            _ref="T"+masterRefNo.substring(3,10);
+        }
+
+
 
         return _ref;
     }
@@ -742,8 +751,8 @@ public class ProcessCompositeTBR {
             String _postingCurrency = postingGroup.getPostings().stream().findFirst().get().getPostingCcy();
             if (postingGroup.getPostings().stream().allMatch(x->x.getPostingCcy().equals(_postingCurrency))) {
 
-                if(postingGroup.getPostings().stream().filter(x->
-                        x.getAccountTypeAlias().equals("RPKP")).count()==1
+                if(postingGroup.getPostings().stream().anyMatch(x ->
+                        x.getAccountTypeAlias().equals("RPKP"))
                         && postingGroup.getPostings().size() > 2){
                     // Masukkan semua Debit ke PS
                     if(postingGroup.getPostings().stream().anyMatch(x->
@@ -876,9 +885,8 @@ public class ProcessCompositeTBR {
 
 
                 }
-                else if(postingGroup.getPostings().stream().filter(x->
-                                x.getAccountTypeAlias().equals("NOSTRO")
-                        ).count()==1
+                else if(postingGroup.getPostings().stream().anyMatch(x ->
+                        x.getAccountTypeAlias().equals("NOSTRO"))
                         && postingGroup.getPostings().size() > 2){
                     // Masukkan semua Debit ke PS
                     if(postingGroup.getPostings().stream().anyMatch(x->
@@ -1274,7 +1282,9 @@ public class ProcessCompositeTBR {
 
 
                 if(posting.getExtraData()!=null
-                        && posting.getExtraData().getCustBranchFacility()!=null){
+                        && (posting.getExtraData().getCustBranchFacility()!=null
+                            && !posting.getExtraData().getCustBranchFacility().trim().isEmpty())
+                ){
                     postingBranch = posting.getExtraData().getCustBranchFacility();
                     branch = postingBranch;
                 }else{
@@ -1336,7 +1346,7 @@ public class ProcessCompositeTBR {
 
 
                             data.setRtgsReference(generateRTGSRefCode(data.getProductReference(), data.getMasterReference(),data.getEventReference() ));
-                            data.setRtgsSpecialReference(data.getRtgsReference() +" YR REF "+data.getPostingNarrative1());
+                            data.setRtgsSpecialReference(data.getMasterReference() +" YR REF "+data.getPostingNarrative1());
 
                             if(data.getSenderToReceiverInfo()!= null){
                                 List<String> _SenderToReceiverInfo = List.of(data.getSenderToReceiverInfo().split("\n"));

@@ -1,5 +1,6 @@
 package com.maybank.integratorapp.model.mq.limitutilization.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.maybank.integratorapp.model.mq.reservationsreversal.request.RequestHeader;
 
@@ -8,6 +9,7 @@ public class ServiceRequestChild {
     private RequestHeader requestHeader ;
 
     @JacksonXmlProperty(localName = "Exposure")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private Exposure exposure ;
 
     public RequestHeader getRequestHeader() {

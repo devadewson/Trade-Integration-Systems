@@ -27,6 +27,7 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -400,10 +401,17 @@ public class LimitReservationMessageProcessor {
                                         needXL31 = true;
                                     }
                                     else{
+                                        if(!listExtraData.stream().filter(x -> x.getName().equals("LinkedClaimResId")).findFirst().isEmpty()){
+                                            reservedReservationIdentifier =listExtraData.stream().filter(x -> x.getName().equals("LinkedClaimResId")).findFirst().get().getValue();
+
+                                        }
                                         newKeyLoanAcc = reservedReservationIdentifier;
                                         needXL01= false;
                                         needXL31 = true;
                                     }
+
+
+
 
                                 }
                                 else if(listExtraData.stream().filter(x->x.getName().equals("PaymentOption")).findFirst().get().getValue().equals("Bill Settlement")){
@@ -449,7 +457,7 @@ public class LimitReservationMessageProcessor {
                     if(productType.equals("710")){
                         if(_eventCode.equals("ISS"))
                             cls001ProductType= productTypeList.stream().filter(x->
-                                            x.getEventCode().equals("ISS") &&
+                                            x.getEventCode().contains("ISS") &&
                                                     x.getLiabilityCode().equals("IGT"))
                                     .findFirst().get().getProductType001();
                         else{
@@ -529,6 +537,12 @@ public class LimitReservationMessageProcessor {
                     needXL01=true;
                 }
 
+                logger.Log(this.LoggerId,ProcessName, "CLS : "+
+                        "XL01:"+needXL01+"|"+
+                        "XL2B:"+needXL2B+"|"+
+                        "XL31:"+needXL31+"|", "DEBUG");
+
+
                 if(needXL01){
                     //draw 001
                     // step 3.
@@ -598,9 +612,18 @@ public class LimitReservationMessageProcessor {
                                 && x.getFtiEvent().equals(eventCode)
                                 && x.getId()>_lastXL2B.getId()
                         ).max(Comparator.comparing(FtiTransactionDetail::getId));
-                        // kalau masih ada XL2B gantung, kirim XL40 untuk XL2B yang gantung, next bikin baru
 
-                        if(lastXL40.isEmpty()){
+                        Optional<FtiTransactionDetail> lastXL41 = transactionDetails.stream().filter(x ->
+                                x.getCoreSysName().equals("CLS-XL41")
+                                        && x.getCoreSysStatus().equals("00")
+                                        && x.getAdditionalInfo2().equals("D")
+                                        && x.getFtiEvent().equals(eventCode)
+                                        && x.getId()>_lastXL2B.getId()
+                        ).max(Comparator.comparing(FtiTransactionDetail::getId));
+                        // kalau masih ada XL2B gantung, kirim XL40 untuk XL2B yang gantung, next bikin baru
+                        // dan kalau gaada reversal
+
+                        if(lastXL41.isEmpty() && lastXL40.isEmpty()){
                             // req XL40
                             utilizationMessageProcessor.logger = logger;
 
@@ -829,6 +852,16 @@ public class LimitReservationMessageProcessor {
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setDepartement(limitBranch);
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setIntstart(startDate);
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setMatdate(expiryDate);
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyy");
+        LocalDate fromDate = LocalDate.parse(startDate, formatter);
+        LocalDate toDate = LocalDate.parse(expiryDate, formatter);
+        Period period = Period.between(fromDate, toDate);
+        boolean lessThanOneMonth = period.getMonths() == 0 && period.getYears() == 0;
+
+        if(lessThanOneMonth && cls001ProductType.startsWith("22")){
+            soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setNbrpymt1("1");
+        }
         if(affiliateAcct.length() == 20){
 
             soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setNbrAcct1("16"+affiliateAcct);
@@ -840,6 +873,10 @@ public class LimitReservationMessageProcessor {
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setNotedate(transactionDate);
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setPrinamt("000000000000.00");
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setProductType(cls001ProductType);
+
+
+
+
 
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setRelCd("01");
         soapReqXL01.getBody().getXl01Draw001().getCmsXl01Draw001Request().setStatus("A");
@@ -1409,27 +1446,16 @@ public class LimitReservationMessageProcessor {
 //        reservationResponseDetails.setAvailableAmount(availableAmount);
             reservationResponseDetails.setLimitCheckStatus("S");
 
-
-            // Set ReservationResponseDetailss
-
-            reservationResponseDetailss.setReservationResponseDetails(reservationResponseDetails);
-
-            
-            reservationResponseExtraDetails.setName("Name");
-            reservationResponseExtraDetails.setValue("value");
-
         }
+        reservationResponseDetailss.setReservationResponseDetails(reservationResponseDetails);
 
-
-
-
+        reservationResponseExtraDetails.setName("Name");
+        reservationResponseExtraDetails.setValue("value");
         reservationResponseExtraDetailss.getReservationResponseExtraDetails().add(reservationResponseExtraDetails);
 
         // Set ke dalam ReservationsResponse
         reservationsResponse.setReservationResponseDetailss(reservationResponseDetailss);
         reservationsResponse.setReservationResponseExtraDetailss(reservationResponseExtraDetailss);
-
-
 
         response.setReservationsResponse(reservationsResponse);
         response.setResponseHeader(responseHeader);
@@ -1503,23 +1529,30 @@ public class LimitReservationMessageProcessor {
 //        FSA:
 //        C906IFS1234567ID >>> C1234567​+Event Code (ISS/AMD/CLM/etc)
 
-        switch (ftiProduct){
-            case "ILC","ELC":
-                _ref=masterRefNo.substring(6,14)+eventCode;
-                break;
-            case "FIL","FEL","FSA":
-                _ref=masterRefNo.substring(0,1)+masterRefNo.substring(7,14)+eventCode;
-                break;
-            case "SHG","ETD":
-                _ref=masterRefNo.substring(2,3)+masterRefNo.substring(7,14)+eventCode;
-                break;
-            case "ODC","IDC":
-                _ref="O"+masterRefNo.substring(7,14)+eventCode;
-                break;
-            default:
-                _ref="CLS123123123";
-                break;
+        if(masterRefNo.length() >= 16){
+            switch (ftiProduct){
+                case "ILC","ELC":
+                    _ref=masterRefNo.substring(6,14)+eventCode;
+                    break;
+                case "FIL","FEL","FSA":
+                    _ref=masterRefNo.substring(0,1)+masterRefNo.substring(7,14)+eventCode;
+                    break;
+                case "SHG","ETD","IGT":
+                    _ref=masterRefNo.substring(2,3)+masterRefNo.substring(7,14)+eventCode;
+                    break;
+                case "ODC","IDC":
+                    _ref="O"+masterRefNo.substring(7,14)+eventCode;
+                    break;
+                default:
+                    _ref="CLS123123123";
+                    break;
+            }
+        }else{
+//            IFUL027655000
+            _ref=masterRefNo.substring(3,10);
         }
+
+
 
         return _ref;
     }
