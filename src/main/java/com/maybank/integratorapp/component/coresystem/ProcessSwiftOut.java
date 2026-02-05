@@ -1,15 +1,10 @@
 package com.maybank.integratorapp.component.coresystem;
 
 import com.maybank.integratorapp.component.SftpFileTransfer;
-import com.maybank.integratorapp.component.listener.SwiftOutMessageListener;
-import com.maybank.integratorapp.data.repository.MsParameterRepository;
 import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
 import com.maybank.integratorapp.data.service.MsParameterService;
-import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.util.MQUtil;
 import com.maybank.integratorapp.util.MTtoMXConverter;
-import com.prowidesoftware.swift.io.PPCWriter;
-import com.prowidesoftware.swift.model.SwiftMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,15 +12,10 @@ import org.springframework.stereotype.Component;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Component
 public class ProcessSwiftOut {
@@ -36,7 +26,7 @@ public class ProcessSwiftOut {
     private static final char ETX = 0x03; // End of Text
 
     @Autowired
-    MsParameterService repo;
+    MsParameterService msParameterService;
     @Autowired
     LogInterfaceProcessService logger;
 
@@ -52,16 +42,18 @@ public class ProcessSwiftOut {
 
 //            this.logger.SetLogParent(idLogParent);
 
-            String mxConversion = repo.findValueByPrmKey("SwiftOutMXConversion");
-            String mxConversionTypes = repo.findValueByPrmKey("SwiftOutMXConversionTypes");
+            String mxConversion = msParameterService.findValueByPrmKey("SwiftOutMXConversion");
+            String mxConversionTypes = msParameterService.findValueByPrmKey("SwiftOutMXConversionTypes");
             // Sftp Config
-            String sftpHost = repo.findValueByPrmKey("SwiftOutSftpAddress");
-            String sftpUsername = repo.findValueByPrmKey("SwiftOutSftpUsername");
-            String sftpPassword = repo.findValueByPrmKey("SwiftOutSftpPassword");
-            String sftpPath = repo.findValueByPrmKey("SwiftOutSftpPath");
-            String sftpPathMX = repo.findValueByPrmKey("SwiftOutMXSftpPath");
-            String localpath = repo.findValueByPrmKey("SwiftOutLocalPath");
-            String sftpPort = repo.findValueByPrmKey("SwiftOutSftpPort");
+            String sftpHost = msParameterService.findValueByPrmKey("SwiftOutSftpAddress");
+            String sftpUsername = msParameterService.findValueByPrmKey("SwiftOutSftpUsername");
+            String sftpPassword = msParameterService.findValueByPrmKey("SwiftOutSftpPassword");
+            String sftpPath = msParameterService.findValueByPrmKey("SwiftOutSftpPath");
+            String sftpPathMX = msParameterService.findValueByPrmKey("SwiftOutMXSftpPath");
+            String localpath = msParameterService.findValueByPrmKey("SwiftOutLocalPath");
+            String sftpPort = msParameterService.findValueByPrmKey("SwiftOutSftpPort");
+            String specialType = msParameterService.findValueByPrmKey("SwiftOutSpecialType");
+
             String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
             String additionalPath = "FTI_"+correlationId+"_"+ MQUtil.generateRandomString(10).toUpperCase();
             String specificPath = localpath+File.separator+additionalPath;
@@ -76,9 +68,11 @@ public class ProcessSwiftOut {
             // Write All Files
             int i = 1;
             for (String str: fileContent) {
+
+
 //                String formattedString = str.substring(header.length(),(str.length() - header.length() - footer.length()));
                 String endingFile =  "_"+i+".txt";
-                boolean isXml = str.contains("urn:swift:saa");
+                boolean isXml = str.contains("urn:swift:saa") || str.contains("<Envelope") || str.contains("<DataPDU");
                 if(isXml){
                     endingFile = "_"+i+".xml";
                     sftpPath = sftpPathMX;
@@ -89,9 +83,16 @@ public class ProcessSwiftOut {
                 try (PrintWriter out = new PrintWriter(completePath, StandardCharsets.UTF_8)) {
 
                     String updatedContent = str.replace("\n", "\r\n");
-                    out.print(SOH);
-                    out.print(updatedContent);
-                    out.print(ETX);
+                    String mtType = converter.extractMTType(updatedContent);
+
+                    if (Arrays.stream(specialType.split(",")).noneMatch(z->z.equals(mtType))) {
+                        out.print(updatedContent);
+                    }else{
+                        out.print(SOH);
+                        out.print(updatedContent);
+                        out.print(ETX);
+                    }
+
 
 //                    if (!isXml) {
 //                        // Convert SWIFT messages to PPC format

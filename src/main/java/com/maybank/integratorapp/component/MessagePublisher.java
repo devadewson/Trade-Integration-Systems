@@ -176,6 +176,7 @@ public class MessagePublisher {
             _message.setText(message);
 
             // Send the message
+            producer.setTimeToLive(6000_000);
             producer.send(_message);
 
             log.info("Message sent successfully With CorrelationID : "+_message.getJMSCorrelationID());

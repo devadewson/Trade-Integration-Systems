@@ -541,8 +541,23 @@ public class LimitFacilitiesMessageProcessor {
                         msFacilityUtilizeRepository.saveAll(listFacilityUtilize);
                         existingUtilized.addAll(listFacilityUtilize);
 
+                        // purge expired utilize
+                        List<MsFacilityUtilize> finalUtilized = new ArrayList<>();
+                        List<MsFacilityUtilize> purgedUtilized = new ArrayList<>();
+                        existingUtilized.forEach(x->{
+                            if(loanAccountsListUtilize.stream().noneMatch(z->z.getKey().equals(x.getKeyLoanAcc()))){
+                                purgedUtilized.add(x);
+                            }else{
+                                finalUtilized.add(x);
+                            }
+                        });
+
+                        purgedUtilized.forEach(z->{
+                            msFacilityUtilizeRepository.delete(z);
+                        });
+
                         // Simpan draw terakhir ke MsRunningNumber
-                        updateLatestDrawNumber(existingUtilized);
+                        updateLatestDrawNumber(finalUtilized);
 
                         log.info("Successfully Refreshing Limit : "+cifno);
 

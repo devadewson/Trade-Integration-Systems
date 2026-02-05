@@ -3,6 +3,7 @@ package com.maybank.integratorapp.component.coresystem;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maybank.integratorapp.data.entity.*;
+import com.maybank.integratorapp.data.repository.MsCurrencyRepository;
 import com.maybank.integratorapp.data.repository.VwTbrMappingRepository;
 import com.maybank.integratorapp.data.service.*;
 import com.maybank.integratorapp.model.mq.batchposting.request.ExtraData;
@@ -39,6 +40,8 @@ public class ProcessCompositeTBR {
     @Autowired
     private MsCompanyLimitService msCompanyLimitService;
     @Autowired
+    MsReferenceConfigService msReferenceConfigService;
+    @Autowired
     private MsBranchService msBranchService;
     @Autowired
     private MsTBRFieldService tbrFieldService;
@@ -51,6 +54,8 @@ public class ProcessCompositeTBR {
 
     @Autowired
     private MsParameterService parameterService;
+    @Autowired
+    MsCurrencyRepository msCurrencyRepository;
 
     @Autowired
     LogInterfaceProcessService logger;
@@ -175,8 +180,11 @@ public class ProcessCompositeTBR {
                 case "SHG","ETD","IGT":
                     _ref="T"+masterRefNo.substring(2,3)+masterRefNo.substring(7,14)+_eventCode;
                     break;
-                case "ODC","IDC":
+                case "CDO","CDI":
                     _ref="TO"+masterRefNo.substring(7,14)+_eventCode;
+                    break;
+                case "FOC":
+                    _ref="T"+masterRefNo.substring(5,6)+masterRefNo.substring(7,14)+_eventCode;
                     break;
                 default:
                     _ref="T123123123";
@@ -186,13 +194,88 @@ public class ProcessCompositeTBR {
         }
         else{
 //            IFUL027655000
-            _ref="T"+masterRefNo.substring(3,10);
+            if(masterRefNo.length()<10){
+                StringBuilder _addition = new StringBuilder();
+                String _char = "0";
+                for(int i = masterRefNo.length();i<10;i++){
+                    _addition.append(_char);
+                }
+                masterRefNo += _addition;
+            }
+            _ref="T"+masterRefNo.substring(3,10)+_eventCode;
         }
 
 
 
         return _ref;
     }
+
+    private String generateNostroRefCode(String ftiProduct,String masterRefNo, String coreSystemBranch,String eventCode) {
+        String _ref = "";
+        String _eventCode = eventCode.substring(eventCode.length()-2);
+//        max char = 10
+//        ILC:
+//        ILC906S1234567ID >>> S1234567​+ 2 last digit of Event Code (ISS/AMD/CLM/etc) = S123456701
+//
+//        ELC:
+//        ELC906A1234567ID >>> A1234567​+2 last digit of EventCode (ISS/AMD/CLM/etc)
+//
+//        FIL:
+//        I906CTR1234567ID >>> I1234567​+2 last digit of EventCode (ISS/AMD/CLM/etc)
+//
+//        FEL:
+//        E906CNL1234567ID >>> E1234567​+2 last digit of EventCode (ISS/AMD/CLM/etc)
+//
+//        SG/ETD:
+//        SSG906S1234567ID >>> G1234567​+2 last digit of EventCode (ISS/AMD/CLM/etc)
+//
+//        ODC/IDC:
+//        CDO906C1234567ID >>> O1234567​+2 last digit of EventCode (ISS/AMD/CLM/etc)
+//
+//        FSA:
+//        C906IFS1234567ID >>> C1234567​+2 last digit of EventCode (ISS/AMD/CLM/etc)
+
+        if(masterRefNo.length() == 16){
+            switch (ftiProduct){
+                case "ILC","ELC":
+                    _ref=coreSystemBranch+"-"+masterRefNo.substring(6,14)+_eventCode;
+                    break;
+                case "FIL","FEL","FSA":
+                    _ref=coreSystemBranch+"-"+masterRefNo.substring(0,1)+masterRefNo.substring(7,14)+_eventCode;
+                    break;
+                case "SHG","ETD","IGT":
+                    _ref=coreSystemBranch+"-"+masterRefNo.substring(2,3)+masterRefNo.substring(7,14)+_eventCode;
+                    break;
+                case "CDO","CDI":
+                    _ref=coreSystemBranch+"-"+"O"+masterRefNo.substring(7,14)+_eventCode;
+                    break;
+                case "FOC":
+                    _ref=coreSystemBranch+"-"+masterRefNo.substring(5,6)+masterRefNo.substring(7,14)+_eventCode;
+                    break;
+                default:
+                    _ref="T123123123";
+                    break;
+            }
+
+        }
+        else{
+//            IFUL027655000
+            if(masterRefNo.length()<10){
+                StringBuilder _addition = new StringBuilder();
+                String _char = "0";
+                for(int i = masterRefNo.length();i<10;i++){
+                    _addition.append(_char);
+                }
+                masterRefNo += _addition;
+            }
+            _ref=coreSystemBranch+"-"+masterRefNo.substring(3,10)+_eventCode;
+        }
+
+
+
+        return _ref;
+    }
+
     private Long LoggerId;
     public void doPosting(List<Posting> data, Long idLogParent){
 
@@ -230,6 +313,12 @@ public class ProcessCompositeTBR {
                 if(ignorePosting)
                     data = new ArrayList<>();
 
+            }
+
+            // for posting amount in difference decimal delimiters
+            for (Posting _data:
+                 data) {
+                _data.setPostingAmount(checkReformatAmount(_data.getPostingCcy(),_data.getPostingAmount()));
             }
 
             // RTGS Logic Block
@@ -1046,7 +1135,7 @@ public class ProcessCompositeTBR {
 
         return _newShadowLeg;
     }
-   private void postRtgs(PostingGroup postingGroup) {
+    private void postRtgs(PostingGroup postingGroup) {
         try{
             PostingExtender rpkpPosting = postingGroup.getPostings().stream().filter(x->x.getAccountTypeAlias().equals("RPKP")).findFirst().get();
 
@@ -1236,7 +1325,7 @@ public class ProcessCompositeTBR {
         String TripBranch_Account = parameterService.findValueByPrmKey("TripBranch_Account");
 
         try{
-// for sample only
+//  for sample only
 //            listPosting = populateSamplePosting2();
 
             // Get current date and time
@@ -1345,8 +1434,28 @@ public class ProcessCompositeTBR {
                         if(data.getDebitCreditFlag().equals("C")){
 
 
-                            data.setRtgsReference(generateRTGSRefCode(data.getProductReference(), data.getMasterReference(),data.getEventReference() ));
-                            data.setRtgsSpecialReference(data.getMasterReference() +" YR REF "+data.getPostingNarrative1());
+//                            data.setRtgsReference(generateRTGSRefCode(data.getProductReference(), data.getMasterReference(),data.getEventReference() ));
+                            String _customReference ="";
+                            String masterReference = data.getMasterReference();
+                            String eventCode = data.getEventReference();
+                            String productCode = data.getProductReference();
+
+                            if(masterReference.length() >= 16){
+                                _customReference = msReferenceConfigService.generateReference("FTI","RTGS",productCode,masterReference+"-"+eventCode);
+
+                            }else{
+                                if(masterReference.length()<10){
+                                    StringBuilder _addition = new StringBuilder();
+                                    String _char = "0";
+                                    for(int i = masterReference.length();i<10;i++){
+                                        _addition.append(_char);
+                                    }
+                                    masterReference += _addition;
+                                }
+                                _customReference = msReferenceConfigService.generateReference("MIG","RTGS",productCode,masterReference+"-"+eventCode);
+
+                            }
+                            data.setRtgsReference(_customReference);
 
                             if(data.getSenderToReceiverInfo()!= null){
                                 List<String> _SenderToReceiverInfo = List.of(data.getSenderToReceiverInfo().split("\n"));
@@ -1356,6 +1465,7 @@ public class ProcessCompositeTBR {
                                 data.setSenderToReceiverInfo4(ListUtils.getOrDefault(_SenderToReceiverInfo,3,"-"));
 
                             }
+                            data.setRtgsSpecialReference(data.getMasterReference() +" YR REF "+data.getSenderToReceiverInfo1());
 
                             List<String> _addressRtgs = List.of(data.getSettlementAccountPartyAddress().split("\n"));
                             data.setRtgsBankName(ListUtils.getOrDefault(_addressRtgs,0,"-"));
@@ -1402,6 +1512,34 @@ public class ProcessCompositeTBR {
                 data.setCoreSpvUid(clientSpvUserId);
                 data.setRtgsTransDate(formattedDate);
                 data.setRtgsTransTime(formattedTime);
+
+                // set NOSTRO reference
+                if(data.getAccountTypeAlias().equals("NOSTRO")){
+//                    data.setNostroSpecialReference(generateNostroRefCode(data.getProductReference(),data.getMasterReference(),data.getCoreSystemBranch(),data.getEventReference()));
+
+                    String _customReference ="";
+                    String masterReference = data.getMasterReference();
+                    String eventCode = data.getEventReference();
+                    String productCode = data.getProductReference();
+
+                    if(masterReference.length() >= 16){
+                        _customReference = data.getCoreSystemBranch()+"-"+msReferenceConfigService.generateReference("FTI","NOSTRO",productCode,masterReference+"-"+eventCode);
+
+                    }else{
+                        if(masterReference.length()<10){
+                            StringBuilder _addition = new StringBuilder();
+                            String _char = "0";
+                            for(int i = masterReference.length();i<10;i++){
+                                _addition.append(_char);
+                            }
+                            masterReference += _addition;
+                        }
+                        _customReference = data.getCoreSystemBranch()+"-"+msReferenceConfigService.generateReference("MIG","NOSTRO",productCode,masterReference+"-"+eventCode);
+
+                    }
+                    data.setNostroSpecialReference(_customReference);
+                }
+
 
                 finalListPosting.add(data);
             }
@@ -1604,6 +1742,7 @@ public class ProcessCompositeTBR {
         return groupedPostings;
 
     }
+
     public Object mapFieldTBRNew(Object instance, Class<?> dynamicClass,List<PostingExtender> postings, List<MsTBRField> listMapping){
 
         // Get the source's getter method and the destination's setter method
@@ -1833,6 +1972,15 @@ public class ProcessCompositeTBR {
         private String SenderToReceiverInfo2;
         private String SenderToReceiverInfo3;
         private String SenderToReceiverInfo4;
+        private String NostroSpecialReference;
+
+        public String getNostroSpecialReference() {
+            return NostroSpecialReference;
+        }
+
+        public void setNostroSpecialReference(String nostroSpecialReference) {
+            NostroSpecialReference = nostroSpecialReference;
+        }
 
         public String getRtgsSender() {
             return RtgsSender;
@@ -2083,5 +2231,22 @@ public class ProcessCompositeTBR {
         public void setMappingId(Long mappingId) {
             MappingId = mappingId;
         }
+    }
+    public String checkReformatAmount(String currency, String amount){
+        String _retAmount = "0";
+        MsCurrency msCurrency = msCurrencyRepository.findByIsoCode(currency);
+        if(msCurrency!= null){
+
+            if(msCurrency.getDecimalPoint()<1){
+                _retAmount = amount+"00";
+            } else if(msCurrency.getDecimalPoint()>2){
+                _retAmount = amount.substring(0,amount.length()-2);
+            } else{
+                _retAmount = amount;
+            }
+
+        }
+        return _retAmount;
+
     }
 }

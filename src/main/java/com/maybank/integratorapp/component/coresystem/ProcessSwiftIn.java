@@ -54,10 +54,10 @@ public class ProcessSwiftIn {
         try {
 
             // Sftp Config
-//            String sftpHost = repo.findValueByPrmKey("FTISwiftInSftpAddress");
-//            String sftpUsername = repo.findValueByPrmKey("SwiftInSftpUsername");
-//            String sftpPassword = repo.findValueByPrmKey("SwiftInSftpPassword");
-//            String sftpPath = repo.findValueByPrmKey("SwiftInSftpPath");
+//            String sftpHost = msParameterService.findValueByPrmKey("FTISwiftInSftpAddress");
+//            String sftpUsername = msParameterService.findValueByPrmKey("SwiftInSftpUsername");
+//            String sftpPassword = msParameterService.findValueByPrmKey("SwiftInSftpPassword");
+//            String sftpPath = msParameterService.findValueByPrmKey("SwiftInSftpPath");
             String localpath = repo.findValueByPrmKey("SwiftInLocalPath");
 
             String sftpHost = repo.findValueByPrmKey("FTISwiftInSftpAddress");
