@@ -5,6 +5,8 @@ import com.maybank.integratorapp.data.service.*;
 import com.maybank.integratorapp.model.soap.fcclimit.response.Limit;
 import com.maybank.integratorapp.model.soap.fcclimit.response.OFAResponse;
 import com.maybank.integratorapp.service.SendingEmailServiceImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,6 +26,7 @@ import java.util.Optional;
 public class FtiTransactionController {
 //    @Autowired
 //    EmailService emailService;
+    private static Logger log = LoggerFactory.getLogger(FtiTransactionController.class);
     @Autowired
     SendingEmailServiceImpl emailService;
     @Autowired
@@ -53,6 +56,7 @@ public class FtiTransactionController {
             @RequestParam("page") Optional<Integer> page,
             @RequestParam("size") Optional<Integer> size,
             @RequestParam("search") Optional<String> search,
+            @RequestParam("reservationid") Optional<String> reservationid,
             Model model) {
 
         // Set default values for pagination
@@ -63,19 +67,24 @@ public class FtiTransactionController {
         Pageable pageable = PageRequest.of(currentPage - 1, pageSize, Sort.by("id").descending());
 
         // Fetch a page of FtiTransactions
-        Page<FtiTransaction> transactionPage;
-        if (search.isPresent() && !search.get().isEmpty()) {
-            // If search term is provided, search by masterRefNo
-            transactionPage = ftiTransactionService.searchByMasterRefNo(search.get(), pageable);
-        } else {
-            // Otherwise, fetch all transactions with default sorting
-            transactionPage = ftiTransactionService.getAllFtiTransactions(pageable);
-        }
+        Page<FtiTransaction> transactionPage = ftiTransactionService.getAllWithSearch(pageable, search, reservationid);
+//        if (search.isPresent() && !search.get().isEmpty()) {
+//            // If search term is provided, search by masterRefNo
+//            transactionPage = ftiTransactionService.searchByMasterRefNo(search.get(), pageable);
+//        }else if (reservationid.isPresent() && !reservationid.get().isEmpty()) {
+//            // If search term is provided, search by masterRefNo
+//            transactionPage = ftiTransactionService.searchByReservationId(reservationid.get(), pageable);
+//        }
+//        else {
+//            // Otherwise, fetch all transactions with default sorting
+//            transactionPage = ftiTransactionService.getAllFtiTransactions(pageable);
+//        }
         // Add data to the model
         model.addAttribute("transactionPage", transactionPage);
         model.addAttribute("currentPage", currentPage);
         model.addAttribute("totalPages", transactionPage.getTotalPages());
         model.addAttribute("search", search.orElse(""));
+        model.addAttribute("reservationid", reservationid.orElse(""));
 
         return "layouts/transactions/index"; // Thymeleaf template name
     }
@@ -85,8 +94,12 @@ public class FtiTransactionController {
     public String getFtiTransactionDetails(@PathVariable Long id, Model model) {
         FtiTransaction transaction = ftiTransactionService.getFtiTransactionById(id);
         List<FtiTransactionDetail> details = ftiTransactionDetailService.getDetailsByHeaderId(id);
+        String relatedLink = "/log-queue?transref="+transaction.getMasterRefNo();
+        List<LogQueueData> logQueue = logQueueDataService.searchByTransactionId(transaction.getMasterRefNo());
+        model.addAttribute("logQueuePage", logQueue);
         model.addAttribute("transaction", transaction);
         model.addAttribute("details", details);
+        model.addAttribute("relatedLink", relatedLink);
         return "layouts/transactions/details"; // Thymeleaf template name
     }
 
@@ -163,7 +176,7 @@ public class FtiTransactionController {
 
         }
         catch (Exception e){
-            System.out.println(e.getMessage());
+            log.info(e.getMessage());
             return new ResponseEntity<OFAResponse>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 

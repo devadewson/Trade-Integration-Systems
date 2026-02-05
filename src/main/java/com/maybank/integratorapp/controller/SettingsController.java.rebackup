@@ -1,0 +1,118 @@
+package com.maybank.integratorapp.controller;
+
+import com.maybank.integratorapp.data.utils.DynamicEntityService;
+import com.maybank.integratorapp.data.utils.EntityField;
+import com.maybank.integratorapp.data.utils.EntityMetadata;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Controller
+@RequestMapping("/settings")
+public class SettingsController {
+
+    private final DynamicEntityService dynamicEntityService;
+
+    @Autowired
+    public SettingsController(DynamicEntityService dynamicEntityService) {
+        this.dynamicEntityService = dynamicEntityService;
+    }
+
+    @GetMapping
+    public String showSettingsMenu(Model model) {
+        model.addAttribute("entities", dynamicEntityService.getAllEntities());
+        return "layouts/settings/index";
+    }
+
+    @GetMapping("/{tableName}")
+    public String manageEntity(
+            @PathVariable String tableName,
+            Model model,
+            @RequestParam(required = false) Long id) {
+
+        EntityMetadata metadata = dynamicEntityService.getEntityMetadata(tableName);
+        if (metadata == null) {
+            throw new RuntimeException("Entity not found");
+        }
+
+        model.addAttribute("metadata", metadata);
+
+        if (id != null) {
+            Map<String, Object> entity = dynamicEntityService.getEntityRecord(tableName, id);
+            model.addAttribute("entity", entity);
+        } else {
+            model.addAttribute("entity", Collections.emptyMap());
+        }
+
+        List<Map<String, Object>> entities = dynamicEntityService.getEntityData(tableName);
+        model.addAttribute("entities", entities);
+
+        return "layouts/settings/details";
+    }
+
+    @PostMapping("/{tableName}/save")
+    public String saveEntity(
+            @PathVariable String tableName,
+            @RequestParam Map<String, String> formData,
+            @RequestParam(required = false) Long id,
+            RedirectAttributes redirectAttributes) {
+
+        try {
+            // Convert form data to proper types based on metadata
+            EntityMetadata metadata = dynamicEntityService.getEntityMetadata(tableName);
+            Map<String, Object> data = new HashMap<>();
+
+            for (EntityField field : metadata.getFields()) {
+                String value = formData.get(field.getColumnName());
+                if (value != null && !value.isEmpty()) {
+                    data.put(field.getColumnName(), convertValue(value, field.getFieldType()));
+                }
+            }
+
+            dynamicEntityService.saveEntityRecord(tableName, data, id);
+            redirectAttributes.addFlashAttribute("success", "Record saved successfully");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Error saving record: " + e.getMessage());
+        }
+
+        return "redirect:/settings/" + tableName;
+    }
+
+    @PostMapping("/{tableName}/delete")
+    public String deleteEntity(
+            @PathVariable String tableName,
+            @RequestParam Long id,
+            RedirectAttributes redirectAttributes) {
+
+        try {
+            dynamicEntityService.deleteEntityRecord(tableName, id);
+            redirectAttributes.addFlashAttribute("success", "Record deleted successfully");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Error deleting record: " + e.getMessage());
+        }
+
+        return "redirect:/settings/" + tableName;
+    }
+
+    private Object convertValue(String value, String type) {
+        switch (type.toLowerCase()) {
+            case "long":
+                return Long.parseLong(value);
+            case "integer":
+                return Integer.parseInt(value);
+            case "boolean":
+                return Boolean.parseBoolean(value);
+            case "double":
+                return Double.parseDouble(value);
+            default:
+                return value;
+        }
+    }
+}

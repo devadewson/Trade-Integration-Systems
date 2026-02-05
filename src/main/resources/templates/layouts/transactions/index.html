@@ -13,10 +13,18 @@
         <div class="card-body">
             <!-- Search Box -->
             <form th:action="@{/transactions}" method="get" class="mb-4">
-                <div class="input-group">
-                    <input type="text" name="search" th:value="${search}" class="form-control" placeholder="Search by Master Ref No">
-                    <button type="submit" class="btn btn-primary">Search</button>
+                <div class="mb-3 row">
+                    <div class="col-sm-6">
+                        <input type="text" name="search" th:value="${search}" class="form-control" placeholder="Search by Master Ref No">
+                    </div>
                 </div>
+                <div class="mb-3 row">
+                    <div class="col-sm-6">
+                        <input type="text" name="reservationid" th:value="${reservationid}" class="form-control" placeholder="Search by Reservation ID">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Search</button>
+
             </form>
         </div>
     </div>
@@ -55,34 +63,34 @@
                 <ul class="pagination">
                     <!-- Previous Button -->
                     <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
-                        <a class="page-link" th:href="@{/transactions(page=1, size=${transactionPage.size}, search=${search})}">First</a>
+                        <a class="page-link" th:href="@{/transactions(page=1, size=${transactionPage.size}, search=${search}, reservationid=${reservationid})}">First</a>
                     </li>
                     <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
-                        <a class="page-link" th:href="@{/transactions(page=${currentPage - 1}, size=${transactionPage.size}, search=${search})}">Previous</a>
+                        <a class="page-link" th:href="@{/transactions(page=${currentPage - 1}, size=${transactionPage.size}, search=${search}, reservationid=${reservationid})}">Previous</a>
                     </li>
 
                     <!-- "<< Previous 10 Pages" Button (Shows only if not on first 10 pages) -->
                     <li class="page-item" th:if="${currentPage > 10}">
-                        <a class="page-link" th:href="@{/transactions(page=${(currentPage - 10)}, size=${transactionPage.size}, search=${search})}"><<</a>
+                        <a class="page-link" th:href="@{/transactions(page=${(currentPage - 10)}, size=${transactionPage.size}, search=${search}, reservationid=${reservationid})}"><<</a>
                     </li>
 
                     <!-- Page Numbers (Limited to current range, e.g., 1-10, 11-20, etc.) -->
                     <li th:each="page : ${#numbers.sequence(T(java.lang.Math).max(1, (currentPage - 5)),T(java.lang.Math).min(currentPage + 4, transactionPage.totalPages))}"
                         class="page-item" th:classappend="${page == currentPage} ? 'active'">
-                        <a class="page-link" th:href="@{/transactions(page=${page}, size=${transactionPage.size}, search=${search})}" th:text="${page}"></a>
+                        <a class="page-link" th:href="@{/transactions(page=${page}, size=${transactionPage.size}, search=${search}, reservationid=${reservationid})}" th:text="${page}"></a>
                     </li>
 
                     <!-- ">> Next 10 Pages" Button (Shows only if more pages exist) -->
                     <li class="page-item" th:if="${(currentPage + 10) <= transactionPage.totalPages}">
-                        <a class="page-link" th:href="@{/transactions(page=${(currentPage + 10)}, size=${transactionPage.size}, search=${search})}">>></a>
+                        <a class="page-link" th:href="@{/transactions(page=${(currentPage + 10)}, size=${transactionPage.size}, search=${search}, reservationid=${reservationid})}">>></a>
                     </li>
 
                     <!-- Next Button -->
                     <li class="page-item" th:classappend="${currentPage == transactionPage.totalPages} ? 'disabled'">
-                        <a class="page-link" th:href="@{/transactions(page=${currentPage + 1}, size=${transactionPage.size}, search=${search})}">Next</a>
+                        <a class="page-link" th:href="@{/transactions(page=${currentPage + 1}, size=${transactionPage.size}, search=${search}, reservationid=${reservationid})}">Next</a>
                     </li>
                     <li class="page-item" th:classappend="${currentPage == transactionPage.totalPages} ? 'disabled'">
-                        <a class="page-link" th:href="@{/transactions(page=${transactionPage.totalPages}, size=${transactionPage.size}, search=${search})}">Last</a>
+                        <a class="page-link" th:href="@{/transactions(page=${transactionPage.totalPages}, size=${transactionPage.size}, search=${search}, reservationid=${reservationid})}">Last</a>
                     </li>
                 </ul>
             </nav>

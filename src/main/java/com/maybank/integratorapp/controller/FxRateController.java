@@ -22,6 +22,8 @@ import com.maybank.integratorapp.model.rest.fxratelist.response.FxRateListData;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.util.MQUtil;
 import io.swagger.v3.oas.annotations.Hidden;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,7 +37,7 @@ import java.util.List;
 @Hidden // Hides the entire controller
 @RestController
 public class FxRateController {
-
+    private static Logger log = LoggerFactory.getLogger(FxRateController.class);
     @Autowired
     MsQueueConfigService queueConfigService;
     @Autowired

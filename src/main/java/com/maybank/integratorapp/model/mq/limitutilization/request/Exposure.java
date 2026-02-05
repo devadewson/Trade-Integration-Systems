@@ -1,6 +1,8 @@
 package com.maybank.integratorapp.model.mq.limitutilization.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
+
 
 public class Exposure {
     @JacksonXmlProperty(localName = "TransactionId")
@@ -151,7 +153,8 @@ public class Exposure {
     private String addMntDelFlag;
 
     @JacksonXmlProperty(localName = "ExtraData")
-    private String extraData;
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private ExtraData extraData;
 
     public String getTransactionId() {
         return transactionId;
@@ -545,11 +548,11 @@ public class Exposure {
         this.addMntDelFlag = addMntDelFlag;
     }
 
-    public String getExtraData() {
+    public ExtraData getExtraData() {
         return extraData;
     }
 
-    public void setExtraData(String extraData) {
+    public void setExtraData(ExtraData extraData) {
         this.extraData = extraData;
     }
 }

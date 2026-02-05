@@ -4,6 +4,8 @@ import java.util.Date;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MQUtil {
     public String getMessageUID(){
@@ -30,5 +32,50 @@ public class MQUtil {
             sb.append(CHARACTERS.charAt(random.nextInt(CHARACTERS.length())));
         }
         return sb.toString();
+    }
+    public static String findTransRef(String queueName,String message){
+        String relatedTransaction = "";
+        if(message !=null){
+
+            if(message.contains("<reference>")){
+                Pattern pattern = Pattern.compile("<reference>(.*?)</reference>");
+                Matcher matcher = pattern.matcher(message);
+
+                if (matcher.find()) {
+                    relatedTransaction = matcher.group(1);
+                }
+
+            }else if(message.contains("MasterReference>")){
+                Pattern pattern = Pattern.compile("<[^:>]+:MasterReference>(.*?)</[^:>]+:MasterReference>");
+                Matcher matcher = pattern.matcher(message);
+
+                if (matcher.find()) {
+                    relatedTransaction = matcher.group(1);
+                }
+
+            }
+            else if(message.contains("<BizMsgIdr>") && queueName.contains("swiftOutgoing")){
+                Pattern pattern = Pattern.compile("<[^:>]+:BizMsgIdr>(.*?)</[^:>]+:BizMsgIdr>");
+                Matcher matcher = pattern.matcher(message);
+
+                if (matcher.find()) {
+                    relatedTransaction = matcher.group(1);
+                }
+
+            }
+            else if(!message.contains("<BizMsgIdr>") && queueName.contains("swiftOutgoing")){
+                String text = message;
+                int startIndex = text.indexOf(":20:") + 4; // `+4` to skip `:20:`
+                int endIndex = text.indexOf("\n", startIndex); // Find the next newline
+
+                if (startIndex >= 4 && endIndex != -1) {
+                    relatedTransaction = text.substring(startIndex, endIndex).trim();
+
+                }
+
+            }
+
+        }
+        return relatedTransaction;
     }
 }

@@ -14,6 +14,7 @@ public class MsCurrency {
     private String IsoCode;
     private String InternalCode;
     private String CountryName;
+    private Long DecimalPoint;
 
     public Long getId() {
         return id;
@@ -45,5 +46,13 @@ public class MsCurrency {
 
     public void setCountryName(String countryName) {
         CountryName = countryName;
+    }
+
+    public Long getDecimalPoint() {
+        return DecimalPoint;
+    }
+
+    public void setDecimalPoint(Long decimalPoint) {
+        DecimalPoint = decimalPoint;
     }
 }

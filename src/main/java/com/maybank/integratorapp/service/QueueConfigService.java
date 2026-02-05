@@ -4,6 +4,8 @@ import com.maybank.integratorapp.IntegratorAppMain;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
 import com.maybank.integratorapp.data.repository.MsQueueConfigRepository;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -18,6 +20,7 @@ public class QueueConfigService {
 
 //    @Autowired
 //    private NewDynamicJmsListenerService jmsListenerService;
+    private static Logger log = LoggerFactory.getLogger(QueueConfigService.class);
     @Autowired
     private JmsListenerService jmsListenerService;
     @Autowired
@@ -31,7 +34,7 @@ public class QueueConfigService {
     @EventListener(ApplicationReadyEvent.class)
     public void checkForConfigUpdates() {
         List<MsQueueConfig> queueConfigs = (List<MsQueueConfig>) queueConfigRepository.findAll();
-        System.out.println("Refreshing Queue configuration...");
+        log.info("Refreshing Queue configuration...");
 //        List<String> queueNames = queueConfigs.stream().map(x-> ).toList();
 //        List<String> queueNames = queueConfigs.stream()
 //                .filter(x->x.getServiceName().equals("AccountInquiry"))
@@ -39,7 +42,7 @@ public class QueueConfigService {
 //                .collect(Collectors.toList());
 //        mqListenerManager.registerListeners(queueNames);
         jmsListenerService.configureListeners(queueConfigs);
-        System.out.println("Completed refreshing Queue configuration");
+        log.info("Completed refreshing Queue configuration");
     }
 }
 

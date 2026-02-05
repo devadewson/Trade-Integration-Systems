@@ -504,16 +504,14 @@ public class LimitFacilitiesMessageProcessor {
                         List<LoanAccounts> loanAccountsListUtilize = loanAccountsList.stream().filter(x->!splitKey(x.getKey())[5].equals("999")).toList();
                         loanAccountsListUtilize.forEach(s->{
                             String[] splitKey = splitKey(s.getKey());
-                            String companyLimitValue = splitKey[3];
-                            String noteNumber = splitKey[4];
-                            String draw = splitKey[5];
+                            String facilityHeader = splitKey[0]+splitKey[1]+splitKey[2]+splitKey[3]+splitKey[4];
 
                             MsFacilityUtilize utilize = new MsFacilityUtilize();
 
 
                             // Mencari MsCompanyLimit berdasarkan cifno
 
-                            MsFacility msFacility = existingFacility.stream().filter(z->z.getKeyDigitNote().equals(noteNumber)).findFirst().orElse(null);
+                            MsFacility msFacility = existingFacility.stream().filter(z->z.getKeyLoanAcc().contains(facilityHeader)).findFirst().orElse(null);
 
                             if(msFacility != null) {
                                 utilize.setFacilityId(msFacility.getId());
@@ -543,8 +541,23 @@ public class LimitFacilitiesMessageProcessor {
                         msFacilityUtilizeRepository.saveAll(listFacilityUtilize);
                         existingUtilized.addAll(listFacilityUtilize);
 
+                        // purge expired utilize
+                        List<MsFacilityUtilize> finalUtilized = new ArrayList<>();
+                        List<MsFacilityUtilize> purgedUtilized = new ArrayList<>();
+                        existingUtilized.forEach(x->{
+                            if(loanAccountsListUtilize.stream().noneMatch(z->z.getKey().equals(x.getKeyLoanAcc()))){
+                                purgedUtilized.add(x);
+                            }else{
+                                finalUtilized.add(x);
+                            }
+                        });
+
+                        purgedUtilized.forEach(z->{
+                            msFacilityUtilizeRepository.delete(z);
+                        });
+
                         // Simpan draw terakhir ke MsRunningNumber
-                        updateLatestDrawNumber(existingUtilized);
+                        updateLatestDrawNumber(finalUtilized);
 
                         log.info("Successfully Refreshing Limit : "+cifno);
 
@@ -577,6 +590,7 @@ public class LimitFacilitiesMessageProcessor {
                     FacilityDetails fac = new FacilityDetails();
                     fac.setIdentifier(s.getKeyLoanAcc());
                     fac.setFacilityCode(s.getKeyDigitNote());
+                    fac.setSequenceNumber(s.getKeyDigitNote());
                     fac.setCustomer(cifno);
 
                     Date NoteDate = inputFormat.parse(s.getNoteDate());
@@ -589,7 +603,7 @@ public class LimitFacilitiesMessageProcessor {
                     fac.setCurrency(s.getLoanCurrencyCode());
 //                            fac.setCurrency(currencies.stream().filter(x->x.getInternalCode().equals(s.getCurrency())).findFirst().get().getIsoCode());
                     String balance = s.getPrincipalBalance().split("\\.")[0];
-                    String utilizedBalance = s.getCommitmentBalance().split("\\.")[0];
+                    String utilizedBalance = (s.getCommitmentBalanceSign().equals("-")?"-":"")+s.getCommitmentBalance().split("\\.")[0];
                     String remainingBalance = String.valueOf((Long.parseLong(balance) - Long.parseLong(utilizedBalance)));
 
                     fac.setStatus(s.getNoteType());
@@ -715,7 +729,7 @@ public class LimitFacilitiesMessageProcessor {
                 if(newRunningNumber != runningNumber.getRunningNumber()){
                     logger.Log(this.LoggerId,ProcessName,
                             "Facility ID: " + runningNumber.getFacilityId()
-                                    + ", Running Number : " + runningNumber.getRunningNumber()
+                                    + ", Running Number Update : " + runningNumber.getRunningNumber()
                             +" to "+newRunningNumber, "DEBUG");
                     runningNumber.setRunningNumber(newRunningNumber);
                     msUtilizeRunningNumberRepository.save(runningNumber);

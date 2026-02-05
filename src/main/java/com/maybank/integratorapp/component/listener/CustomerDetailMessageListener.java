@@ -7,8 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
-import com.maybank.integratorapp.component.coresystem.ProcessCostumerSearch;
-import com.maybank.integratorapp.component.coresystem.ProcessCustomerDetail;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsCompanyData;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
@@ -24,6 +22,8 @@ import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.Queue;
 import jakarta.jms.TextMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -33,14 +33,12 @@ import java.util.Date;
 
 @Component
 public class CustomerDetailMessageListener implements CustomMessageListener {
+    private static Logger log = LoggerFactory.getLogger(CustomerDetailMessageListener.class);
     @Autowired
     private LogQueueDataRepository dataDTO;
     
     @Autowired
     MsCompanyDataRepository companyDataRepository;
-
-    @Autowired
-    ProcessCustomerDetail processCustomerDetail;
 
     @Autowired
     MsQueueConfigService queueConfigService;
@@ -64,7 +62,7 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
                     message.acknowledge();
                     return;
                 }
-                System.out.println("Customer Detail Listener Received : "+message.getJMSCorrelationID());
+                log.info("Customer Detail Listener Received : "+message.getJMSCorrelationID());
 //                System.out.println(message.getBody(String.class));
                 String _message = message.getBody(String.class);
 
@@ -132,7 +130,7 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
                 customerDetailsResponse.setCustomerExtraData(new CustometExtraData());
                 customerDetailsResponse.getCustomerExtraData().setCifNumber(cifNo);
                 customerDetailsResponse.getCustomerExtraData().setTaxId(customerInformationResponse.getnPWP());
-                customerDetailsResponse.getCustomerExtraData().setLineOfBusiness(customerInformationResponse.getLineOfBusiness());
+//                customerDetailsResponse.getCustomerExtraData().setLineOfBusiness(customerInformationResponse.getLineOfBusiness());
 
                 detailAddress.setZipCode(accountListResponse.getZipcode());
                 customerDetailsResponse.setResidenceCountry(customerInformationResponse.getNationality());
@@ -157,7 +155,7 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
                 _data.setStatus("Success");
                 _data.setDelivery_date(new Date());
                 _data.setUpdated_date(new Date());
-
+                dataDTO.save(_data);
 
                 publisher.PublishMessage(responseXml, message.getJMSCorrelationID());
 
@@ -166,9 +164,9 @@ public class CustomerDetailMessageListener implements CustomMessageListener {
                 _data.setDelivery_date(new Date());
                 _data.setUpdated_date(new Date());
 
-                System.out.println(e.getMessage());
+                log.error(e.getMessage());
             } catch (JsonProcessingException e) {
-                System.out.println(e.getMessage());
+                log.error(e.getMessage());
             }
 
             dataDTO.save(_data);

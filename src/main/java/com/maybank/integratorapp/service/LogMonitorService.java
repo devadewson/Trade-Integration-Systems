@@ -44,6 +44,9 @@ public class LogMonitorService {
             registerLogFile(i, logPath+file, _logName);
             i++;
         }
+        
+        
+        registerLogFile(i,logPath.replace("jobs/logs/","")+"app.log","INTG_App");
     }
 
     private void registerLogFile(int id, String path, String name) {

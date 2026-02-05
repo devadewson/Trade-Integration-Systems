@@ -7,6 +7,8 @@ import com.maybank.integratorapp.data.entity.MsTBRMapping;
 import com.maybank.integratorapp.data.repository.MsParameterRepository;
 import com.maybank.integratorapp.data.service.FtiAccountTypeService;
 import com.maybank.integratorapp.data.service.MsParameterService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +25,7 @@ import java.util.Optional;
 @Controller
 @RequestMapping("/parameter")
 public class ParameterController {
+    private static Logger log = LoggerFactory.getLogger(ParameterController.class);
     @Autowired
     MsParameterService parameterService;
     @Autowired

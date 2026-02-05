@@ -2,6 +2,8 @@ package com.maybank.integratorapp.controller;
 
 import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.service.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -12,12 +14,14 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/tbr")
 public class TBRController {
-
+    private static Logger log = LoggerFactory.getLogger(TBRController.class);
     @Autowired
     private MsTBRService tbrService;
 
@@ -67,6 +71,11 @@ public class TBRController {
         List<MsTBRMapping> mappings = mappingService.findByTBRId(id);
         List<MsAccountType> accountTypes = accountTypeService.findAll();
         List<MsTBRField> fields = msTBRFieldService.findByTBRId(id);
+        // Group by MappingType
+        Map<String, List<MsTBRMapping>> groupedByMappingType = mappings.stream()
+                .collect(Collectors.groupingBy(MsTBRMapping::getMappingType));
+
+        model.addAttribute("groupedMappings", groupedByMappingType);
 
         model.addAttribute("tbr", tbr);
         model.addAttribute("mappings", mappings);

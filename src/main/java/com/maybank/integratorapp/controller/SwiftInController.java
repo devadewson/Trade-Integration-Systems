@@ -18,6 +18,8 @@ import com.maybank.integratorapp.model.mq.swiftin.response.ServiceRequest;
 import com.maybank.integratorapp.data.service.MsQueueConfigService;
 import com.maybank.integratorapp.util.MQUtil;
 import io.swagger.v3.oas.annotations.Hidden;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +35,8 @@ import java.util.Map;
 @Hidden // Hides the entire controller
 @RestController
 public class SwiftInController {
+    private static Logger log = LoggerFactory.getLogger(SwiftInController.class);
+
     @Autowired
     MsQueueConfigService queueConfigService;
     @Autowired
@@ -72,9 +76,15 @@ public class SwiftInController {
                 fileContents.forEach((fileName, content) -> {
                     String date = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date());
                     String correlationId = "SwiftIn_"+date+"_"+MQUtil.generateRandomString(6);
+                    String swiftMessage = String.join("\n", content).trim();
+                    if(swiftIn.isIncoming(swiftMessage)){
+                        log.info("Incoming Swift");
+                        swiftMessage = swiftIn.removeHeaderAck(swiftMessage);
+                    }
+
 
                     ServiceRequest response = new ServiceRequest();
-                    response.getSwiftIn().setMessage(String.join("\n", content));
+                    response.getSwiftIn().setMessage(swiftMessage);
                     response.setRequestHeader(new RequestHeader());
                     response.getRequestHeader().setCorrelationID(correlationId);
                     response.getRequestHeader().setService("TI");

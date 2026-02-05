@@ -16,10 +16,12 @@ public class LogQueueData {
     private String origin;
     private String messageUID;
     private String correlationID;
-    @Column(columnDefinition = "TEXT")
+    private String relatedTransRef;
+
+    @Column(columnDefinition = "NVARCHAR(MAX)")
     private String reqMessage;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "NVARCHAR(MAX)")
     private String resMessage;
     private String status;
     private Date created_date;
@@ -27,6 +29,14 @@ public class LogQueueData {
     private Date updated_date;
     private String status_info;
     private String destination;
+
+    public String getRelatedTransRef() {
+        return relatedTransRef;
+    }
+
+    public void setRelatedTransRef(String relatedTransRef) {
+        this.relatedTransRef = relatedTransRef;
+    }
 
     public String getDestination() {
         return destination;

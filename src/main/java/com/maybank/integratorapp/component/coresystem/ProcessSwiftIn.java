@@ -19,6 +19,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 public class ProcessSwiftIn {
@@ -29,7 +31,22 @@ public class ProcessSwiftIn {
     
     @Autowired
     LogInterfaceProcessService logger;
-    
+    public String removeHeaderAck(String swiftMessage) {
+        // Define the pattern to match the header ACK tag
+        String headerAckPattern = "\\{1:F21[^}]*\\}\\{4:\\{177:[^}]*\\}\\{451:[^}]*\\}\\}";
+
+        // Remove the header ACK tag
+        String cleanedMessage = swiftMessage.replaceFirst(headerAckPattern, "");
+
+        return cleanedMessage.trim();
+    }
+    public boolean isIncoming(String swiftMessage) {
+        // Check for incoming pattern in basic header block 1
+        Pattern incomingPattern = Pattern.compile("\\{2:O[0-9]{2}[A-Z0-9]{12}");
+        Matcher matcher = incomingPattern.matcher(swiftMessage);
+
+        return matcher.find();
+    }
     public Map<String, List<String>> getFileContent(Long loggerId){
 //        Path folderPath = Paths.get("D:\\Agung\\Projects\\BankTrade Trade Transformation\\IntegrationList");
         Map<String, List<String>> fileContents = new HashMap<>();
@@ -37,10 +54,10 @@ public class ProcessSwiftIn {
         try {
 
             // Sftp Config
-//            String sftpHost = repo.findValueByPrmKey("FTISwiftInSftpAddress");
-//            String sftpUsername = repo.findValueByPrmKey("SwiftInSftpUsername");
-//            String sftpPassword = repo.findValueByPrmKey("SwiftInSftpPassword");
-//            String sftpPath = repo.findValueByPrmKey("SwiftInSftpPath");
+//            String sftpHost = msParameterService.findValueByPrmKey("FTISwiftInSftpAddress");
+//            String sftpUsername = msParameterService.findValueByPrmKey("SwiftInSftpUsername");
+//            String sftpPassword = msParameterService.findValueByPrmKey("SwiftInSftpPassword");
+//            String sftpPath = msParameterService.findValueByPrmKey("SwiftInSftpPath");
             String localpath = repo.findValueByPrmKey("SwiftInLocalPath");
 
             String sftpHost = repo.findValueByPrmKey("FTISwiftInSftpAddress");
@@ -92,7 +109,7 @@ public class ProcessSwiftIn {
             File folder = new File(completeBackupPath);
             if (!folder.exists()) {
                 if (folder.mkdirs()) {
-                    System.out.println("Folder created successfully.");
+                    log.info("Folder created successfully.");
                 }
             }
             Path sourceDir = Paths.get(localpath);
@@ -105,7 +122,7 @@ public class ProcessSwiftIn {
                         Files.move(file, targetPath, StandardCopyOption.REPLACE_EXISTING);
                         logger.Log(loggerId,"SwiftIn - Backup Files","File Moved to backup folder","BACKUP",file.getFileName().toString());
 
-                        System.out.println("Moved: " + file.getFileName() + " to " + targetPath);
+                        log.info("Moved: " + file.getFileName() + " to " + targetPath);
                     }
                 }
             } catch (IOException e) {

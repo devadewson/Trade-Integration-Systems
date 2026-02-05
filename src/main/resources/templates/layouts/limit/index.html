@@ -13,10 +13,18 @@
         <div class="card-body">
             <!-- Search Box -->
             <form th:action="@{/limit}" method="get" class="mb-4">
-                <div class="input-group">
-                    <input type="text" name="search" th:value="${search}" class="form-control" placeholder="Search by CIF No">
-                    <button type="submit" class="btn btn-primary">Search</button>
+                <div class="mb-3 row">
+                    <div class="col-sm-6">
+                        <input type="text" name="search" th:value="${search}" class="form-control" placeholder="Search by CIF No">
+                    </div>
                 </div>
+                <div class="mb-3 row">
+                    <div class="col-sm-6">
+                        <input type="text" name="facility" th:value="${facility}" class="form-control" placeholder="Search in Facility or Reservation">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Search</button>
+
             </form>
         </div>
     </div>
@@ -47,34 +55,34 @@
                 <ul class="pagination">
                     <!-- Previous Button -->
                     <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
-                        <a class="page-link" th:href="@{/limit(page=1, size=${limitPage.size}, search=${search})}">First</a>
+                        <a class="page-link" th:href="@{/limit(page=1, size=${limitPage.size}, search=${search}, facility=${facility})}">First</a>
                     </li>
                     <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
-                        <a class="page-link" th:href="@{/limit(page=${currentPage - 1}, size=${limitPage.size}, search=${search})}">Previous</a>
+                        <a class="page-link" th:href="@{/limit(page=${currentPage - 1}, size=${limitPage.size}, search=${search}, facility=${facility})}">Previous</a>
                     </li>
 
                     <!-- "<< Previous 10 Pages" Button (Shows only if not on first 10 pages) -->
                     <li class="page-item" th:if="${currentPage > 10}">
-                        <a class="page-link" th:href="@{/limit(page=${(currentPage - 10)}, size=${limitPage.size}, search=${search})}"><<</a>
+                        <a class="page-link" th:href="@{/limit(page=${(currentPage - 10)}, size=${limitPage.size}, search=${search}, facility=${facility})}"><<</a>
                     </li>
 
                     <!-- Page Numbers (Limited to current range, e.g., 1-10, 11-20, etc.) -->
                     <li th:each="page : ${#numbers.sequence(T(java.lang.Math).max(1, (currentPage - 5)),T(java.lang.Math).min(currentPage + 4, limitPage.totalPages))}"
                         class="page-item" th:classappend="${page == currentPage} ? 'active'">
-                        <a class="page-link" th:href="@{/limit(page=${page}, size=${limitPage.size}, search=${search})}" th:text="${page}"></a>
+                        <a class="page-link" th:href="@{/limit(page=${page}, size=${limitPage.size}, search=${search}, facility=${facility})}" th:text="${page}"></a>
                     </li>
 
                     <!-- ">> Next 10 Pages" Button (Shows only if more pages exist) -->
                     <li class="page-item" th:if="${(currentPage + 10) <= limitPage.totalPages}">
-                        <a class="page-link" th:href="@{/limit(page=${(currentPage + 10)}, size=${limitPage.size}, search=${search})}">>></a>
+                        <a class="page-link" th:href="@{/limit(page=${(currentPage + 10)}, size=${limitPage.size}, search=${search}, facility=${facility})}">>></a>
                     </li>
 
                     <!-- Next Button -->
                     <li class="page-item" th:classappend="${currentPage == limitPage.totalPages} ? 'disabled'">
-                        <a class="page-link" th:href="@{/limit(page=${currentPage + 1}, size=${limitPage.size}, search=${search})}">Next</a>
+                        <a class="page-link" th:href="@{/limit(page=${currentPage + 1}, size=${limitPage.size}, search=${search}, facility=${facility})}">Next</a>
                     </li>
                     <li class="page-item" th:classappend="${currentPage == limitPage.totalPages} ? 'disabled'">
-                        <a class="page-link" th:href="@{/limit(page=${limitPage.totalPages}, size=${limitPage.size}, search=${search})}">Last</a>
+                        <a class="page-link" th:href="@{/limit(page=${limitPage.totalPages}, size=${limitPage.size}, search=${search}, facility=${facility})}">Last</a>
                     </li>
                 </ul>
             </nav>

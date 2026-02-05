@@ -14,6 +14,8 @@ import com.maybank.integratorapp.model.mq.batchposting.request.ServiceRequest;
 import com.maybank.integratorapp.model.mq.accountinquiry.response.ServiceResponse;
 import com.maybank.integratorapp.util.MQUtil;
 import jakarta.jms.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -25,6 +27,7 @@ import java.util.List;
 
 @Component
 public class BatchPostingMessageListener implements CustomMessageListener {
+    private static Logger log = LoggerFactory.getLogger(BatchPostingMessageListener.class);
     @Autowired
     private LogQueueDataRepository dataDTO;
     @Autowired
@@ -46,7 +49,7 @@ public class BatchPostingMessageListener implements CustomMessageListener {
             LogQueueData _data = new LogQueueData();
             String correlationId = "";
             try {
-                System.out.println("Batch Posting Listener Received : "+message.getJMSCorrelationID());
+                log.info("Batch Posting Listener Received : "+message.getJMSCorrelationID());
 //                System.out.println(message.getBody(String.class));
                 correlationId = message.getJMSCorrelationID();
                 if(dataDTO.findByCorrelationId(correlationId)!= null){
@@ -62,6 +65,7 @@ public class BatchPostingMessageListener implements CustomMessageListener {
                 _data.setOrigin("MQ_"+sourceQueue.getQueueName());
                 _data.setMessageUID(new MQUtil().getMessageUID());
                 _data.setReqMessage(_message);
+                _data.setRelatedTransRef(MQUtil.findTransRef(_data.getOrigin(),_message));
                 _data.setCreated_date(new Date());
                 _data.setCorrelationID(message.getJMSCorrelationID());
 //                message.setJMSRedelivered(false);
@@ -84,9 +88,6 @@ public class BatchPostingMessageListener implements CustomMessageListener {
                 request.getBatchRequest().getServiceRequestChild().forEach(s->
                         _postings.add(s.getPosting())
                         );
-                if(_postings.get(0).getDebitCreditFlag().equals("C")){
-                    Collections.reverse(_postings);
-                }
 
 
                 processCompositeTBR.doPosting(_postings,_data.getId());

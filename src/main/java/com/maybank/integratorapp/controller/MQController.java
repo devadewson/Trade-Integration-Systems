@@ -8,6 +8,8 @@ import com.maybank.integratorapp.data.entity.*;
 import com.maybank.integratorapp.data.repository.MsQueueConfigRepository;
 import com.maybank.integratorapp.data.service.LogInterfaceProcessService;
 import com.maybank.integratorapp.data.service.LogQueueDataService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Controller;
@@ -26,7 +28,7 @@ import java.util.stream.Collectors;
 
 @Controller
 public class MQController {
-
+    private static Logger log = LoggerFactory.getLogger(MQController.class);
     @Autowired
     private MsQueueConfigRepository queueConfigRepository;
     @Autowired
@@ -76,130 +78,6 @@ public class MQController {
         // Redirect to avoid circular view error
         return "layouts/sandbox/index"; // Use the new view name here
     }
-    @PostMapping("/queuecheck")
-    public String queuecheck(@RequestParam("MQAddress") String MQAddress,
-                             @RequestParam("MQPort") String MQPort,
-                             @RequestParam("MQManager") String MQManager,
-                             @RequestParam("MQChannel") String MQChannel,
-                             @RequestParam("MQUsername") String MQUsername,
-                             @RequestParam("MQPassword") String MQPassword,
-                             @RequestParam("MQQueueName") String MQQueueName,
-                             @RequestParam("message") String message,
-                             @RequestParam("correlationId") String correlationId,
-                             Model model){
-
-
-
-
-        MQQueueManager queueManager = null;
-        MQQueue queue = null;
-        List<LogQueueData> queueMessages = new ArrayList<>();
-
-        try {
-            // Set MQ environment properties
-            MQEnvironment.hostname = MQAddress;
-            MQEnvironment.port = Integer.parseInt(MQPort);
-            MQEnvironment.channel = MQChannel;
-            MQEnvironment.userID = MQUsername;
-            MQEnvironment.password = MQPassword;
-//            MQEnvironment.disableTracing ();
-//            MQException.log = null;
-            // Create MQ connection to the queue manager
-            queueManager = new MQQueueManager(MQManager);
-            // Get a list of queues (You can also specify specific queue names here)
-
-            int openOptions = CMQC.MQOO_BROWSE | CMQC.MQOO_INQUIRE | CMQC.MQOO_INPUT_AS_Q_DEF | CMQC.MQOO_FAIL_IF_QUIESCING;
-            try {
-                queue = queueManager.accessQueue(MQQueueName, openOptions);
-                // Get current depth (number of messages)
-                int depth = queue.getCurrentDepth();
-
-                // Retrieve messages from the queue
-                MQGetMessageOptions gmo = new MQGetMessageOptions();
-                gmo.options = CMQC.MQGMO_BROWSE_FIRST | CMQC.MQGMO_ALL_MSGS_AVAILABLE | CMQC.MQGMO_NO_WAIT | CMQC.MQGMO_FAIL_IF_QUIESCING;
-
-                MQMessage mqMessage = new MQMessage();
-                LogQueueData data = new LogQueueData();
-
-                int i = 0;
-                while(true){
-                    i++;
-                    try {
-                        // Attempt to get a message without waiting
-                        queue.get(mqMessage, gmo);
-                        byte[] correlationIdByte = mqMessage.correlationId;
-                        String msgCorrelationId = new String(correlationIdByte, "UTF-8").trim();
-                        GregorianCalendar msgPutDateTime = mqMessage.putDateTime;
-                        String msgContent = mqMessage.readStringOfByteLength(mqMessage.getMessageLength());
-
-                        data.setId((long) i);
-                        data.setCorrelationID(msgCorrelationId);
-                        data.setCreated_date(msgPutDateTime.getTime());
-                        data.setResMessage(msgContent);
-
-                        queueMessages.add(data);
-                        // Move to the next message in the queue
-//                        gmo.options = CMQC.MQGMO_BROWSE_NEXT | CMQC.MQGMO_NO_WAIT | CMQC.MQGMO_FAIL_IF_QUIESCING;
-
-                    } catch (MQException e) {
-                        if (e.reasonCode == CMQC.MQRC_NO_MSG_AVAILABLE) {
-                            System.out.println("No more messages available in the queue.");
-                        } else {
-                            System.err.println("Error reading message from queue: " + e.getMessage());
-                        }
-                        break;
-                    } catch (EOFException e) {
-                        throw new RuntimeException(e);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-
-                // Add the messages to the model
-                model.addAttribute("queueMessages", queueMessages);
-
-                System.out.printf("Queue: %s, Message Count: %d%n", MQQueueName, depth);
-            } catch (MQException e) {
-                System.err.printf("Error accessing queue %s: %s%n", MQQueueName, e.getMessage());
-            }
-
-            // Disconnect from the queue manager
-            queueManager.disconnect();
-        } catch (MQException e) {
-            System.err.printf("Error connecting to queue manager: %s%n", e.getMessage());
-        }
-        finally {
-            // Close the queue and disconnect the queue manager
-            try {
-                if (queue != null) {
-                    queue.close();
-                    System.out.println("Queue closed successfully.");
-                }
-            } catch (MQException e) {
-                System.err.println("Error closing queue: " + e.getMessage());
-            }
-
-            try {
-                if (queueManager != null && queueManager.isConnected()) {
-                    queueManager.disconnect();
-                    System.out.println("Queue manager disconnected successfully.");
-                }
-            } catch (MQException e) {
-                System.err.println("Error disconnecting queue manager: " + e.getMessage());
-            }
-
-            // Reset MQEnvironment to default values
-            MQEnvironment.hostname = null;
-            MQEnvironment.port = 0;
-            MQEnvironment.channel = null;
-            MQEnvironment.userID = null;
-            MQEnvironment.password = null;
-            System.out.println("MQEnvironment reset to default values.");
-        }
-
-        return "layouts/sandbox/queuecheck";
-    }
-
     @GetMapping("/log-queue")
     public String getAllLogQueue(
             @RequestParam("page") Optional<Integer> page,
@@ -258,37 +136,40 @@ public class MQController {
         LogQueueData logQueueData = logQueueDataService.findById(id).get();
         List<LogInterfaceProcess> details = logInterfaceProcessService.getLogsByParentId(id);
 
-
         String relatedTransaction = "";
         String relatedLink = "/transactions?search=";
-        if(logQueueData.getReqMessage().contains("<reference>")){
-            Pattern pattern = Pattern.compile("<reference>(.*?)</reference>");
-            Matcher matcher = pattern.matcher(logQueueData.getReqMessage());
+        if(logQueueData.getReqMessage() !=null){
 
-            if (matcher.find()) {
-                relatedTransaction = matcher.group(1);
-                relatedLink+= relatedTransaction;
+            if(logQueueData.getReqMessage().contains("<reference>")){
+                Pattern pattern = Pattern.compile("<reference>(.*?)</reference>");
+                Matcher matcher = pattern.matcher(logQueueData.getReqMessage());
+
+                if (matcher.find()) {
+                    relatedTransaction = matcher.group(1);
+                    relatedLink+= relatedTransaction;
+                }
+
+            }else if(logQueueData.getReqMessage().contains("MasterReference>")){
+                Pattern pattern = Pattern.compile("<[^:>]+:MasterReference>(.*?)</[^:>]+:MasterReference>");
+                Matcher matcher = pattern.matcher(logQueueData.getReqMessage());
+
+                if (matcher.find()) {
+                    relatedTransaction = matcher.group(1);
+                    relatedLink+= relatedTransaction;
+                }
+
             }
+            else if(logQueueData.getOrigin().contains("swiftOutgoing")){
+                String text = logQueueData.getReqMessage();
+                int startIndex = text.indexOf(":20:") + 4; // `+4` to skip `:20:`
+                int endIndex = text.indexOf("\n", startIndex); // Find the next newline
 
-        }else if(logQueueData.getReqMessage().contains("MasterReference>")){
-            Pattern pattern = Pattern.compile("<[^:>]+:MasterReference>(.*?)</[^:>]+:MasterReference>");
-            Matcher matcher = pattern.matcher(logQueueData.getReqMessage());
+                if (startIndex >= 4 && endIndex != -1) {
+                    relatedTransaction = text.substring(startIndex, endIndex).trim();
 
-            if (matcher.find()) {
-                relatedTransaction = matcher.group(1);
-                relatedLink+= relatedTransaction;
-            }
+                    relatedLink+= relatedTransaction;
+                }
 
-        }
-        else if(logQueueData.getOrigin().contains("swiftOutgoing")){
-            String text = logQueueData.getReqMessage();
-            int startIndex = text.indexOf(":20:") + 4; // `+4` to skip `:20:`
-            int endIndex = text.indexOf("\n", startIndex); // Find the next newline
-
-            if (startIndex >= 4 && endIndex != -1) {
-                relatedTransaction = text.substring(startIndex, endIndex).trim();
-
-                relatedLink+= relatedTransaction;
             }
 
         }

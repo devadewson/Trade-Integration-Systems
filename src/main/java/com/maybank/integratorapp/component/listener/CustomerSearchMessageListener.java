@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.maybank.integratorapp.component.CustomMessageListener;
 import com.maybank.integratorapp.component.MessagePublisher;
-import com.maybank.integratorapp.component.coresystem.ProcessCostumerSearch;
 import com.maybank.integratorapp.component.system.messageprocessor.CustomerSearchMessageProcessor;
 import com.maybank.integratorapp.data.entity.LogQueueData;
 import com.maybank.integratorapp.data.entity.MsQueueConfig;
@@ -21,6 +20,8 @@ import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.Queue;
 import jakarta.jms.TextMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -33,7 +34,7 @@ import java.util.List;
 
 @Component
 public class CustomerSearchMessageListener implements CustomMessageListener {
-
+    private static Logger log = LoggerFactory.getLogger(CustomerSearchMessageListener.class);
     @Autowired
     private LogQueueDataRepository dataDTO;
 
@@ -47,9 +48,6 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
     }
 
     private MessagePublisher publisher;
-
-    @Autowired
-    private ProcessCostumerSearch processCustomerSearch;
 
     @Autowired
     private CustomerSearchMessageProcessor messageProcessor;
@@ -80,94 +78,14 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
             throw new RuntimeException(e);
         }
     }
-    private void processMessageOld(TextMessage message) {
-        ServiceResponse response = new ServiceResponse();
-        LogQueueData logData = new LogQueueData();
-
-        try {
-            initializeLogData(logData, message);
-            System.out.println("Customer Search Listener Received : "+message.getJMSCorrelationID());
-            System.out.println(message.getBody(String.class));
-
-            String correlationId = message.getJMSCorrelationID();
-            if(dataDTO.findByCorrelationId(correlationId)!= null){
-                message.acknowledge();
-                return;
-            }
-            //new logic, if the Operation Tag is CustomerDetails, forward the message to another queues
-            if(message.getText().contains("<Operation>CustomerDetails</Operation>")){
-                forwardMessage(message);
-                message.acknowledge();
-                return;
-            }
-            ServiceRequest request = parseRequest(message);
-
-            String customerNumber = request.getCustomerSearchRequest().getCustomerNumber();
-            if(customerNumber == null){
-                Details detailsResponse = new Details();
-                detailsResponse.setError("GCIF Is Empty");
-                response.getResponseHeader().setDetails(detailsResponse);
-                response.getResponseHeader().setStatus("FAILED");
-
-            }else{
-                String tagCustomer = request.getCustomerSearchRequest().getIncludeCustomers();
-                String tagBank = request.getCustomerSearchRequest().getIncludeBanks();
-
-                //check 2 tag ini, hanya 1 yang boleh Y
-//            <ns2:IncludeCustomers>Y</ns2:IncludeCustomers>
-//            <ns2:IncludeBanks>Y</ns2:IncludeBanks>
-                // save 2 tag ini ke db
-                if(!tagCustomer.equals(tagBank)){
-
-//            String customerNumber = request.getCustomerSearchRequest().getCustomerMnemonic()
-                    CustomerSearchResult customerSearchResultResponse = processCustomerSearch.getCustomerSearchResult(customerNumber,tagCustomer,tagBank);
-                    // Set CustomerSearchResult ke dalam CustomerSearchResults
-                    List<CustomerSearchResult> results = new ArrayList<>();
-                    results.add(customerSearchResultResponse);
-                    response.getCustomerSearchResponse().getCustomerSearchResults().setCustomerSearchResult(results);
-                    response.getResponseHeader().setStatus("SUCCEEDED");
-
-                }else{
-                    Details detailsResponse = new Details();
-                    detailsResponse.setError("Please Check Only One, Bank=Y or Corporate=Y");
-                    response.getResponseHeader().setDetails(detailsResponse);
-                    response.getResponseHeader().setStatus("FAILED");
-                }
-            }
-
-            setInitialResponseHeader(response, request);
-
-            //Send Response To QUEUE Response
-            XmlMapper xmlMapper = new XmlMapper();
-            xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-            String responseXml = xmlMapper.writeValueAsString(response);
-
-            publisher.PublishMessage(responseXml, message.getJMSCorrelationID());
-
-
-            logData.setStatus("Success");
-            logData.setResMessage(responseXml);
-            logData.setDelivery_date(new Date());
-            logData.setUpdated_date(new Date());
-
-            message.acknowledge();
-
-        } catch (JMSException | JsonProcessingException e) {
-            handleException(e, response, logData);
-        }
-
-        dataDTO.save(logData);
-
-    }
-
     private void processMessage(TextMessage message) {
         ServiceResponse response = new ServiceResponse();
         LogQueueData logData = new LogQueueData();
 
         try {
             initializeLogData(logData, message);
-            System.out.println("Customer Search Listener Received : "+message.getJMSCorrelationID());
-            System.out.println(message.getBody(String.class));
+            log.info("Customer Search Listener Received : "+message.getJMSCorrelationID());
+//            System.out.println(message.getBody(String.class));
 
             String correlationId = message.getJMSCorrelationID();
             if(dataDTO.findByCorrelationId(correlationId)!= null){
@@ -239,13 +157,13 @@ public class CustomerSearchMessageListener implements CustomMessageListener {
         String errorMsg;
 
         if (e instanceof JMSException) {
-            System.out.println(e.getMessage());
+            log.error(e.getMessage());
         } else if (e instanceof JsonMappingException) {
-            System.out.println(e.getMessage());
+            log.error(e.getMessage());
         } else if (e instanceof JsonProcessingException) {
-            System.out.println(e.getMessage());
+            log.error(e.getMessage());
         } else {
-            System.out.println(e.getMessage());
+            log.error(e.getMessage());
         }
 
         response.getResponseHeader().setStatus("Error");

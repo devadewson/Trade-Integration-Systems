@@ -130,7 +130,7 @@ public class Posting {
     @JacksonXmlProperty(localName = "SettlementAccountPartyAccount", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String settlementAccountPartyAccount;
     @JacksonXmlProperty(localName = "SettlementAccountPartyCustId", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
-    private String settlementAccountPartyCustID;
+    private String settlementAccountPartyCustId;
     @JacksonXmlProperty(localName = "SettlementAccountPartyBIC", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
     private String settlementAccountPartyBIC;
     @JacksonXmlProperty(localName = "SettlementAccountPartyAddress", namespace = "urn:messages.service.ti.apps.tiplus2.misys.com")
@@ -509,8 +509,8 @@ public class Posting {
     public String getSettlementAccountPartyAccount() { return settlementAccountPartyAccount; }
     public void setSettlementAccountPartyAccount(String value) { this.settlementAccountPartyAccount = value; }
 
-    public String getSettlementAccountPartyCustID() { return settlementAccountPartyCustID; }
-    public void setSettlementAccountPartyCustID(String value) { this.settlementAccountPartyCustID = value; }
+    public String getSettlementAccountPartyCustId() { return settlementAccountPartyCustId; }
+    public void setSettlementAccountPartyCustId(String value) { this.settlementAccountPartyCustId = value; }
 
     public String getSettlementAccountPartyBIC() { return settlementAccountPartyBIC; }
     public void setSettlementAccountPartyBIC(String value) { this.settlementAccountPartyBIC = value; }
