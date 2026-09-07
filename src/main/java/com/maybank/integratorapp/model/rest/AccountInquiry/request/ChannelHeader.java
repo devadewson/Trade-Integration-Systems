@@ -12,6 +12,7 @@ public class ChannelHeader {
     @JsonProperty("channelID")
     private String channelID;
 
+
     @JsonProperty("clientSupervisorID")
     private String clientSupervisorID;
 
